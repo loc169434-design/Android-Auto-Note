@@ -2,10 +2,14 @@
 <resources>
     <string name="app_name">Auto Note</string>
 
-    <!-- Widget descriptions -->
+    <!-- Widget titles & descriptions -->
+    <string name="widget_quick_record_title">Ghi âm nhanh</string>
     <string name="widget_quick_record_desc">Ghi chú nhanh bằng giọng nói</string>
+    <string name="widget_recent_notes_title">Ghi chú gần đây</string>
     <string name="widget_recent_notes_desc">Hiển thị các ghi chú gần đây</string>
+    <string name="widget_stats_title">Thống kê nhanh</string>
     <string name="widget_stats_desc">Thống kê ghi chú</string>
+    <string name="widget_open_notes_title">Mở ghi chú</string>
     <string name="widget_open_notes_desc">Mở xem tất cả ghi chú</string>
 
     <!-- Recording -->
