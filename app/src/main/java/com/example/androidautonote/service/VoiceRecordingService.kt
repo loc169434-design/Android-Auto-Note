@@ -18,6 +18,7 @@ import android.speech.SpeechRecognizer
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.example.androidautonote.R
+import com.example.androidautonote.util.ThemePreferences
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -43,8 +44,8 @@ class VoiceRecordingService : Service() {
         const val ACTION_PAUSE = "ACTION_PAUSE"
         const val ACTION_RESUME = "ACTION_RESUME"
 
-        // Auto-stop after 15 seconds of no new speech detected
-        private const val IDLE_TIMEOUT_MS = 15_000L
+        // Default fallback timeout (overridden by preferences)
+        private const val DEFAULT_IDLE_TIMEOUT_MS = 30_000L
     }
 
     // Binder for Activity to observe state
@@ -184,7 +185,12 @@ class VoiceRecordingService : Service() {
             Log.d(TAG, "Idle timeout reached — auto-stopping and saving")
             triggerAutoSave()
         }
-        handler.postDelayed(idleTimeoutRunnable!!, IDLE_TIMEOUT_MS)
+        val timeoutMs = try {
+            ThemePreferences.autoStopSeconds.value * 1000L
+        } catch (e: Exception) {
+            DEFAULT_IDLE_TIMEOUT_MS
+        }
+        handler.postDelayed(idleTimeoutRunnable!!, timeoutMs)
     }
 
     private fun cancelIdleTimeout() {
@@ -233,7 +239,11 @@ class VoiceRecordingService : Service() {
                 RecognizerIntent.EXTRA_LANGUAGE_MODEL,
                 RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
             )
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE, "vi-VN")
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE, try {
+                ThemePreferences.recognitionLanguage.value.locale
+            } catch (e: Exception) {
+                "vi-VN"
+            })
             putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
             putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1)
             putExtra(

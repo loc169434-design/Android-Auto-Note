@@ -1,11 +1,15 @@
 package com.example.androidautonote.ui.recording
 
+import androidx.compose.animation.core.EaseInOut
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -19,6 +23,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -41,22 +46,28 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.androidautonote.service.VoiceRecordingService
 import com.example.androidautonote.util.DateUtils
+import kotlin.math.PI
+import kotlin.math.sin
 
 /**
- * Recording dialog UI.
- *
- * Key change: No Save button. Mic auto-saves when:
- * - User presses Stop button (manual stop → auto-save)
- * - Idle timeout (15s no speech → auto-save)
- * Cancel button discards the recording.
+ * Recording dialog UI — redesigned with waveform animation,
+ * glowing red mic button, and polished controls.
  */
 @Composable
 fun RecordingScreen(
@@ -78,10 +89,10 @@ fun RecordingScreen(
     val seconds by (service?.recordingSeconds
         ?: kotlinx.coroutines.flow.MutableStateFlow(0)).collectAsState()
 
+    val isActive = isListening && !isPaused
+
     val displayText = buildString {
-        if (recognizedText.isNotBlank()) {
-            append(recognizedText)
-        }
+        if (recognizedText.isNotBlank()) append(recognizedText)
         if (partialText.isNotBlank()) {
             if (isNotBlank()) append(". ")
             append(partialText)
@@ -100,16 +111,16 @@ fun RecordingScreen(
     ) {
         Card(
             modifier = Modifier
-                .fillMaxWidth(0.9f)
+                .fillMaxWidth(0.92f)
                 .clickable(
                     indication = null,
                     interactionSource = remember { MutableInteractionSource() }
-                ) { /* Block clicks from dismissing */ },
-            shape = RoundedCornerShape(24.dp),
+                ) { /* Block dismiss */ },
+            shape = RoundedCornerShape(28.dp),
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surface
             ),
-            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+            elevation = CardDefaults.cardElevation(defaultElevation = 12.dp)
         ) {
             Column(
                 modifier = Modifier
@@ -117,7 +128,7 @@ fun RecordingScreen(
                     .fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Header
+                // === Header ===
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -125,64 +136,69 @@ fun RecordingScreen(
                 ) {
                     Text(
                         text = "Ghi chú nhanh",
-                        style = MaterialTheme.typography.titleMedium
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
                     )
                     IconButton(onClick = onCancel) {
                         Icon(Icons.Default.Close, contentDescription = "Đóng")
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
-                // Recording indicator
-                RecordingIndicator(isListening = isListening && !isPaused)
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // Timer
+                // === Timer ===
                 Text(
                     text = DateUtils.formatDuration(seconds),
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = if (isListening && !isPaused) {
+                    style = MaterialTheme.typography.displaySmall,
+                    fontWeight = FontWeight.Bold,
+                    color = if (isActive) {
                         MaterialTheme.colorScheme.error
                     } else {
                         MaterialTheme.colorScheme.onSurface
-                    }
-                )
-
-                // Status text
-                Text(
-                    text = when {
-                        !isBound -> "Đang khởi tạo..."
-                        isPaused -> "Tạm dừng"
-                        isListening -> "Đang nghe... (tự lưu khi dừng nói)"
-                        else -> "Sẵn sàng"
                     },
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center
+                    letterSpacing = 2.sp
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Recognized text display
+                // === Waveform + Mic button ===
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(150.dp)
+                        .height(120.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    // Animated waveform behind mic
+                    AudioWaveform(
+                        isActive = isActive,
+                        modifier = Modifier.fillMaxSize()
+                    )
+
+                    // Glowing mic button
+                    GlowingMicButton(isActive = isActive)
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // === Text display area ===
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(130.dp)
                         .background(
-                            MaterialTheme.colorScheme.surfaceVariant,
-                            RoundedCornerShape(12.dp)
+                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                            RoundedCornerShape(16.dp)
                         )
-                        .padding(12.dp)
+                        .padding(14.dp)
                         .verticalScroll(rememberScrollState())
                 ) {
                     if (displayText.isBlank()) {
                         Text(
-                            text = "Nội dung sẽ hiển thị ở đây...",
+                            text = "Văn bản đang được ghi âm...",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                            fontStyle = FontStyle.Italic
+                            fontStyle = FontStyle.Italic,
+                            modifier = Modifier.align(Alignment.Center)
                         )
                     } else {
                         Text(
@@ -194,133 +210,308 @@ fun RecordingScreen(
                     }
                 }
 
+                // === Status text ===
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = when {
+                        !isBound -> "Đang khởi tạo..."
+                        isPaused -> "⏸ Tạm dừng"
+                        isListening -> "🎙 Đang nghe... (tự lưu khi dừng nói)"
+                        else -> "Sẵn sàng"
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center
+                )
+
                 Spacer(modifier = Modifier.height(20.dp))
 
-                // Control buttons: Cancel / Pause-Resume / Stop (auto-save)
+                // === Control buttons ===
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceEvenly,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Cancel — discard recording
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        IconButton(
-                            onClick = onCancel,
-                            modifier = Modifier
-                                .size(48.dp)
-                                .background(
-                                    MaterialTheme.colorScheme.errorContainer,
-                                    CircleShape
-                                )
-                        ) {
-                            Icon(
-                                Icons.Default.Close,
-                                contentDescription = "Hủy",
-                                tint = MaterialTheme.colorScheme.onErrorContainer
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = "Hủy",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
+                    // Cancel
+                    ControlButton(
+                        icon = Icons.Default.Close,
+                        label = "Hủy",
+                        backgroundColor = Color(0xFFFFCDD2),
+                        iconColor = Color(0xFFC62828),
+                        size = 52,
+                        onClick = onCancel
+                    )
 
                     // Pause / Resume
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        IconButton(
-                            onClick = {
-                                if (isPaused) onResume() else onPause()
-                            },
-                            modifier = Modifier
-                                .size(56.dp)
-                                .background(
-                                    MaterialTheme.colorScheme.secondaryContainer,
-                                    CircleShape
-                                )
-                        ) {
-                            Icon(
-                                if (isPaused) Icons.Default.PlayArrow else Icons.Default.Pause,
-                                contentDescription = if (isPaused) "Tiếp tục" else "Tạm dừng",
-                                tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                                modifier = Modifier.size(28.dp)
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = if (isPaused) "Tiếp" else "Dừng",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
+                    ControlButton(
+                        icon = if (isPaused) Icons.Default.PlayArrow else Icons.Default.Pause,
+                        label = if (isPaused) "Tiếp" else "Dừng",
+                        backgroundColor = Color(0xFFE8EAF6),
+                        iconColor = Color(0xFF3949AB),
+                        size = 60,
+                        onClick = { if (isPaused) onResume() else onPause() }
+                    )
 
-                    // Stop — auto-save & close
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        IconButton(
-                            onClick = onManualStop,
-                            modifier = Modifier
-                                .size(48.dp)
-                                .background(
-                                    MaterialTheme.colorScheme.primaryContainer,
-                                    CircleShape
-                                )
-                        ) {
-                            Icon(
-                                Icons.Default.Stop,
-                                contentDescription = "Dừng & Lưu",
-                                tint = MaterialTheme.colorScheme.onPrimaryContainer
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = "Xong",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
+                    // Stop & Save
+                    ControlButton(
+                        icon = Icons.Default.Stop,
+                        label = "Xong",
+                        backgroundColor = Color(0xFFC8E6C9),
+                        iconColor = Color(0xFF2E7D32),
+                        size = 52,
+                        onClick = onManualStop
+                    )
                 }
             }
         }
     }
 }
 
+// ============================================================
+// Animated Audio Waveform
+// ============================================================
+
 @Composable
-fun RecordingIndicator(isListening: Boolean) {
-    val infiniteTransition = rememberInfiniteTransition(label = "pulse")
-    val scale by infiniteTransition.animateFloat(
-        initialValue = 1f,
-        targetValue = if (isListening) 1.3f else 1f,
+fun AudioWaveform(
+    isActive: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val infiniteTransition = rememberInfiniteTransition(label = "wave")
+
+    val phase1 by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 2 * PI.toFloat(),
         animationSpec = infiniteRepeatable(
-            animation = tween(600, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse
+            animation = tween(2000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
         ),
-        label = "pulse_scale"
+        label = "phase1"
+    )
+    val phase2 by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 2 * PI.toFloat(),
+        animationSpec = infiniteRepeatable(
+            animation = tween(1500, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "phase2"
+    )
+    val phase3 by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 2 * PI.toFloat(),
+        animationSpec = infiniteRepeatable(
+            animation = tween(2500, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "phase3"
     )
 
-    Box(
-        modifier = Modifier
-            .size(64.dp)
-            .scale(if (isListening) scale else 1f)
-            .background(
-                if (isListening) {
-                    MaterialTheme.colorScheme.error.copy(alpha = 0.15f)
-                } else {
-                    MaterialTheme.colorScheme.surfaceVariant
-                },
-                CircleShape
-            ),
-        contentAlignment = Alignment.Center
-    ) {
-        Icon(
-            Icons.Default.Mic,
-            contentDescription = null,
-            modifier = Modifier.size(32.dp),
-            tint = if (isListening) {
-                MaterialTheme.colorScheme.error
-            } else {
-                MaterialTheme.colorScheme.onSurfaceVariant
+    val waveAlpha by animateFloatAsState(
+        targetValue = if (isActive) 1f else 0.15f,
+        animationSpec = tween(500),
+        label = "wave_alpha"
+    )
+
+    val waveAmplitude by animateFloatAsState(
+        targetValue = if (isActive) 1f else 0.2f,
+        animationSpec = tween(500),
+        label = "wave_amp"
+    )
+
+    Canvas(modifier = modifier.alpha(waveAlpha)) {
+        val centerY = size.height / 2f
+        val width = size.width
+
+        // Wave colors — purple/blue gradient like the reference image
+        val waveColors = listOf(
+            Color(0xFF7C4DFF).copy(alpha = 0.4f),  // Deep purple
+            Color(0xFF448AFF).copy(alpha = 0.3f),  // Blue
+            Color(0xFFB388FF).copy(alpha = 0.25f)  // Light purple
+        )
+
+        val phases = listOf(phase1, phase2, phase3)
+        val amplitudes = listOf(30f, 22f, 18f)
+        val frequencies = listOf(1.5f, 2.2f, 3f)
+        val strokeWidths = listOf(3f, 2.5f, 2f)
+
+        waveColors.forEachIndexed { index, color ->
+            val path = Path()
+            val amp = amplitudes[index] * waveAmplitude
+            val freq = frequencies[index]
+            val phase = phases[index]
+
+            path.moveTo(0f, centerY)
+            for (x in 0..width.toInt() step 2) {
+                val xRatio = x / width
+                // Envelope — fade at edges, strong in center
+                val envelope = sin(xRatio * PI.toFloat()) * 1.2f
+                val y = centerY + sin(xRatio * freq * 2 * PI.toFloat() + phase) * amp * envelope
+                path.lineTo(x.toFloat(), y)
             }
+
+            drawPath(
+                path = path,
+                color = color,
+                style = Stroke(width = strokeWidths[index] * (if (isActive) 1.5f else 1f), cap = StrokeCap.Round)
+            )
+        }
+    }
+}
+
+// ============================================================
+// Glowing Mic Button with pulse rings
+// ============================================================
+
+@Composable
+fun GlowingMicButton(isActive: Boolean) {
+    val infiniteTransition = rememberInfiniteTransition(label = "glow")
+
+    // Outer pulse ring 1
+    val ring1Scale by infiniteTransition.animateFloat(
+        initialValue = 1f,
+        targetValue = if (isActive) 1.8f else 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1200, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "ring1"
+    )
+    val ring1Alpha by infiniteTransition.animateFloat(
+        initialValue = if (isActive) 0.5f else 0f,
+        targetValue = 0f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1200, easing = EaseInOut),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "ring1_alpha"
+    )
+
+    // Outer pulse ring 2 (delayed)
+    val ring2Scale by infiniteTransition.animateFloat(
+        initialValue = 1f,
+        targetValue = if (isActive) 2.2f else 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1500, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "ring2"
+    )
+    val ring2Alpha by infiniteTransition.animateFloat(
+        initialValue = if (isActive) 0.3f else 0f,
+        targetValue = 0f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1500, easing = EaseInOut),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "ring2_alpha"
+    )
+
+    // Mic button breathe
+    val micScale by infiniteTransition.animateFloat(
+        initialValue = 1f,
+        targetValue = if (isActive) 1.1f else 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(800, easing = EaseInOut),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "mic_breathe"
+    )
+
+    val micColor = if (isActive) Color(0xFFE53935) else Color(0xFF9E9E9E)
+    val micBgColor = if (isActive) Color(0xFFFFCDD2) else Color(0xFFE0E0E0)
+
+    Box(contentAlignment = Alignment.Center) {
+        // Pulse ring 2 (outer)
+        if (isActive) {
+            Box(
+                modifier = Modifier
+                    .size(72.dp)
+                    .scale(ring2Scale)
+                    .alpha(ring2Alpha)
+                    .background(Color(0xFFE53935).copy(alpha = 0.15f), CircleShape)
+            )
+        }
+
+        // Pulse ring 1
+        if (isActive) {
+            Box(
+                modifier = Modifier
+                    .size(72.dp)
+                    .scale(ring1Scale)
+                    .alpha(ring1Alpha)
+                    .background(Color(0xFFE53935).copy(alpha = 0.25f), CircleShape)
+            )
+        }
+
+        // Main mic circle
+        Box(
+            modifier = Modifier
+                .size(72.dp)
+                .scale(micScale)
+                .shadow(
+                    elevation = if (isActive) 12.dp else 4.dp,
+                    shape = CircleShape,
+                    ambientColor = if (isActive) Color(0xFFE53935) else Color.Transparent,
+                    spotColor = if (isActive) Color(0xFFE53935) else Color.Transparent
+                )
+                .background(
+                    brush = if (isActive) {
+                        Brush.radialGradient(
+                            colors = listOf(Color(0xFFFF5252), Color(0xFFE53935))
+                        )
+                    } else {
+                        Brush.radialGradient(
+                            colors = listOf(Color(0xFFBDBDBD), Color(0xFF9E9E9E))
+                        )
+                    },
+                    shape = CircleShape
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                Icons.Default.Mic,
+                contentDescription = null,
+                modifier = Modifier.size(36.dp),
+                tint = Color.White
+            )
+        }
+    }
+}
+
+// ============================================================
+// Control Button Component
+// ============================================================
+
+@Composable
+private fun ControlButton(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    backgroundColor: Color,
+    iconColor: Color,
+    size: Int,
+    onClick: () -> Unit
+) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        IconButton(
+            onClick = onClick,
+            modifier = Modifier
+                .size(size.dp)
+                .shadow(4.dp, CircleShape)
+                .background(backgroundColor, CircleShape)
+        ) {
+            Icon(
+                icon,
+                contentDescription = label,
+                tint = iconColor,
+                modifier = Modifier.size((size * 0.5f).dp)
+            )
+        }
+        Spacer(modifier = Modifier.height(6.dp))
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontWeight = FontWeight.Medium
         )
     }
 }

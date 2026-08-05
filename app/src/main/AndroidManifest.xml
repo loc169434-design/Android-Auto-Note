@@ -66,6 +66,7 @@
         <!-- Widget 1: Quick Record -->
         <receiver
             android:name=".widget.QuickRecordWidgetReceiver"
+            android:label="@string/widget_quick_record_title"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
@@ -78,6 +79,7 @@
         <!-- Widget 2: Recent Notes -->
         <receiver
             android:name=".widget.RecentNotesWidgetReceiver"
+            android:label="@string/widget_recent_notes_title"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
@@ -90,6 +92,7 @@
         <!-- Widget 3: Stats -->
         <receiver
             android:name=".widget.StatsWidgetReceiver"
+            android:label="@string/widget_stats_title"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
@@ -102,6 +105,7 @@
         <!-- Widget 4: Open Notes File -->
         <receiver
             android:name=".widget.OpenNotesWidgetReceiver"
+            android:label="@string/widget_open_notes_title"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />

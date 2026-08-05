@@ -365,11 +365,12 @@ private fun FullFileBottomSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = MaterialTheme.colorScheme.surface
+        containerColor = MaterialTheme.colorScheme.surface,
+        modifier = Modifier.fillMaxSize()
     ) {
         Column(
             modifier = Modifier
-                .fillMaxWidth()
+                .fillMaxSize()
                 .padding(horizontal = 20.dp)
                 .padding(bottom = 32.dp)
         ) {
@@ -404,56 +405,78 @@ private fun FullFileBottomSheet(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // All notes as continuous document
-            LazyColumn(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(0.dp)
-            ) {
-                var lastDateKey = ""
-                items(notes) { note ->
-                    val dateKey = DateUtils.getDateKey(note.createdAt)
-                    if (dateKey != lastDateKey) {
-                        // Date separator
-                        Text(
-                            text = DateUtils.formatRelativeDay(note.createdAt),
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.padding(top = if (lastDateKey.isEmpty()) 0.dp else 16.dp, bottom = 8.dp)
+            if (notes.isEmpty()) {
+                // Empty state
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(
+                            Icons.Default.NoteAlt,
+                            contentDescription = null,
+                            modifier = Modifier.size(80.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
                         )
-                        lastDateKey = dateKey
-                    }
-
-                    // Entry
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 12.dp)
-                    ) {
+                        Spacer(modifier = Modifier.height(16.dp))
                         Text(
-                            text = "🕐 ${DateUtils.formatTimeOnly(note.createdAt)}",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.primary,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text(
-                            text = note.content,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            lineHeight = 22.sp
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(1.dp)
-                                .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+                            text = "Chưa có ghi chú nào.\nBấm 🎤 để bắt đầu!",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                            fontStyle = FontStyle.Italic
                         )
                     }
                 }
+            } else {
+                // All notes as continuous document
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.spacedBy(0.dp)
+                ) {
+                    var lastDateKey = ""
+                    items(notes) { note ->
+                        val dateKey = DateUtils.getDateKey(note.createdAt)
+                        if (dateKey != lastDateKey) {
+                            Text(
+                                text = DateUtils.formatRelativeDay(note.createdAt),
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(top = if (lastDateKey.isEmpty()) 0.dp else 16.dp, bottom = 8.dp)
+                            )
+                            lastDateKey = dateKey
+                        }
 
-                item { Spacer(modifier = Modifier.height(16.dp)) }
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 12.dp)
+                        ) {
+                            Text(
+                                text = "🕐 ${DateUtils.formatTimeOnly(note.createdAt)}",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = note.content,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                lineHeight = 22.sp
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(1.dp)
+                                    .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+                            )
+                        }
+                    }
+
+                    item { Spacer(modifier = Modifier.height(16.dp)) }
+                }
             }
         }
     }

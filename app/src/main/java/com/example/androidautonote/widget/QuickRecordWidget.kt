@@ -20,19 +20,13 @@ import androidx.glance.background
 import androidx.glance.color.ColorProvider
 import androidx.glance.layout.Alignment
 import androidx.glance.layout.Box
-import androidx.glance.layout.Column
-import androidx.glance.layout.Spacer
 import androidx.glance.layout.fillMaxSize
-import androidx.glance.layout.height
 import androidx.glance.layout.padding
 import androidx.glance.layout.size
-import androidx.glance.text.FontWeight
-import androidx.glance.text.Text
-import androidx.glance.text.TextStyle
 import com.example.androidautonote.ui.recording.RecordingActivity
 
 /**
- * Widget 1: Quick Record — A simple button to start voice recording.
+ * Widget: Quick Record — Compact circular mic button (like the image)
  */
 class QuickRecordWidget : GlanceAppWidget() {
 
@@ -49,30 +43,17 @@ class QuickRecordWidget : GlanceAppWidget() {
         Box(
             modifier = GlanceModifier
                 .fillMaxSize()
-                .cornerRadius(16.dp)
+                .cornerRadius(24.dp)
                 .background(ColorProvider(day = Color(0xFF1565C0), night = Color(0xFF0D47A1)))
                 .clickable(actionStartActivity<RecordingActivity>())
-                .padding(12.dp),
+                .padding(8.dp),
             contentAlignment = Alignment.Center
         ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Image(
-                    provider = ImageProvider(android.R.drawable.ic_btn_speak_now),
-                    contentDescription = "Ghi âm",
-                    modifier = GlanceModifier.size(36.dp)
-                )
-                Spacer(modifier = GlanceModifier.height(4.dp))
-                Text(
-                    text = "Ghi chú nhanh",
-                    style = TextStyle(
-                        color = ColorProvider(day = Color.White, night = Color.White),
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Medium
-                    )
-                )
-            }
+            Image(
+                provider = ImageProvider(android.R.drawable.ic_btn_speak_now),
+                contentDescription = "Ghi âm nhanh",
+                modifier = GlanceModifier.size(32.dp)
+            )
         }
     }
 }

@@ -8,6 +8,10 @@ import androidx.compose.ui.unit.sp
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
 import androidx.glance.GlanceTheme
+import androidx.glance.Image
+import androidx.glance.ImageProvider
+import androidx.glance.action.actionStartActivity
+import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetReceiver
 import androidx.glance.appwidget.cornerRadius
@@ -22,14 +26,18 @@ import androidx.glance.layout.fillMaxSize
 import androidx.glance.layout.fillMaxWidth
 import androidx.glance.layout.height
 import androidx.glance.layout.padding
+import androidx.glance.layout.size
+import androidx.glance.layout.width
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import com.example.androidautonote.AutoNoteApplication
+import com.example.androidautonote.MainActivity
 import kotlinx.coroutines.flow.first
 
 /**
- * Widget 3: Stats — Shows total notes count and today's count.
+ * Widget: Stats — "Thống kê nhanh" with today count and total.
+ * Green/teal background with edit icon (matching reference image).
  */
 class StatsWidget : GlanceAppWidget() {
 
@@ -55,68 +63,82 @@ class StatsWidget : GlanceAppWidget() {
         Column(
             modifier = GlanceModifier
                 .fillMaxSize()
-                .cornerRadius(16.dp)
-                .background(ColorProvider(day = Color.White, night = Color(0xFF1E1E1E)))
-                .padding(16.dp)
+                .cornerRadius(20.dp)
+                .background(ColorProvider(day = Color(0xFFE8F5E9), night = Color(0xFF1B3A1D)))
+                .clickable(actionStartActivity<MainActivity>())
+                .padding(14.dp)
         ) {
-            Text(
-                text = "📊 Thống kê",
-                style = TextStyle(
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = ColorProvider(day = Color(0xFF1565C0), night = Color(0xFF90CAF9))
-                )
-            )
-
-            Spacer(modifier = GlanceModifier.height(12.dp))
-
+            // Header row
             Row(
                 modifier = GlanceModifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                // Total notes
-                Column(
-                    modifier = GlanceModifier.defaultWeight(),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(
-                        text = "$totalCount",
-                        style = TextStyle(
-                            fontSize = 28.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = ColorProvider(day = Color(0xFF1565C0), night = Color(0xFF90CAF9))
-                        )
-                    )
-                    Text(
-                        text = "Tổng ghi chú",
-                        style = TextStyle(
-                            fontSize = 11.sp,
-                            color = ColorProvider(day = Color.Gray, night = Color.Gray)
-                        )
-                    )
-                }
+                Text(
+                    text = "Thống kê nhanh",
+                    style = TextStyle(
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = ColorProvider(day = Color(0xFF2E7D32), night = Color(0xFF81C784))
+                    ),
+                    modifier = GlanceModifier.defaultWeight()
+                )
+                Image(
+                    provider = ImageProvider(android.R.drawable.ic_menu_edit),
+                    contentDescription = "Mở",
+                    modifier = GlanceModifier.size(18.dp)
+                )
+            }
 
-                // Today's notes
-                Column(
-                    modifier = GlanceModifier.defaultWeight(),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(
-                        text = "$todayCount",
-                        style = TextStyle(
-                            fontSize = 28.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = ColorProvider(day = Color(0xFF2E7D32), night = Color(0xFF81C784))
-                        )
+            Spacer(modifier = GlanceModifier.height(10.dp))
+
+            // Today count
+            Row(
+                modifier = GlanceModifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Hôm nay:",
+                    style = TextStyle(
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = ColorProvider(day = Color(0xFF424242), night = Color(0xFFE0E0E0))
+                    ),
+                    modifier = GlanceModifier.defaultWeight()
+                )
+                Text(
+                    text = "$todayCount",
+                    style = TextStyle(
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = ColorProvider(day = Color(0xFF2E7D32), night = Color(0xFF66BB6A))
                     )
-                    Text(
-                        text = "Hôm nay",
-                        style = TextStyle(
-                            fontSize = 11.sp,
-                            color = ColorProvider(day = Color.Gray, night = Color.Gray)
-                        )
+                )
+            }
+
+            Spacer(modifier = GlanceModifier.height(4.dp))
+
+            // Total count
+            Row(
+                modifier = GlanceModifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Tổng:",
+                    style = TextStyle(
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = ColorProvider(day = Color(0xFF424242), night = Color(0xFFE0E0E0))
+                    ),
+                    modifier = GlanceModifier.defaultWeight()
+                )
+                Text(
+                    text = "$totalCount",
+                    style = TextStyle(
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = ColorProvider(day = Color(0xFF1565C0), night = Color(0xFF90CAF9))
                     )
-                }
+                )
             }
         }
     }

@@ -21,24 +21,21 @@ import androidx.glance.color.ColorProvider
 import androidx.glance.layout.Alignment
 import androidx.glance.layout.Box
 import androidx.glance.layout.Column
-import androidx.glance.layout.Row
 import androidx.glance.layout.Spacer
 import androidx.glance.layout.fillMaxSize
 import androidx.glance.layout.height
 import androidx.glance.layout.padding
 import androidx.glance.layout.size
-import androidx.glance.layout.width
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import com.example.androidautonote.AutoNoteApplication
 import com.example.androidautonote.MainActivity
-import com.example.androidautonote.util.DateUtils
 import kotlinx.coroutines.flow.first
 
 /**
- * Widget: Open Notes File — Shows a preview of today's note count
- * and opens MainActivity (all notes timeline) when clicked.
+ * Widget: Open Notes — Shows total count with file icon.
+ * Compact blue square (like the image: icon + number + "Ghi chú" label)
  */
 class OpenNotesWidget : GlanceAppWidget() {
 
@@ -50,81 +47,50 @@ class OpenNotesWidget : GlanceAppWidget() {
             0
         }
 
-        val todayCount = try {
-            val app = context.applicationContext as AutoNoteApplication
-            app.noteRepository.getNotesCountToday().first()
-        } catch (e: Exception) {
-            0
-        }
-
         provideContent {
             GlanceTheme {
-                OpenNotesContent(noteCount = noteCount, todayCount = todayCount)
+                OpenNotesContent(noteCount = noteCount)
             }
         }
     }
 
     @Composable
-    private fun OpenNotesContent(noteCount: Int, todayCount: Int) {
+    private fun OpenNotesContent(noteCount: Int) {
         Box(
             modifier = GlanceModifier
                 .fillMaxSize()
-                .cornerRadius(16.dp)
-                .background(ColorProvider(day = Color(0xFF2E7D32), night = Color(0xFF1B5E20)))
+                .cornerRadius(24.dp)
+                .background(ColorProvider(day = Color(0xFF1565C0), night = Color(0xFF0D47A1)))
                 .clickable(actionStartActivity<MainActivity>())
-                .padding(12.dp),
+                .padding(8.dp),
             contentAlignment = Alignment.Center
         ) {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // File icon
                 Image(
                     provider = ImageProvider(android.R.drawable.ic_menu_agenda),
-                    contentDescription = "Mở ghi chú",
-                    modifier = GlanceModifier.size(32.dp)
+                    contentDescription = "Ghi chú",
+                    modifier = GlanceModifier.size(28.dp)
                 )
-
-                Spacer(modifier = GlanceModifier.height(4.dp))
-
-                // Title
                 Text(
-                    text = "📋 Mở ghi chú",
+                    text = "$noteCount",
                     style = TextStyle(
                         color = ColorProvider(day = Color.White, night = Color.White),
-                        fontSize = 14.sp,
+                        fontSize = 22.sp,
                         fontWeight = FontWeight.Bold
                     )
                 )
-
-                Spacer(modifier = GlanceModifier.height(4.dp))
-
-                // Stats row
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Hôm nay: $todayCount",
-                        style = TextStyle(
-                            color = ColorProvider(
-                                day = Color.White.copy(alpha = 0.85f),
-                                night = Color.White.copy(alpha = 0.85f)
-                            ),
-                            fontSize = 11.sp
-                        )
+                Text(
+                    text = "Ghi chú",
+                    style = TextStyle(
+                        color = ColorProvider(
+                            day = Color.White.copy(alpha = 0.8f),
+                            night = Color.White.copy(alpha = 0.8f)
+                        ),
+                        fontSize = 10.sp
                     )
-                    Spacer(modifier = GlanceModifier.width(8.dp))
-                    Text(
-                        text = "Tổng: $noteCount",
-                        style = TextStyle(
-                            color = ColorProvider(
-                                day = Color.White.copy(alpha = 0.7f),
-                                night = Color.White.copy(alpha = 0.7f)
-                            ),
-                            fontSize = 11.sp
-                        )
-                    )
-                }
+                )
             }
         }
     }
