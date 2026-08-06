@@ -155,7 +155,7 @@ fun RecordingScreen(
                     text = when {
                         !isBound -> "Đang khởi tạo..."
                         isPaused -> "Tạm dừng"
-                        isListening -> "Đang nghe... (tự lưu khi dừng nói)"
+                        isListening -> "Đang nghe offline... (thu liên tục 10 phút, màn hình sáng)"
                         else -> "Sẵn sàng"
                     },
                     style = MaterialTheme.typography.bodySmall,

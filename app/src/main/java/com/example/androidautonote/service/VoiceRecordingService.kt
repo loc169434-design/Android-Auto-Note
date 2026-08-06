@@ -43,8 +43,8 @@ class VoiceRecordingService : Service() {
         const val ACTION_PAUSE = "ACTION_PAUSE"
         const val ACTION_RESUME = "ACTION_RESUME"
 
-        // Auto-stop after 15 seconds of no new speech detected
-        private const val IDLE_TIMEOUT_MS = 15_000L
+        // Maximum continuous recording cap (10 minutes)
+        private const val MAX_RECORDING_TIMEOUT_MS = 600_000L
     }
 
     // Binder for Activity to observe state
@@ -88,10 +88,6 @@ class VoiceRecordingService : Service() {
     // Flag to auto-restart listening after speech ends
     private var shouldKeepListening = false
 
-    // Idle timeout tracking
-    private var idleTimeoutRunnable: Runnable? = null
-    private var lastSpeechTimestamp: Long = 0L
-
     override fun onBind(intent: Intent?): IBinder = binder
 
     override fun onCreate() {
@@ -105,12 +101,10 @@ class VoiceRecordingService : Service() {
                 startForegroundWithNotification()
                 startListening()
                 startTimer()
-                resetIdleTimeout()
             }
             ACTION_STOP -> {
                 stopListening()
                 stopTimer()
-                cancelIdleTimeout()
                 stopForeground(STOP_FOREGROUND_REMOVE)
                 stopSelf()
             }
@@ -171,34 +165,12 @@ class VoiceRecordingService : Service() {
         manager.createNotificationChannel(channel)
     }
 
-    // --- Idle Timeout ---
-
-    /**
-     * Reset the idle timeout. Called each time new speech is detected.
-     * If no speech for IDLE_TIMEOUT_MS, auto-stop and trigger save.
-     */
-    private fun resetIdleTimeout() {
-        cancelIdleTimeout()
-        lastSpeechTimestamp = System.currentTimeMillis()
-        idleTimeoutRunnable = Runnable {
-            Log.d(TAG, "Idle timeout reached — auto-stopping and saving")
-            triggerAutoSave()
-        }
-        handler.postDelayed(idleTimeoutRunnable!!, IDLE_TIMEOUT_MS)
-    }
-
-    private fun cancelIdleTimeout() {
-        idleTimeoutRunnable?.let { handler.removeCallbacks(it) }
-        idleTimeoutRunnable = null
-    }
-
     /**
      * Auto-stop and signal the Activity to save.
      */
     private fun triggerAutoSave() {
         stopListening()
         stopTimer()
-        cancelIdleTimeout()
         _autoSaveTriggered.value = true
         // Don't stopSelf() here — let the Activity handle save then stop service
     }
@@ -216,7 +188,7 @@ class VoiceRecordingService : Service() {
         _autoSaveTriggered.value = false
 
         speechRecognizer?.destroy()
-        speechRecognizer = SpeechRecognizer.createSpeechRecognizer(this).apply {
+        speechRecognizer = createSpeechRecognizerInstance().apply {
             setRecognitionListener(createRecognitionListener())
         }
 
@@ -227,6 +199,18 @@ class VoiceRecordingService : Service() {
         Log.d(TAG, "Started listening")
     }
 
+    private fun createSpeechRecognizerInstance(): SpeechRecognizer {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            SpeechRecognizer.isOnDeviceRecognitionAvailable(this)
+        ) {
+            Log.d(TAG, "Creating On-Device SpeechRecognizer for offline recognition")
+            SpeechRecognizer.createOnDeviceSpeechRecognizer(this)
+        } else {
+            Log.d(TAG, "Creating Standard SpeechRecognizer")
+            SpeechRecognizer.createSpeechRecognizer(this)
+        }
+    }
+
     private fun createRecognizerIntent(): Intent {
         return Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
             putExtra(
@@ -235,18 +219,19 @@ class VoiceRecordingService : Service() {
             )
             putExtra(RecognizerIntent.EXTRA_LANGUAGE, "vi-VN")
             putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
+            putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true) // Force offline recognition
             putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1)
             putExtra(
                 RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS,
-                5000L
+                10000L
             )
             putExtra(
                 RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS,
-                5000L
+                10000L
             )
             putExtra(
                 RecognizerIntent.EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS,
-                30000L
+                60000L
             )
         }
     }
@@ -260,7 +245,6 @@ class VoiceRecordingService : Service() {
 
             override fun onBeginningOfSpeech() {
                 Log.d(TAG, "Beginning of speech")
-                resetIdleTimeout() // Reset timeout when speech starts
             }
 
             override fun onRmsChanged(rmsdB: Float) {}
@@ -302,7 +286,6 @@ class VoiceRecordingService : Service() {
                     }
                     textBuffer.append(spokenText)
                     _recognizedText.value = textBuffer.toString()
-                    resetIdleTimeout() // Reset timeout on new speech
                 }
                 _partialText.value = ""
 
@@ -318,9 +301,6 @@ class VoiceRecordingService : Service() {
                     partialResults?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
                 val partial = matches?.firstOrNull() ?: ""
                 _partialText.value = partial
-                if (partial.isNotBlank()) {
-                    resetIdleTimeout() // Reset timeout on partial speech too
-                }
             }
 
             override fun onEvent(eventType: Int, params: Bundle?) {}
@@ -332,7 +312,7 @@ class VoiceRecordingService : Service() {
 
         try {
             speechRecognizer?.destroy()
-            speechRecognizer = SpeechRecognizer.createSpeechRecognizer(this).apply {
+            speechRecognizer = createSpeechRecognizerInstance().apply {
                 setRecognitionListener(createRecognitionListener())
             }
             speechRecognizer?.startListening(createRecognizerIntent())
@@ -357,7 +337,6 @@ class VoiceRecordingService : Service() {
 
     private fun pauseListening() {
         _isPaused.value = true
-        cancelIdleTimeout()
         try {
             speechRecognizer?.stopListening()
             speechRecognizer?.destroy()
@@ -373,7 +352,6 @@ class VoiceRecordingService : Service() {
         _isPaused.value = false
         startListening()
         startTimer()
-        resetIdleTimeout()
     }
 
     fun getFullText(): String {
@@ -403,6 +381,12 @@ class VoiceRecordingService : Service() {
             override fun run() {
                 if (!_isPaused.value) {
                     _recordingSeconds.value += 1
+                    // 10 minutes max recording limit (600s)
+                    if (_recordingSeconds.value >= 600) {
+                        Log.d(TAG, "Reached 10-minute max recording limit — auto-saving")
+                        triggerAutoSave()
+                        return
+                    }
                 }
                 handler.postDelayed(this, 1000)
             }
@@ -418,7 +402,6 @@ class VoiceRecordingService : Service() {
     override fun onDestroy() {
         stopListening()
         stopTimer()
-        cancelIdleTimeout()
         handler.removeCallbacksAndMessages(null)
         super.onDestroy()
     }
