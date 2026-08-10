@@ -9,6 +9,7 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.os.IBinder
+import android.util.Log
 import android.view.WindowManager
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -22,6 +23,7 @@ import androidx.lifecycle.lifecycleScope
 import com.example.androidautonote.AutoNoteApplication
 import com.example.androidautonote.service.VoiceRecordingService
 import com.example.androidautonote.ui.theme.AndroidAutoNoteTheme
+import com.example.androidautonote.util.FileHelper
 import com.example.androidautonote.widget.WidgetUpdater
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
@@ -29,16 +31,20 @@ import kotlinx.coroutines.launch
 /**
  * Transparent Activity that displays a floating recording dialog.
  *
- * Key behavior changes:
- * - Mic auto-stops after 15s of no speech
- * - Auto-saves note when mic stops (no manual Save needed)
- * - No background running — stops service completely after save
+ * Save policy:
+ *  - Any stop other than "Hủy" → auto-save to Room DB + 2 txt files
+ *  - "Hủy" (Cancel) button → discard (no save)
+ *  - Phone off / system kill → VoiceRecordingService.onDestroy() saves to files
+ *
+ * Two txt files are written on each save:
+ *  1. note_{timestamp}.txt    — raw single-session file
+ *  2. fileguidi.txt           — cumulative backup (append, never erased)
  */
 class RecordingActivity : ComponentActivity() {
 
     private var voiceService: VoiceRecordingService? = null
     private var isBound by mutableStateOf(false)
-    private var hasSaved = false // Prevent double-save
+    private var hasSaved = false    // Guard: prevent double-save
 
     private val serviceConnection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, binder: IBinder?) {
@@ -46,7 +52,7 @@ class RecordingActivity : ComponentActivity() {
             voiceService = service
             isBound = true
 
-            // Observe auto-save signal from service
+            // Observe auto-save signal from service (notification stop, timer, etc.)
             lifecycleScope.launch {
                 service.autoSaveTriggered.collectLatest { triggered ->
                     if (triggered && !hasSaved) {
@@ -81,7 +87,6 @@ class RecordingActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // Keep screen awake while recording
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
         if (hasRequiredPermissions()) {
@@ -96,49 +101,43 @@ class RecordingActivity : ComponentActivity() {
                     service = voiceService,
                     isBound = isBound,
                     onCancel = { cancelRecording() },
-                    onPause = {
-                        val pauseIntent = Intent(this@RecordingActivity, VoiceRecordingService::class.java).apply {
-                            action = VoiceRecordingService.ACTION_PAUSE
-                        }
-                        startService(pauseIntent)
-                    },
-                    onResume = {
-                        val resumeIntent = Intent(this@RecordingActivity, VoiceRecordingService::class.java).apply {
-                            action = VoiceRecordingService.ACTION_RESUME
-                        }
-                        startService(resumeIntent)
-                    },
-                    onManualStop = {
-                        // User manually stops — auto-save
-                        autoSaveNote()
-                    }
+                    onSaveAndExit = { autoSaveNote() }  // tap outside = save + close
                 )
             }
         }
     }
 
+    /**
+     * When the Activity is stopped (user locks screen via power button,
+     * switches apps, etc.) → auto-save so no data is lost.
+     */
+    override fun onStop() {
+        super.onStop()
+        if (!hasSaved) {
+            autoSaveNote()
+        }
+    }
+
     private fun hasRequiredPermissions(): Boolean {
-        val audioPermission = ContextCompat.checkSelfPermission(
+        val audioOk = ContextCompat.checkSelfPermission(
             this, Manifest.permission.RECORD_AUDIO
         ) == PackageManager.PERMISSION_GRANTED
 
-        val notificationPermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        val notifOk = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             ContextCompat.checkSelfPermission(
                 this, Manifest.permission.POST_NOTIFICATIONS
             ) == PackageManager.PERMISSION_GRANTED
-        } else {
-            true
-        }
+        } else true
 
-        return audioPermission && notificationPermission
+        return audioOk && notifOk
     }
 
     private fun requestPermissions() {
-        val permissions = mutableListOf(Manifest.permission.RECORD_AUDIO)
+        val perms = mutableListOf(Manifest.permission.RECORD_AUDIO)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            permissions.add(Manifest.permission.POST_NOTIFICATIONS)
+            perms.add(Manifest.permission.POST_NOTIFICATIONS)
         }
-        permissionLauncher.launch(permissions.toTypedArray())
+        permissionLauncher.launch(perms.toTypedArray())
     }
 
     private fun startRecordingService() {
@@ -146,7 +145,6 @@ class RecordingActivity : ComponentActivity() {
             action = VoiceRecordingService.ACTION_START
         }
         ContextCompat.startForegroundService(this, serviceIntent)
-
         bindService(
             Intent(this, VoiceRecordingService::class.java),
             serviceConnection,
@@ -154,9 +152,13 @@ class RecordingActivity : ComponentActivity() {
         )
     }
 
+    // ── Save logic ───────────────────────────────────────────────────────────
+
     /**
-     * Auto-save: called when mic auto-stops (idle timeout) or user manually stops.
-     * No manual Save button needed.
+     * Auto-save to:
+     *  1. Room database (for in-app display)
+     *  2. note_{timestamp}.txt — raw single-session file
+     *  3. fileguidi.txt        — cumulative backup file (appended, never erased)
      */
     private fun autoSaveNote() {
         if (hasSaved) return
@@ -164,16 +166,22 @@ class RecordingActivity : ComponentActivity() {
 
         val text = voiceService?.getFullText() ?: ""
 
+        // Mark service so emergency save in onDestroy is skipped
+        voiceService?.markAsSaved()
+
         if (text.isBlank()) {
-            // Nothing recorded — just close
             stopRecordingService()
             Toast.makeText(this, "Không có nội dung ghi âm", Toast.LENGTH_SHORT).show()
             finish()
             return
         }
 
+        // Save to files using FileHelper (AndroidAutoNote folder)
+        FileHelper.appendNote(this, text)
+        val dir = FileHelper.getNotesDir(this)
+        Log.d("RecordingActivity", "Files saved in: ${dir.absolutePath}")
+
         lifecycleScope.launch {
-            // Auto-generate title from first 10 words
             val title = text.split(" ")
                 .take(10)
                 .joinToString(" ")
@@ -185,23 +193,32 @@ class RecordingActivity : ComponentActivity() {
             WidgetUpdater.updateAllWidgets(this@RecordingActivity)
 
             stopRecordingService()
-            Toast.makeText(this@RecordingActivity, "✅ Đã tự động lưu ghi chú!", Toast.LENGTH_SHORT).show()
+            Toast.makeText(
+                this@RecordingActivity,
+                "✅ Đã lưu ghi chú + raw.txt + fileguidi.txt",
+                Toast.LENGTH_SHORT
+            ).show()
             finish()
         }
     }
 
+
+
     private fun cancelRecording() {
+        hasSaved = true     // prevent onStop from auto-saving
         voiceService?.clearText()
+        voiceService?.markAsSaved()
         stopRecordingService()
         finish()
     }
+
+    // ── Service lifecycle ────────────────────────────────────────────────────
 
     private fun stopRecordingService() {
         val stopIntent = Intent(this, VoiceRecordingService::class.java).apply {
             action = VoiceRecordingService.ACTION_STOP
         }
         startService(stopIntent)
-
         if (isBound) {
             unbindService(serviceConnection)
             isBound = false

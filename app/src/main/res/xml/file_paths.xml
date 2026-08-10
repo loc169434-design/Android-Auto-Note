@@ -3,4 +3,12 @@
     <cache-path
         name="exports"
         path="exports/" />
+    <!-- App-specific AndroidAutoNote folder: getExternalFilesDir("AndroidAutoNote") -->
+    <external-files-path
+        name="autonote_docs"
+        path="AndroidAutoNote/" />
+    <!-- Internal files fallback -->
+    <files-path
+        name="internal"
+        path="." />
 </paths>

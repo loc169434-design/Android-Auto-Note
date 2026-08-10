@@ -16,6 +16,11 @@
     <!-- Billing -->
     <uses-permission android:name="com.android.vending.BILLING" />
 
+    <!-- Package visibility: needed on API 30+ to detect Gemini app -->
+    <queries>
+        <package android:name="com.google.android.apps.bard" />
+    </queries>
+
     <application
         android:name=".AutoNoteApplication"
         android:allowBackup="true"
@@ -64,53 +69,38 @@
                 android:resource="@xml/file_paths" />
         </provider>
 
-        <!-- Widget 1: Quick Record -->
+        <!-- Gemini Launcher Activity (from TripleActionWidget) -->
+        <activity
+            android:name=".ui.ai.GeminiLaunchActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:taskAffinity=""
+            android:theme="@style/Theme.AndroidAutoNote.Transparent" />
+
+        <!-- File Viewer Activity (widget File button + HomeScreen Edit button) -->
+        <activity
+            android:name=".ui.fileviewer.FileViewerActivity"
+            android:exported="true"
+            android:excludeFromRecents="false"
+            android:theme="@style/Theme.AndroidAutoNote" />
+
+        <!-- Widget: Triple Action 1×3 (Micro + Gemini + File) -->
         <receiver
-            android:name=".widget.QuickRecordWidgetReceiver"
+            android:name=".widget.TripleActionWidgetReceiver"
+            android:label="@string/widget_triple_action_title"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
             <meta-data
                 android:name="android.appwidget.provider"
-                android:resource="@xml/quick_record_widget_info" />
+                android:resource="@xml/triple_action_widget_info" />
         </receiver>
 
-        <!-- Widget 2: Recent Notes -->
+        <!-- Widget placement success callback — fires blinking animation -->
         <receiver
-            android:name=".widget.RecentNotesWidgetReceiver"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-            </intent-filter>
-            <meta-data
-                android:name="android.appwidget.provider"
-                android:resource="@xml/recent_notes_widget_info" />
-        </receiver>
-
-        <!-- Widget 3: Stats -->
-        <receiver
-            android:name=".widget.StatsWidgetReceiver"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-            </intent-filter>
-            <meta-data
-                android:name="android.appwidget.provider"
-                android:resource="@xml/stats_widget_info" />
-        </receiver>
-
-        <!-- Widget 4: Open Notes File -->
-        <receiver
-            android:name=".widget.OpenNotesWidgetReceiver"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-            </intent-filter>
-            <meta-data
-                android:name="android.appwidget.provider"
-                android:resource="@xml/open_notes_widget_info" />
-        </receiver>
+            android:name=".widget.WidgetPlacedReceiver"
+            android:exported="true" />
 
     </application>
 

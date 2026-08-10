@@ -6,7 +6,12 @@
     <string name="widget_quick_record_desc">Ghi chú nhanh bằng giọng nói</string>
     <string name="widget_recent_notes_desc">Hiển thị các ghi chú gần đây</string>
     <string name="widget_stats_desc">Thống kê ghi chú</string>
+    <string name="widget_open_notes_title">Mở ghi chú</string>
     <string name="widget_open_notes_desc">Mở xem tất cả ghi chú</string>
+    <string name="widget_ai_title">AI Tóm tắt</string>
+    <string name="widget_ai_desc">Tóm tắt ghi chú hôm nay qua AI</string>
+    <string name="widget_triple_action_title">Bộ 3 tính năng</string>
+    <string name="widget_triple_action_desc">Micro ghi âm, mở Gemini và xem file trong một widget</string>
 
     <!-- Recording -->
     <string name="recording_notification_title">Đang ghi âm</string>

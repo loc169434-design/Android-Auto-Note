@@ -9,10 +9,8 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -26,9 +24,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Mic
-import androidx.compose.material.icons.filled.Pause
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -51,21 +46,18 @@ import com.example.androidautonote.service.VoiceRecordingService
 import com.example.androidautonote.util.DateUtils
 
 /**
- * Recording dialog UI.
+ * Recording dialog UI — minimal: mic animation, live text, 1 Cancel button.
  *
- * Key change: No Save button. Mic auto-saves when:
- * - User presses Stop button (manual stop → auto-save)
- * - Idle timeout (15s no speech → auto-save)
- * Cancel button discards the recording.
+ * All other stop/save actions (notification stop, phone off, time limit)
+ * auto-save the recording automatically.
+ * Only "Hủy" (Cancel) discards the recording.
  */
 @Composable
 fun RecordingScreen(
     service: VoiceRecordingService?,
     isBound: Boolean,
     onCancel: () -> Unit,
-    onPause: () -> Unit = {},
-    onResume: () -> Unit = {},
-    onManualStop: () -> Unit = {}
+    onSaveAndExit: () -> Unit   // tap outside = save + close
 ) {
     val recognizedText by (service?.recognizedText
         ?: kotlinx.coroutines.flow.MutableStateFlow("")).collectAsState()
@@ -75,13 +67,9 @@ fun RecordingScreen(
         ?: kotlinx.coroutines.flow.MutableStateFlow(false)).collectAsState()
     val isPaused by (service?.isPaused
         ?: kotlinx.coroutines.flow.MutableStateFlow(false)).collectAsState()
-    val seconds by (service?.recordingSeconds
-        ?: kotlinx.coroutines.flow.MutableStateFlow(0)).collectAsState()
 
     val displayText = buildString {
-        if (recognizedText.isNotBlank()) {
-            append(recognizedText)
-        }
+        if (recognizedText.isNotBlank()) append(recognizedText)
         if (partialText.isNotBlank()) {
             if (isNotBlank()) append(". ")
             append(partialText)
@@ -95,7 +83,7 @@ fun RecordingScreen(
             .clickable(
                 indication = null,
                 interactionSource = remember { MutableInteractionSource() }
-            ) { onCancel() },
+            ) { onSaveAndExit() },  // tap outside dim area = save & close
         contentAlignment = Alignment.Center
     ) {
         Card(
@@ -104,7 +92,7 @@ fun RecordingScreen(
                 .clickable(
                     indication = null,
                     interactionSource = remember { MutableInteractionSource() }
-                ) { /* Block clicks from dismissing */ },
+                ) { /* Block click propagation */ },
             shape = RoundedCornerShape(24.dp),
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surface
@@ -117,55 +105,20 @@ fun RecordingScreen(
                     .fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Header
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Ghi chú nhanh",
-                        style = MaterialTheme.typography.titleMedium
-                    )
-                    IconButton(onClick = onCancel) {
-                        Icon(Icons.Default.Close, contentDescription = "Đóng")
-                    }
-                }
+                // ── Header ───────────────────────────────────────
+                Text(
+                    text = "Ghi chú nhanh",
+                    style = MaterialTheme.typography.titleMedium
+                )
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Recording indicator
+                // ── Mic animation ─────────────────────────────────
                 RecordingIndicator(isListening = isListening && !isPaused)
 
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // Timer
-                Text(
-                    text = DateUtils.formatDuration(seconds),
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = if (isListening && !isPaused) {
-                        MaterialTheme.colorScheme.error
-                    } else {
-                        MaterialTheme.colorScheme.onSurface
-                    }
-                )
-
-                // Status text
-                Text(
-                    text = when {
-                        !isBound -> "Đang khởi tạo..."
-                        isPaused -> "Tạm dừng"
-                        isListening -> "Đang nghe offline... (thu liên tục 10 phút, màn hình sáng)"
-                        else -> "Sẵn sàng"
-                    },
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center
-                )
-
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Recognized text display
+                // ── Live transcript ───────────────────────────────
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -179,7 +132,7 @@ fun RecordingScreen(
                 ) {
                     if (displayText.isBlank()) {
                         Text(
-                            text = "Nội dung sẽ hiển thị ở đây...",
+                            text = "Hãy nói điều bạn muốn ghi chú",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                             fontStyle = FontStyle.Italic
@@ -196,89 +149,40 @@ fun RecordingScreen(
 
                 Spacer(modifier = Modifier.height(20.dp))
 
-                // Control buttons: Cancel / Pause-Resume / Stop (auto-save)
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    // Cancel — discard recording
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        IconButton(
-                            onClick = onCancel,
-                            modifier = Modifier
-                                .size(48.dp)
-                                .background(
-                                    MaterialTheme.colorScheme.errorContainer,
-                                    CircleShape
-                                )
-                        ) {
-                            Icon(
-                                Icons.Default.Close,
-                                contentDescription = "Hủy",
-                                tint = MaterialTheme.colorScheme.onErrorContainer
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = "Hủy",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
+                // ── Hint ──────────────────────────────────────────
+                Text(
+                    text = "Dừng mic từ thông báo hoặc tắt màn hình → tự động lưu",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                    textAlign = TextAlign.Center
+                )
 
-                    // Pause / Resume
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        IconButton(
-                            onClick = {
-                                if (isPaused) onResume() else onPause()
-                            },
-                            modifier = Modifier
-                                .size(56.dp)
-                                .background(
-                                    MaterialTheme.colorScheme.secondaryContainer,
-                                    CircleShape
-                                )
-                        ) {
-                            Icon(
-                                if (isPaused) Icons.Default.PlayArrow else Icons.Default.Pause,
-                                contentDescription = if (isPaused) "Tiếp tục" else "Tạm dừng",
-                                tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                                modifier = Modifier.size(28.dp)
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = if (isPaused) "Tiếp" else "Dừng",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
+                Spacer(modifier = Modifier.height(16.dp))
 
-                    // Stop — auto-save & close
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        IconButton(
-                            onClick = onManualStop,
-                            modifier = Modifier
-                                .size(48.dp)
-                                .background(
-                                    MaterialTheme.colorScheme.primaryContainer,
-                                    CircleShape
-                                )
-                        ) {
-                            Icon(
-                                Icons.Default.Stop,
-                                contentDescription = "Dừng & Lưu",
-                                tint = MaterialTheme.colorScheme.onPrimaryContainer
+                // ── Cancel button (only button) ───────────────────
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    IconButton(
+                        onClick = onCancel,
+                        modifier = Modifier
+                            .size(56.dp)
+                            .background(
+                                MaterialTheme.colorScheme.errorContainer,
+                                CircleShape
                             )
-                        }
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = "Xong",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                    ) {
+                        Icon(
+                            Icons.Default.Close,
+                            contentDescription = "Hủy — xóa và không lưu",
+                            tint = MaterialTheme.colorScheme.onErrorContainer,
+                            modifier = Modifier.size(28.dp)
                         )
                     }
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "Hủy (không lưu)",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
         }
@@ -300,14 +204,13 @@ fun RecordingIndicator(isListening: Boolean) {
 
     Box(
         modifier = Modifier
-            .size(64.dp)
+            .size(72.dp)
             .scale(if (isListening) scale else 1f)
             .background(
-                if (isListening) {
+                if (isListening)
                     MaterialTheme.colorScheme.error.copy(alpha = 0.15f)
-                } else {
-                    MaterialTheme.colorScheme.surfaceVariant
-                },
+                else
+                    MaterialTheme.colorScheme.surfaceVariant,
                 CircleShape
             ),
         contentAlignment = Alignment.Center
@@ -315,12 +218,11 @@ fun RecordingIndicator(isListening: Boolean) {
         Icon(
             Icons.Default.Mic,
             contentDescription = null,
-            modifier = Modifier.size(32.dp),
-            tint = if (isListening) {
+            modifier = Modifier.size(36.dp),
+            tint = if (isListening)
                 MaterialTheme.colorScheme.error
-            } else {
+            else
                 MaterialTheme.colorScheme.onSurfaceVariant
-            }
         )
     }
 }

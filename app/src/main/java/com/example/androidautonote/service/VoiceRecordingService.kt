@@ -18,6 +18,7 @@ import android.speech.SpeechRecognizer
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.example.androidautonote.R
+import com.example.androidautonote.util.ThemePreferences
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -38,10 +39,10 @@ class VoiceRecordingService : Service() {
         private const val CHANNEL_ID = "voice_recording_channel"
         private const val NOTIFICATION_ID = 1001
 
-        const val ACTION_START = "ACTION_START"
-        const val ACTION_STOP = "ACTION_STOP"
-        const val ACTION_PAUSE = "ACTION_PAUSE"
-        const val ACTION_RESUME = "ACTION_RESUME"
+        const val ACTION_START        = "ACTION_START"
+        const val ACTION_STOP         = "ACTION_STOP"
+        // Notification button: triggers autoSaveTriggered → Activity saves then stops
+        const val ACTION_SAVE_AND_STOP = "ACTION_SAVE_AND_STOP"
 
         // Maximum continuous recording cap (10 minutes)
         private const val MAX_RECORDING_TIMEOUT_MS = 600_000L
@@ -81,6 +82,12 @@ class VoiceRecordingService : Service() {
     // Accumulated text buffer (persists across SpeechRecognizer restarts)
     private val textBuffer = StringBuilder()
 
+    // True after Activity saves — prevents double-save in onDestroy()
+    private var isSaved = false
+
+    /** Called by RecordingActivity after it successfully saves the note. */
+    fun markAsSaved() { isSaved = true }
+
     // Timer for recording duration
     private var timerRunnable: Runnable? = null
     private val handler = android.os.Handler(android.os.Looper.getMainLooper())
@@ -108,11 +115,12 @@ class VoiceRecordingService : Service() {
                 stopForeground(STOP_FOREGROUND_REMOVE)
                 stopSelf()
             }
-            ACTION_PAUSE -> {
-                pauseListening()
-            }
-            ACTION_RESUME -> {
-                resumeListening()
+            // Notification "Dừng & Lưu" → signal Activity to save, then stop
+            ACTION_SAVE_AND_STOP -> {
+                stopListening()
+                stopTimer()
+                _autoSaveTriggered.value = true
+                // Activity observes this, saves, then calls ACTION_STOP
             }
         }
         return START_NOT_STICKY
@@ -132,11 +140,12 @@ class VoiceRecordingService : Service() {
     }
 
     private fun buildNotification(): Notification {
-        val stopIntent = Intent(this, VoiceRecordingService::class.java).apply {
-            action = ACTION_STOP
+        // Notification action: "Dừng & Lưu" → triggers auto-save via Activity
+        val saveStopIntent = Intent(this, VoiceRecordingService::class.java).apply {
+            action = ACTION_SAVE_AND_STOP
         }
-        val stopPendingIntent = PendingIntent.getService(
-            this, 0, stopIntent,
+        val saveStopPendingIntent = PendingIntent.getService(
+            this, 0, saveStopIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
@@ -147,8 +156,8 @@ class VoiceRecordingService : Service() {
             .setOngoing(true)
             .addAction(
                 android.R.drawable.ic_media_pause,
-                getString(R.string.btn_stop_recording),
-                stopPendingIntent
+                "Dừng & Lưu",
+                saveStopPendingIntent
             )
             .build()
     }
@@ -200,38 +209,38 @@ class VoiceRecordingService : Service() {
     }
 
     private fun createSpeechRecognizerInstance(): SpeechRecognizer {
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-            SpeechRecognizer.isOnDeviceRecognitionAvailable(this)
-        ) {
-            Log.d(TAG, "Creating On-Device SpeechRecognizer for offline recognition")
-            SpeechRecognizer.createOnDeviceSpeechRecognizer(this)
-        } else {
-            Log.d(TAG, "Creating Standard SpeechRecognizer")
-            SpeechRecognizer.createSpeechRecognizer(this)
-        }
+        // Standard SpeechRecognizer uses high-precision cloud/hybrid model (instant & ultra-sensitive)
+        Log.d(TAG, "Creating high-sensitivity SpeechRecognizer")
+        return SpeechRecognizer.createSpeechRecognizer(this)
     }
 
     private fun createRecognizerIntent(): Intent {
+        val langLocale = try {
+            ThemePreferences.recognitionLanguage.value.locale
+        } catch (e: Exception) {
+            "vi-VN"
+        }
+
         return Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
             putExtra(
                 RecognizerIntent.EXTRA_LANGUAGE_MODEL,
                 RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
             )
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE, "vi-VN")
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE, langLocale)
             putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
-            putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true) // Force offline recognition
             putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1)
+            // Instant sensitivity: process sentence after 1.5s of silence
             putExtra(
                 RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS,
-                10000L
+                1500L
             )
             putExtra(
                 RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS,
-                10000L
+                1500L
             )
             putExtra(
                 RecognizerIntent.EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS,
-                60000L
+                1000L
             )
         }
     }
@@ -239,12 +248,12 @@ class VoiceRecordingService : Service() {
     private fun createRecognitionListener(): RecognitionListener {
         return object : RecognitionListener {
             override fun onReadyForSpeech(params: Bundle?) {
-                Log.d(TAG, "Ready for speech")
+                Log.d(TAG, "Ready for speech — listening active")
                 _isListening.value = true
             }
 
             override fun onBeginningOfSpeech() {
-                Log.d(TAG, "Beginning of speech")
+                Log.d(TAG, "Beginning of speech detected")
             }
 
             override fun onRmsChanged(rmsdB: Float) {}
@@ -260,17 +269,17 @@ class VoiceRecordingService : Service() {
                 Log.w(TAG, "Recognition error: $errorMessage (code: $error)")
 
                 if (shouldKeepListening && !_isPaused.value) {
+                    // Ultra-fast restart on silence timeout or no match to keep mic active without gap
                     when (error) {
                         SpeechRecognizer.ERROR_NO_MATCH,
-                        SpeechRecognizer.ERROR_SPEECH_TIMEOUT,
-                        SpeechRecognizer.ERROR_CLIENT -> {
-                            handler.postDelayed({ restartListening() }, 300)
+                        SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> {
+                            handler.postDelayed({ restartListening() }, 50)
                         }
                         SpeechRecognizer.ERROR_RECOGNIZER_BUSY -> {
-                            handler.postDelayed({ restartListening() }, 1000)
+                            handler.postDelayed({ restartListening() }, 300)
                         }
                         else -> {
-                            handler.postDelayed({ restartListening() }, 2000)
+                            handler.postDelayed({ restartListening() }, 500)
                         }
                     }
                 }
@@ -292,7 +301,7 @@ class VoiceRecordingService : Service() {
                 Log.d(TAG, "Final result: $spokenText")
 
                 if (shouldKeepListening && !_isPaused.value) {
-                    handler.postDelayed({ restartListening() }, 200)
+                    handler.postDelayed({ restartListening() }, 50)
                 }
             }
 
@@ -400,10 +409,32 @@ class VoiceRecordingService : Service() {
     }
 
     override fun onDestroy() {
+        // Emergency save: handles phone-off / system-kill scenarios.
+        // Only runs if Activity hasn't saved yet (isSaved = false).
+        if (!isSaved) {
+            val text = getFullText()
+            if (text.isNotBlank()) {
+                try {
+                    emergencySaveToFiles(text)
+                } catch (e: Exception) {
+                    android.util.Log.e(TAG, "Emergency file save failed", e)
+                }
+            }
+        }
         stopListening()
         stopTimer()
         handler.removeCallbacksAndMessages(null)
         super.onDestroy()
+    }
+
+    /**
+     * Synchronous file save — safe to call from onDestroy().
+     * Writes to internal filesDir (no external storage permission needed,
+     * always accessible even when external storage is unavailable).
+     */
+    private fun emergencySaveToFiles(text: String) {
+        com.example.androidautonote.util.FileHelper.appendNote(applicationContext, text)
+        android.util.Log.d(TAG, "Emergency save via FileHelper")
     }
 
     private fun getErrorMessage(error: Int): String = when (error) {
