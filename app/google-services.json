@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "421027007413",
+    "project_id": "fastnote-362e4",
+    "storage_bucket": "fastnote-362e4.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:421027007413:android:db4817b7a60bdba68867fc",
+        "android_client_info": {
+          "package_name": "com.tatl.fastnote"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAnmdA0NmBoI4D0FxDuL4GkW43pDtahPdQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,4 +1,4 @@
-plugins {
+﻿plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
@@ -6,11 +6,11 @@ plugins {
 }
 
 android {
-    namespace = "com.example.androidautonote"
+    namespace = "com.tatl.fastnote"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.example.androidautonote"
+        applicationId = "com.tatl.fastnote"
         minSdk = 26
         targetSdk = 35
         versionCode = 1
