@@ -5,6 +5,10 @@
     <!-- Audio Recording -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
 
+    <!-- Internet (Firebase) -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
     <!-- Foreground Service -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE"
         tools:ignore="ForegroundServicesPolicy" />
@@ -43,6 +47,12 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- Onboarding / Login Activity -->
+        <activity
+            android:name=".auth.OnboardingActivity"
+            android:exported="false"
+            android:theme="@style/Theme.AndroidAutoNote" />
 
         <!-- Recording Activity (Transparent Dialog from Widget) -->
         <activity

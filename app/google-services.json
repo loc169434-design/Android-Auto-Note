@@ -1,26 +1,44 @@
 {
   "project_info": {
-    "project_number": "421027007413",
-    "project_id": "fastnote-362e4",
-    "storage_bucket": "fastnote-362e4.firebasestorage.app"
+    "project_number": "364981991189",
+    "project_id": "fastnoteme",
+    "storage_bucket": "fastnoteme.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:421027007413:android:db4817b7a60bdba68867fc",
+        "mobilesdk_app_id": "1:364981991189:android:f1b5aa033c364ff468db1c",
         "android_client_info": {
           "package_name": "com.tatl.fastnote"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "364981991189-vf79qsdjd922hvcf3lk1a93ms8m2kjaq.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.tatl.fastnote",
+            "certificate_hash": "50e03cead0f11815175264138d8dfb2204cb0ed5"
+          }
+        },
+        {
+          "client_id": "364981991189-vf79qsdjd922hvcf3lk1a93ms8m2kjaq.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
-          "current_key": "AIzaSyAnmdA0NmBoI4D0FxDuL4GkW43pDtahPdQ"
+          "current_key": "AIzaSyCjRK1TJpDgmFnAPhS87guNnB8Fivq6csk"
         }
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "364981991189-vf79qsdjd922hvcf3lk1a93ms8m2kjaq.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

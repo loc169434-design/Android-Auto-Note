@@ -1,4 +1,4 @@
-﻿package com.tatl.fastnote.ui.home
+package com.tatl.fastnote.ui.home
 
 import android.content.Intent
 import androidx.compose.foundation.background
@@ -81,7 +81,9 @@ fun HomeScreen(
     viewModel: HomeViewModel,
     onRecordClick: () -> Unit,
     onSettingsClick: () -> Unit,
-    onAIShareClick: () -> Unit = {}
+    onAIShareClick: () -> Unit = {},
+    onPremiumClick: () -> Unit = {},
+    isPremium: Boolean = false
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -209,9 +211,12 @@ fun HomeScreen(
                     }) {
                         Icon(Icons.Default.Edit, contentDescription = "Sửa file", tint = AccentGreen)
                     }
-                    // Premium placeholder
-                    TextButton(onClick = { /* TODO: Premium */ }) {
-                        Text("⭐", fontSize = 18.sp)
+                    // Premium / Crown button
+                    TextButton(onClick = onPremiumClick) {
+                        Text(
+                            text = if (isPremium) "👑" else "⭐",
+                            fontSize = 18.sp
+                        )
                     }
                     // Widget button
                     IconButton(onClick = { showManualPinPrompt = true }) {

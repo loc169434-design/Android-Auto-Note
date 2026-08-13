@@ -1,4 +1,4 @@
-﻿package com.tatl.fastnote.billing
+package com.tatl.fastnote.billing
 
 import android.app.Activity
 import android.content.Context
@@ -8,211 +8,153 @@ import com.android.billingclient.api.BillingClient
 import com.android.billingclient.api.BillingClientStateListener
 import com.android.billingclient.api.BillingFlowParams
 import com.android.billingclient.api.BillingResult
+import com.android.billingclient.api.PendingPurchasesParams
 import com.android.billingclient.api.ProductDetails
 import com.android.billingclient.api.Purchase
 import com.android.billingclient.api.PurchasesUpdatedListener
 import com.android.billingclient.api.QueryProductDetailsParams
 import com.android.billingclient.api.QueryPurchasesParams
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withContext
+import kotlin.coroutines.resume
 
 /**
- * Manages Google Play Billing for one-time (non-consumable) premium purchase.
+ * Manages Google Play Billing for the one-time "premium_lifetime" purchase.
  *
- * For PoC, purchase state is verified locally via BillingClient.
- * Production should add server-side verification via Google Play Developer API.
+ * Product ID: "premium_lifetime"  (must match Play Console)
+ * Price: 200,000₫ / lifetime
  */
-class BillingManager(private val context: Context) {
+class BillingManager(context: Context) {
 
     companion object {
+        const val PRODUCT_ID = "premium_lifetime"
         private const val TAG = "BillingManager"
-        // TODO: Replace with actual product ID from Google Play Console
-        const val PRODUCT_ID_PREMIUM = "premium_unlock"
     }
 
-    private var billingClient: BillingClient? = null
-    private var productDetails: ProductDetails? = null
+    private var onPurchaseSuccess: (() -> Unit)? = null
+    private var onPurchaseFailed: ((String) -> Unit)? = null
 
-    private val _isPremium = MutableStateFlow(false)
-    val isPremium: StateFlow<Boolean> = _isPremium.asStateFlow()
-
-    private val _billingState = MutableStateFlow(BillingState.DISCONNECTED)
-    val billingState: StateFlow<BillingState> = _billingState.asStateFlow()
-
-    private val purchasesUpdatedListener = PurchasesUpdatedListener { billingResult, purchases ->
-        when (billingResult.responseCode) {
+    private val purchasesUpdatedListener = PurchasesUpdatedListener { result, purchases ->
+        when (result.responseCode) {
             BillingClient.BillingResponseCode.OK -> {
-                purchases?.forEach { purchase ->
-                    handlePurchase(purchase)
-                }
+                purchases?.forEach { handlePurchase(it) }
             }
             BillingClient.BillingResponseCode.USER_CANCELED -> {
-                Log.d(TAG, "User cancelled purchase")
+                Log.d(TAG, "User cancelled billing flow")
             }
             else -> {
-                Log.e(TAG, "Purchase error: ${billingResult.debugMessage}")
+                onPurchaseFailed?.invoke("Thanh toán thất bại (${result.responseCode})")
             }
         }
     }
 
-    fun initialize() {
-        billingClient = BillingClient.newBuilder(context)
-            .setListener(purchasesUpdatedListener)
-            .enablePendingPurchases(
-                com.android.billingclient.api.PendingPurchasesParams.newBuilder()
-                    .enableOneTimeProducts()
-                    .build()
-            )
-            .build()
+    private val billingClient = BillingClient.newBuilder(context)
+        .setListener(purchasesUpdatedListener)
+        .enablePendingPurchases(
+            PendingPurchasesParams.newBuilder().enableOneTimeProducts().build()
+        )
+        .build()
 
-        connectToPlayBilling()
-    }
+    // ── Connect ───────────────────────────────────────────────────────────────
 
-    private fun connectToPlayBilling() {
-        _billingState.value = BillingState.CONNECTING
-
-        billingClient?.startConnection(object : BillingClientStateListener {
-            override fun onBillingSetupFinished(billingResult: BillingResult) {
-                if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
-                    _billingState.value = BillingState.CONNECTED
-                    Log.d(TAG, "Billing connected")
-                    queryProductDetails()
-                    queryExistingPurchases()
-                } else {
-                    _billingState.value = BillingState.ERROR
-                    Log.e(TAG, "Billing setup failed: ${billingResult.debugMessage}")
-                }
+    suspend fun connect(): Boolean = suspendCancellableCoroutine { cont ->
+        billingClient.startConnection(object : BillingClientStateListener {
+            override fun onBillingSetupFinished(result: BillingResult) {
+                cont.resume(result.responseCode == BillingClient.BillingResponseCode.OK)
             }
-
             override fun onBillingServiceDisconnected() {
-                _billingState.value = BillingState.DISCONNECTED
-                Log.w(TAG, "Billing disconnected")
+                if (cont.isActive) cont.resume(false)
             }
         })
     }
 
-    private fun queryProductDetails() {
-        val productList = listOf(
-            QueryProductDetailsParams.Product.newBuilder()
-                .setProductId(PRODUCT_ID_PREMIUM)
-                .setProductType(BillingClient.ProductType.INAPP)
-                .build()
-        )
+    // ── Query product ─────────────────────────────────────────────────────────
 
+    suspend fun queryProduct(): ProductDetails? = withContext(Dispatchers.IO) {
         val params = QueryProductDetailsParams.newBuilder()
-            .setProductList(productList)
+            .setProductList(listOf(
+                QueryProductDetailsParams.Product.newBuilder()
+                    .setProductId(PRODUCT_ID)
+                    .setProductType(BillingClient.ProductType.INAPP)
+                    .build()
+            ))
             .build()
 
-        billingClient?.queryProductDetailsAsync(params) { billingResult, productDetailsList ->
-            if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
-                productDetails = productDetailsList.firstOrNull()
-                Log.d(TAG, "Product details loaded: ${productDetails?.name}")
-            } else {
-                Log.e(TAG, "Failed to query product details: ${billingResult.debugMessage}")
+        suspendCancellableCoroutine { cont ->
+            billingClient.queryProductDetailsAsync(params) { result, details ->
+                cont.resume(
+                    if (result.responseCode == BillingClient.BillingResponseCode.OK)
+                        details.firstOrNull()
+                    else null
+                )
             }
         }
     }
 
-    /**
-     * Check if user has already purchased premium (restore purchases).
-     */
-    fun queryExistingPurchases() {
+    // ── Launch flow ───────────────────────────────────────────────────────────
+
+    fun launchBillingFlow(
+        activity: Activity,
+        productDetails: ProductDetails,
+        onSuccess: () -> Unit,
+        onFailed: (String) -> Unit
+    ) {
+        onPurchaseSuccess = onSuccess
+        onPurchaseFailed  = onFailed
+
+        val params = BillingFlowParams.newBuilder()
+            .setProductDetailsParamsList(listOf(
+                BillingFlowParams.ProductDetailsParams.newBuilder()
+                    .setProductDetails(productDetails)
+                    .build()
+            ))
+            .build()
+        billingClient.launchBillingFlow(activity, params)
+    }
+
+    // ── Handle purchase ───────────────────────────────────────────────────────
+
+    private fun handlePurchase(purchase: Purchase) {
+        if (purchase.purchaseState != Purchase.PurchaseState.PURCHASED) return
+
+        val ackParams = AcknowledgePurchaseParams.newBuilder()
+            .setPurchaseToken(purchase.purchaseToken)
+            .build()
+
+        billingClient.acknowledgePurchase(ackParams) { result ->
+            if (result.responseCode == BillingClient.BillingResponseCode.OK) {
+                Log.d(TAG, "Purchase acknowledged")
+                // TODO: in production, validate server-side via Firebase Cloud Functions
+                MainScope().launch {
+                    PremiumManager.setPremium(purchase.purchaseToken)
+                    onPurchaseSuccess?.invoke()
+                }
+            }
+        }
+    }
+
+    // ── Restore purchases ─────────────────────────────────────────────────────
+
+    suspend fun queryExistingPurchases(): Boolean = withContext(Dispatchers.IO) {
         val params = QueryPurchasesParams.newBuilder()
             .setProductType(BillingClient.ProductType.INAPP)
             .build()
 
-        billingClient?.queryPurchasesAsync(params) { billingResult, purchasesList ->
-            if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
-                val hasPremium = purchasesList.any { purchase ->
-                    purchase.products.contains(PRODUCT_ID_PREMIUM) &&
-                            purchase.purchaseState == Purchase.PurchaseState.PURCHASED
-                }
-                _isPremium.value = hasPremium
-
-                // Acknowledge any unacknowledged purchases
-                purchasesList.forEach { purchase ->
-                    if (!purchase.isAcknowledged &&
-                        purchase.purchaseState == Purchase.PurchaseState.PURCHASED
-                    ) {
-                        acknowledgePurchase(purchase)
+        suspendCancellableCoroutine { cont ->
+            billingClient.queryPurchasesAsync(params) { result, purchases ->
+                cont.resume(
+                    result.responseCode == BillingClient.BillingResponseCode.OK &&
+                    purchases.any {
+                        it.products.contains(PRODUCT_ID) &&
+                        it.purchaseState == Purchase.PurchaseState.PURCHASED
                     }
-                }
-
-                Log.d(TAG, "Existing purchases checked. Premium: $hasPremium")
+                )
             }
         }
     }
 
-    /**
-     * Launch the purchase flow for premium.
-     */
-    fun launchPurchaseFlow(activity: Activity): Boolean {
-        val details = productDetails
-        if (details == null) {
-            Log.e(TAG, "Product details not available yet")
-            return false
-        }
-
-        val productDetailsParamsList = listOf(
-            BillingFlowParams.ProductDetailsParams.newBuilder()
-                .setProductDetails(details)
-                .build()
-        )
-
-        val billingFlowParams = BillingFlowParams.newBuilder()
-            .setProductDetailsParamsList(productDetailsParamsList)
-            .build()
-
-        val billingResult = billingClient?.launchBillingFlow(activity, billingFlowParams)
-        return billingResult?.responseCode == BillingClient.BillingResponseCode.OK
-    }
-
-    private fun handlePurchase(purchase: Purchase) {
-        if (purchase.purchaseState == Purchase.PurchaseState.PURCHASED) {
-            if (purchase.products.contains(PRODUCT_ID_PREMIUM)) {
-                _isPremium.value = true
-            }
-
-            // Must acknowledge within 3 days or Google will refund
-            if (!purchase.isAcknowledged) {
-                acknowledgePurchase(purchase)
-            }
-        }
-    }
-
-    private fun acknowledgePurchase(purchase: Purchase) {
-        val params = AcknowledgePurchaseParams.newBuilder()
-            .setPurchaseToken(purchase.purchaseToken)
-            .build()
-
-        billingClient?.acknowledgePurchase(params) { billingResult ->
-            if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
-                Log.d(TAG, "Purchase acknowledged")
-            } else {
-                Log.e(TAG, "Acknowledge failed: ${billingResult.debugMessage}")
-            }
-        }
-    }
-
-    fun destroy() {
-        billingClient?.endConnection()
-        billingClient = null
-    }
-
-    /**
-     * Get the formatted price string for display.
-     */
-    fun getPriceString(): String? {
-        return productDetails
-            ?.oneTimePurchaseOfferDetails
-            ?.formattedPrice
-    }
-
-    enum class BillingState {
-        DISCONNECTED,
-        CONNECTING,
-        CONNECTED,
-        ERROR
-    }
+    fun disconnect() = billingClient.endConnection()
 }
