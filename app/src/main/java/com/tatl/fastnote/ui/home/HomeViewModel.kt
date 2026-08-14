@@ -1,4 +1,4 @@
-﻿package com.tatl.fastnote.ui.home
+package com.tatl.fastnote.ui.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -167,6 +167,32 @@ class HomeViewModel(private val repository: NoteRepository) : ViewModel() {
                 _editFeedback.value = EditFeedback.Success("Đã lưu thay đổi")
             } catch (e: Exception) {
                 _editFeedback.value = EditFeedback.Error("Lỗi khi lưu: ${e.localizedMessage ?: "Không xác định"}")
+            }
+        }
+        return true
+    }
+
+    /**
+     * Create a new note manually with title and content.
+     */
+    fun createNote(title: String, content: String): Boolean {
+        val sanitizedContent = content.trim()
+        val sanitizedTitle = title.trim()
+
+        if (sanitizedContent.isBlank() && sanitizedTitle.isBlank()) {
+            _editFeedback.value = EditFeedback.Error("Nội dung không được để trống")
+            return false
+        }
+
+        viewModelScope.launch {
+            try {
+                repository.insertNote(
+                    title = sanitizedTitle.ifBlank { "Ghi chú" },
+                    content = sanitizedContent
+                )
+                _editFeedback.value = EditFeedback.Success("Đã tạo ghi chú mới")
+            } catch (e: Exception) {
+                _editFeedback.value = EditFeedback.Error("Lỗi khi tạo ghi chú: ${e.localizedMessage ?: "Không xác định"}")
             }
         }
         return true

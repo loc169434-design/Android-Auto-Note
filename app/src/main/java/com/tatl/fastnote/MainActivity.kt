@@ -104,7 +104,19 @@ class MainActivity : ComponentActivity() {
                         }
 
                         composable("settings") {
-                            SettingsScreen(onBack = { navController.popBackStack() })
+                            SettingsScreen(
+                                isPremium = isPremiumUser,
+                                onUpgradeClick = { showPremiumDialog = true },
+                                onLoginClick = {
+                                    startActivity(Intent(this@MainActivity, OnboardingActivity::class.java))
+                                },
+                                onLogoutClick = {
+                                    AuthManager.signOut()
+                                    startActivity(Intent(this@MainActivity, OnboardingActivity::class.java))
+                                    finish()
+                                },
+                                onBack = { navController.popBackStack() }
+                            )
                         }
                     }
 

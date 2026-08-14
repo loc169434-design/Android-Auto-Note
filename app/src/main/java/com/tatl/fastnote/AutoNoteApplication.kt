@@ -1,8 +1,10 @@
-﻿package com.tatl.fastnote
+package com.tatl.fastnote
 
 import android.app.Application
 import com.tatl.fastnote.data.db.AppDatabase
 import com.tatl.fastnote.data.repository.NoteRepository
+import com.tatl.fastnote.data.user.LanguageManager
+import com.tatl.fastnote.data.user.UserManager
 import com.tatl.fastnote.util.ThemePreferences
 
 class AutoNoteApplication : Application() {
@@ -19,5 +21,7 @@ class AutoNoteApplication : Application() {
         super.onCreate()
         instance = this
         ThemePreferences.init(this)
+        UserManager.init(this)
+        LanguageManager.init(this)
     }
 }

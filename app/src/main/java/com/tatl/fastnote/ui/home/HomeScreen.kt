@@ -12,14 +12,19 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Widgets
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -28,6 +33,14 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
+import androidx.compose.ui.res.stringResource
+import com.tatl.fastnote.R
+import com.tatl.fastnote.widget.WidgetUpdater
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -87,11 +100,13 @@ fun HomeScreen(
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
+    val coroutineScope = rememberCoroutineScope()
 
     // ── Widget prompt state (preserved) ───────────────────────────────────────
     val hasPinnedWidget by ThemePreferences.hasPinnedWidget.collectAsState()
     val currentHasPinned by rememberUpdatedState(hasPinnedWidget)
     var showManualPinPrompt by remember { mutableStateOf(false) }
+    var showCreateManualDialog by remember { mutableStateOf(false) }
     var widgetActiveNow by remember { mutableStateOf(true) }
     var refreshKey by remember { mutableIntStateOf(0) }
 
@@ -230,12 +245,26 @@ fun HomeScreen(
             )
         },
         floatingActionButton = {
-            FloatingActionButton(
-                onClick = onRecordClick,
-                containerColor = AccentGreen,
-                shape = RoundedCornerShape(16.dp)
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(Icons.Default.Mic, contentDescription = "Ghi chú mới", tint = Color.White)
+                // Manual New Note FAB (+)
+                FloatingActionButton(
+                    onClick = { showCreateManualDialog = true },
+                    containerColor = AccentGreen.copy(alpha = 0.85f),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = stringResource(R.string.btn_new_manual_note), tint = Color.White)
+                }
+                // Voice Record FAB (🎤)
+                FloatingActionButton(
+                    onClick = onRecordClick,
+                    containerColor = AccentGreen,
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    Icon(Icons.Default.Mic, contentDescription = "Ghi chú voice", tint = Color.White)
+                }
             }
         }
     ) { innerPadding ->
@@ -326,6 +355,73 @@ fun HomeScreen(
             }
         )
     }
+
+    if (showCreateManualDialog) {
+        CreateManualNoteDialog(
+            onSave = { title, content ->
+                if (viewModel.createNote(title, content)) {
+                    coroutineScope.launch {
+                        WidgetUpdater.updateAllWidgets(context)
+                    }
+                    showCreateManualDialog = false
+                }
+            },
+            onDismiss = { showCreateManualDialog = false }
+        )
+    }
+}
+
+@Composable
+private fun CreateManualNoteDialog(
+    onSave: (title: String, content: String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    val defaultPrefix = stringResource(R.string.default_note_title_prefix)
+    val defaultTimestamp = remember {
+        val now = Date()
+        val formattedDate = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()).format(now)
+        "$defaultPrefix $formattedDate"
+    }
+
+    var titleText by remember { mutableStateOf(defaultTimestamp) }
+    var contentText by remember { mutableStateOf("") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.dialog_new_note_title)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedTextField(
+                    value = titleText,
+                    onValueChange = { titleText = it },
+                    label = { Text("Tiêu đề") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = contentText,
+                    onValueChange = { contentText = it },
+                    label = { Text(stringResource(R.string.placeholder_note_content)) },
+                    minLines = 4,
+                    maxLines = 8,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { onSave(titleText, contentText) },
+                enabled = contentText.isNotBlank() || titleText.isNotBlank()
+            ) {
+                Text(stringResource(R.string.btn_save))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.btn_cancel))
+            }
+        }
+    )
 }
 
 // ── Search highlight ──────────────────────────────────────────────────────────

@@ -1,4 +1,4 @@
-﻿package com.tatl.fastnote.service
+package com.tatl.fastnote.service
 
 import android.app.Notification
 import android.app.NotificationChannel
@@ -216,7 +216,7 @@ class VoiceRecordingService : Service() {
 
     private fun createRecognizerIntent(): Intent {
         val langLocale = try {
-            ThemePreferences.recognitionLanguage.value.locale
+            com.tatl.fastnote.data.user.LanguageManager.getSpeechLanguageTag()
         } catch (e: Exception) {
             "vi-VN"
         }

@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Fast Note</string>
+
+    <string name="widget_quick_record_desc">音声によるクイックメモ録音</string>
+    <string name="widget_recent_notes_desc">最近のメモを表示</string>
+    <string name="widget_stats_desc">メモの統計情報</string>
+    <string name="widget_open_notes_title">メモを開く</string>
+    <string name="widget_open_notes_desc">すべてのメモを表示</string>
+    <string name="widget_ai_title">AI要約</string>
+    <string name="widget_ai_desc">AIで今日のメモを要約</string>
+    <string name="widget_triple_action_title">トリプルアクション</string>
+    <string name="widget_triple_action_desc">録音マイク、Gemini、ファイル表示ウィジェット</string>
+
+    <string name="recording_notification_title">録音中</string>
+    <string name="recording_notification_text">Fast Noteが音声を録音しています</string>
+    <string name="recording_channel_name">音声録音</string>
+    <string name="recording_channel_desc">音声録音中の通知</string>
+
+    <string name="btn_start_recording">録音開始</string>
+    <string name="btn_stop_recording">停止</string>
+    <string name="btn_save">保存</string>
+    <string name="btn_cancel">キャンセル</string>
+    <string name="btn_delete">削除</string>
+    <string name="btn_share">共有</string>
+    <string name="btn_export">ファイル出力</string>
+    <string name="btn_upgrade">プレミアムにアップグレード</string>
+    <string name="btn_restore">購入を復元</string>
+
+    <string name="empty_notes">メモがありません。\n+ をタップして作成しましょう！</string>
+    <string name="delete_confirm_title">メモを削除しますか？</string>
+    <string name="delete_confirm_message">本当にこのメモを削除しますか？</string>
+
+    <string name="label_total_notes">合計メモ数</string>
+    <string name="label_today_notes">今日</string>
+    <string name="label_free">無料</string>
+    <string name="label_premium">プレミアム</string>
+
+    <string name="title_user_profile">アカウント＆プロフィール</string>
+    <string name="account_guest">ゲスト（未ログイン）</string>
+    <string name="account_google">Googleアカウント</string>
+    <string name="btn_login_google">Googleでログイン</string>
+    <string name="btn_logout">ログアウト</string>
+
+    <string name="title_language">アプリの言語</string>
+    <string name="lang_system">システムデフォルト 📱</string>
+    <string name="lang_vi">Tiếng Việt 🇻🇳</string>
+    <string name="lang_en">English 🇬🇧</string>
+    <string name="lang_de">Deutsch 🇩🇪</string>
+    <string name="lang_ja">日本語 🇯🇵</string>
+
+    <string name="btn_new_manual_note">新規メモ</string>
+    <string name="default_note_title_prefix">メモ</string>
+    <string name="dialog_new_note_title">新規メモ作成</string>
+    <string name="placeholder_note_content">メモの内容を入力...</string>
+</resources>

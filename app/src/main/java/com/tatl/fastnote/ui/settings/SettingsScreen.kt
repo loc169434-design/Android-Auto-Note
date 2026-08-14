@@ -1,4 +1,4 @@
-﻿package com.tatl.fastnote.ui.settings
+package com.tatl.fastnote.ui.settings
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -22,8 +22,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -32,22 +35,34 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.tatl.fastnote.R
+import com.tatl.fastnote.data.user.AccountType
+import com.tatl.fastnote.data.user.AppLanguage
+import com.tatl.fastnote.data.user.LanguageManager
+import com.tatl.fastnote.data.user.UserManager
+import com.tatl.fastnote.data.user.UserProfile
 import com.tatl.fastnote.util.AppTheme
 import com.tatl.fastnote.util.ThemePreferences
 
-// Map theme to its primary color for the color circle preview
 private fun getThemePreviewColor(theme: AppTheme): Color {
     return when (theme) {
         AppTheme.OCEAN_BLUE -> Color(0xFF1565C0)
@@ -66,17 +81,24 @@ fun SettingsScreen(
     isPremium: Boolean = false,
     onUpgradeClick: () -> Unit = {},
     onRestoreClick: () -> Unit = {},
+    onLoginClick: () -> Unit = {},
+    onLogoutClick: () -> Unit = {},
     onBack: () -> Unit
 ) {
+    val context = LocalContext.current
     val currentTheme by ThemePreferences.currentTheme.collectAsState()
+    val userProfile by UserManager.userProfile.collectAsState()
+    val currentLanguage by LanguageManager.currentLanguage.collectAsState()
+
+    var showLanguageDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Cài đặt") },
+                title = { Text(stringResource(R.string.app_name) + " - Settings") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Quay lại")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.btn_cancel))
                     }
                 }
             )
@@ -89,7 +111,7 @@ fun SettingsScreen(
                 .padding(16.dp)
                 .verticalScroll(rememberScrollState())
         ) {
-            // === Theme Selector ===
+            // === 1. User Profile Card ===
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
@@ -97,9 +119,119 @@ fun SettingsScreen(
                     containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
                 )
             ) {
-                Column(
-                    modifier = Modifier.padding(20.dp)
+                Column(modifier = Modifier.padding(20.dp)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.AccountCircle,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(48.dp)
+                        )
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = userProfile.userName,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            if (userProfile.email.isNotEmpty()) {
+                                Text(
+                                    text = userProfile.email,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            Text(
+                                text = "ID: ${userProfile.userId}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                        // Account badge
+                        val badgeText = if (userProfile.accountType == AccountType.GOOGLE) {
+                            stringResource(R.string.account_google)
+                        } else {
+                            stringResource(R.string.account_guest)
+                        }
+                        Text(
+                            text = badgeText,
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.secondary
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    if (userProfile.isLoggedIn) {
+                        OutlinedButton(
+                            onClick = onLogoutClick,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(stringResource(R.string.btn_logout))
+                        }
+                    } else {
+                        Button(
+                            onClick = onLoginClick,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(stringResource(R.string.btn_login_google))
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // === 2. Language Selection Card ===
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { showLanguageDialog = true },
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                )
+            ) {
+                Row(
+                    modifier = Modifier.padding(20.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
+                    Icon(
+                        Icons.Default.Language,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = stringResource(R.string.title_language),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = "${currentLanguage.flagEmoji} ${currentLanguage.displayName}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // === 3. Theme Selector ===
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                )
+            ) {
+                Column(modifier = Modifier.padding(20.dp)) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -119,7 +251,6 @@ fun SettingsScreen(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // Theme color circles
                     FlowRow(
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -135,9 +266,9 @@ fun SettingsScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-            // === Premium status card ===
+            // === 4. Premium status card ===
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
@@ -149,11 +280,9 @@ fun SettingsScreen(
                     }
                 )
             ) {
-                Column(
-                    modifier = Modifier.padding(20.dp)
-                ) {
+                Column(modifier = Modifier.padding(20.dp)) {
                     Text(
-                        text = if (isPremium) "✨ Premium" else "Miễn phí",
+                        text = if (isPremium) "✨ Premium" else stringResource(R.string.label_free),
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold
                     )
@@ -173,7 +302,7 @@ fun SettingsScreen(
                             onClick = onUpgradeClick,
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text("Nâng cấp Premium")
+                            Text(stringResource(R.string.btn_upgrade))
                         }
                     }
                 }
@@ -181,29 +310,75 @@ fun SettingsScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Restore purchases
             OutlinedButton(
                 onClick = onRestoreClick,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Khôi phục giao dịch")
+                Text(stringResource(R.string.btn_restore))
             }
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // App info
             Text(
-                text = "Auto Note v1.0",
+                text = "Fast Note v1.1",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
+
+    if (showLanguageDialog) {
+        LanguageSelectionDialog(
+            currentLanguage = currentLanguage,
+            onLanguageSelected = { selected ->
+                LanguageManager.setLanguage(context, selected)
+                showLanguageDialog = false
+            },
+            onDismiss = { showLanguageDialog = false }
+        )
+    }
 }
 
-/**
- * A single theme color circle with emoji label
- */
+@Composable
+private fun LanguageSelectionDialog(
+    currentLanguage: AppLanguage,
+    onLanguageSelected: (AppLanguage) -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.title_language)) },
+        text = {
+            Column {
+                AppLanguage.entries.forEach { lang ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onLanguageSelected(lang) }
+                            .padding(vertical = 12.dp, horizontal = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RadioButton(
+                            selected = lang == currentLanguage,
+                            onClick = { onLanguageSelected(lang) }
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "${lang.flagEmoji} ${lang.displayName}",
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.btn_cancel))
+            }
+        }
+    )
+}
+
 @Composable
 private fun ThemeColorItem(
     theme: AppTheme,
@@ -231,7 +406,7 @@ private fun ThemeColorItem(
             if (isSelected) {
                 Icon(
                     Icons.Default.Check,
-                    contentDescription = "Đã chọn",
+                    contentDescription = "Selected",
                     tint = Color.White,
                     modifier = Modifier.size(24.dp)
                 )

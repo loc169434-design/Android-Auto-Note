@@ -2,7 +2,6 @@
 <resources>
     <string name="app_name">Fast Note</string>
 
-    <!-- Widget descriptions -->
     <string name="widget_quick_record_desc">Ghi chú nhanh bằng giọng nói</string>
     <string name="widget_recent_notes_desc">Hiển thị các ghi chú gần đây</string>
     <string name="widget_stats_desc">Thống kê ghi chú</string>
@@ -13,13 +12,11 @@
     <string name="widget_triple_action_title">Bộ 3 tính năng</string>
     <string name="widget_triple_action_desc">Micro ghi âm, mở Gemini và xem file trong một widget</string>
 
-    <!-- Recording -->
     <string name="recording_notification_title">Đang ghi âm</string>
     <string name="recording_notification_text">Fast Note đang thu âm giọng nói</string>
     <string name="recording_channel_name">Ghi âm</string>
     <string name="recording_channel_desc">Thông báo khi đang ghi âm giọng nói</string>
 
-    <!-- UI -->
     <string name="btn_start_recording">Bắt đầu ghi</string>
     <string name="btn_stop_recording">Dừng</string>
     <string name="btn_save">Lưu</string>
@@ -39,14 +36,12 @@
     <string name="label_free">Miễn phí</string>
     <string name="label_premium">Premium</string>
 
-    <!-- User Profile & Account -->
     <string name="title_user_profile">Tài khoản &amp; Định danh</string>
     <string name="account_guest">Khách (Chưa đăng nhập)</string>
     <string name="account_google">Tài khoản Google</string>
     <string name="btn_login_google">Đăng nhập Google</string>
     <string name="btn_logout">Đăng xuất</string>
 
-    <!-- Language Selector -->
     <string name="title_language">Ngôn ngữ ứng dụng</string>
     <string name="lang_system">Mặc định hệ thống 📱</string>
     <string name="lang_vi">Tiếng Việt 🇻🇳</string>
@@ -54,7 +49,6 @@
     <string name="lang_de">Deutsch 🇩🇪</string>
     <string name="lang_ja">日本語 🇯🇵</string>
 
-    <!-- Manual Note & Timestamp -->
     <string name="btn_new_manual_note">Tạo ghi chú mới</string>
     <string name="default_note_title_prefix">Ghi chú</string>
     <string name="dialog_new_note_title">Tạo ghi chú mới</string>

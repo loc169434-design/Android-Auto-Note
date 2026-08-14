@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Fast Note</string>
+
+    <string name="widget_quick_record_desc">Schnelle Sprachaufnahme</string>
+    <string name="widget_recent_notes_desc">Neueste Notizen anzeigen</string>
+    <string name="widget_stats_desc">Notizstatistiken</string>
+    <string name="widget_open_notes_title">Notizen öffnen</string>
+    <string name="widget_open_notes_desc">Alle Notizen anzeigen</string>
+    <string name="widget_ai_title">KI-Zusammenfassung</string>
+    <string name="widget_ai_desc">Heutige Notizen mit KI zusammenfassen</string>
+    <string name="widget_triple_action_title">Dreifach-Funktion</string>
+    <string name="widget_triple_action_desc">Sprachaufnahme, Gemini &amp; Dateibetrachter Widget</string>
+
+    <string name="recording_notification_title">Aufnahme läuft</string>
+    <string name="recording_notification_text">Fast Note nimmt Sprache auf</string>
+    <string name="recording_channel_name">Sprachaufnahme</string>
+    <string name="recording_channel_desc">Benachrichtigung während der aktiven Sprachaufnahme</string>
+
+    <string name="btn_start_recording">Aufnahme starten</string>
+    <string name="btn_stop_recording">Stopp</string>
+    <string name="btn_save">Speichern</string>
+    <string name="btn_cancel">Abbrechen</string>
+    <string name="btn_delete">Löschen</string>
+    <string name="btn_share">Teilen</string>
+    <string name="btn_export">Datei exportieren</string>
+    <string name="btn_upgrade">Auf Premium upgraden</string>
+    <string name="btn_restore">Kauf wiederherstellen</string>
+
+    <string name="empty_notes">Noch keine Notizen.\nTippe auf +, um eine zu erstellen!</string>
+    <string name="delete_confirm_title">Notiz löschen?</string>
+    <string name="delete_confirm_message">Möchtest du diese Notiz wirklich löschen?</string>
+
+    <string name="label_total_notes">Gesamte Notizen</string>
+    <string name="label_today_notes">Heute</string>
+    <string name="label_free">Kostenlos</string>
+    <string name="label_premium">Premium</string>
+
+    <string name="title_user_profile">Konto &amp; Profil</string>
+    <string name="account_guest">Gast (Nicht angemeldet)</string>
+    <string name="account_google">Google-Konto</string>
+    <string name="btn_login_google">Mit Google anmelden</string>
+    <string name="btn_logout">Abmelden</string>
+
+    <string name="title_language">App-Sprache</string>
+    <string name="lang_system">Systemstandard 📱</string>
+    <string name="lang_vi">Tiếng Việt 🇻🇳</string>
+    <string name="lang_en">English 🇬🇧</string>
+    <string name="lang_de">Deutsch 🇩🇪</string>
+    <string name="lang_ja">日本語 🇯🇵</string>
+
+    <string name="btn_new_manual_note">Neue Notiz</string>
+    <string name="default_note_title_prefix">Notiz</string>
+    <string name="dialog_new_note_title">Neue Notiz erstellen</string>
+    <string name="placeholder_note_content">Notizinhalt eingeben...</string>
+</resources>

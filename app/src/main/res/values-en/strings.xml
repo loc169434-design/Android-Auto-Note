@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Fast Note</string>
+
+    <string name="widget_quick_record_desc">Quick voice note recording</string>
+    <string name="widget_recent_notes_desc">Display recent notes</string>
+    <string name="widget_stats_desc">Note statistics</string>
+    <string name="widget_open_notes_title">Open Notes</string>
+    <string name="widget_open_notes_desc">View all notes</string>
+    <string name="widget_ai_title">AI Summary</string>
+    <string name="widget_ai_desc">Summarize today\'s notes with AI</string>
+    <string name="widget_triple_action_title">Triple Action</string>
+    <string name="widget_triple_action_desc">Voice recorder, Gemini &amp; File viewer widget</string>
+
+    <string name="recording_notification_title">Recording</string>
+    <string name="recording_notification_text">Fast Note is recording voice</string>
+    <string name="recording_channel_name">Voice Recording</string>
+    <string name="recording_channel_desc">Notification during active voice recording</string>
+
+    <string name="btn_start_recording">Start Record</string>
+    <string name="btn_stop_recording">Stop</string>
+    <string name="btn_save">Save</string>
+    <string name="btn_cancel">Cancel</string>
+    <string name="btn_delete">Delete</string>
+    <string name="btn_share">Share</string>
+    <string name="btn_export">Export File</string>
+    <string name="btn_upgrade">Upgrade to Premium</string>
+    <string name="btn_restore">Restore Purchase</string>
+
+    <string name="empty_notes">No notes yet.\nTap + to create one!</string>
+    <string name="delete_confirm_title">Delete note?</string>
+    <string name="delete_confirm_message">Are you sure you want to delete this note?</string>
+
+    <string name="label_total_notes">Total Notes</string>
+    <string name="label_today_notes">Today</string>
+    <string name="label_free">Free</string>
+    <string name="label_premium">Premium</string>
+
+    <string name="title_user_profile">Account &amp; Profile</string>
+    <string name="account_guest">Guest (Not Logged In)</string>
+    <string name="account_google">Google Account</string>
+    <string name="btn_login_google">Sign in with Google</string>
+    <string name="btn_logout">Sign Out</string>
+
+    <string name="title_language">App Language</string>
+    <string name="lang_system">System Default 📱</string>
+    <string name="lang_vi">Tiếng Việt 🇻🇳</string>
+    <string name="lang_en">English 🇬🇧</string>
+    <string name="lang_de">Deutsch 🇩🇪</string>
+    <string name="lang_ja">日本語 🇯🇵</string>
+
+    <string name="btn_new_manual_note">New Note</string>
+    <string name="default_note_title_prefix">Note</string>
+    <string name="dialog_new_note_title">New Note</string>
+    <string name="placeholder_note_content">Type note content here...</string>
+</resources>
