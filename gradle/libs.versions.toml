@@ -23,6 +23,7 @@ playServicesAuth = "21.3.0"
 credentials = "1.3.0"
 
 appcompat = "1.7.0"
+composeFonts = "1.7.8"
 
 [libraries]
 # Core
@@ -55,6 +56,9 @@ androidx-room-runtime = { group = "androidx.room", name = "room-runtime", versio
 androidx-room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
 androidx-room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
 
+# Google Fonts for Compose
+androidx-compose-ui-text-google-fonts = { group = "androidx.compose.ui", name = "ui-text-google-fonts", version.ref = "composeFonts" }
+
 # Glance (Widget)
 androidx-glance-appwidget = { group = "androidx.glance", name = "glance-appwidget", version.ref = "glance" }
 androidx-glance-material3 = { group = "androidx.glance", name = "glance-material3", version.ref = "glance" }
@@ -78,6 +82,8 @@ play-services-auth = { group = "com.google.android.gms", name = "play-services-a
 credentials = { group = "androidx.credentials", name = "credentials", version.ref = "credentials" }
 credentials-play-services = { group = "androidx.credentials", name = "credentials-play-services-auth", version.ref = "credentials" }
 google-id = { group = "com.google.android.libraries.identity.googleid", name = "googleid", version = "1.1.1" }
+okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version = "4.12.0" }
+
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

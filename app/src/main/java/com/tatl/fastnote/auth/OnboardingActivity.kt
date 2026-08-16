@@ -7,18 +7,27 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
@@ -31,6 +40,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -47,13 +57,21 @@ import com.google.firebase.auth.PhoneAuthProvider
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.ktx.Firebase
 import com.tatl.fastnote.MainActivity
+import com.tatl.fastnote.ui.theme.AppAccentGreen
+import com.tatl.fastnote.ui.theme.AppBgBlack
+import com.tatl.fastnote.ui.theme.AppBorder
+import com.tatl.fastnote.ui.theme.AppTextMuted
+import com.tatl.fastnote.ui.theme.AppTextPrimary
+import com.tatl.fastnote.ui.theme.AppTextSecondary
+import com.tatl.fastnote.ui.theme.InterFontFamily
+import com.tatl.fastnote.ui.theme.NotoSansFontFamily
 import kotlinx.coroutines.launch
 import java.util.concurrent.TimeUnit
 
 /**
- * OLED Pure Black onboarding screen.
+ * OLED Pure Black onboarding screen — designed to match screenshot mockup.
  * Login options:
- *  1. Google Sign-In (legacy GoogleSignInClient — works on all devices/dev builds)
+ *  1. Google Sign-In
  *  2. Phone OTP (Firebase Phone Auth)
  *  3. Anonymous / Guest mode
  */
@@ -61,7 +79,6 @@ class OnboardingActivity : ComponentActivity() {
 
     companion object {
         private const val TAG = "OnboardingActivity"
-        // Web Client ID from Firebase Console → Authentication → Sign-in method → Google
         private const val WEB_CLIENT_ID =
             "364981991189-vf79qsdjd922hvcf3lk1a93ms8m2kjaq.apps.googleusercontent.com"
     }
@@ -114,17 +131,17 @@ class OnboardingActivity : ComponentActivity() {
         }
     }
 
-    // ── Google Sign-In (legacy — works without Play Console publish) ──────────
+    // ── Google Sign-In ────────────────────────────────────────────────────────
 
     private fun launchGoogleSignIn() {
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
             .requestIdToken(WEB_CLIENT_ID)
             .requestEmail()
+            .requestScopes(com.tatl.fastnote.sync.GoogleDriveSyncManager.DRIVE_APPDATA_SCOPE)
             .build()
         val client = GoogleSignIn.getClient(this, gso)
-        // Sign out first to force account picker (not auto-select)
         client.signOut().addOnCompleteListener {
-            Log.d(TAG, "Launching Google Sign-In intent...")
+            Log.d(TAG, "Launching Google Sign-In intent with Drive appdata scope...")
             googleSignInLauncher.launch(client.signInIntent)
         }
     }
@@ -196,12 +213,9 @@ class OnboardingActivity : ComponentActivity() {
         Toast.makeText(this, msg, Toast.LENGTH_LONG).show()
 }
 
-// ── Composable UI ─────────────────────────────────────────────────────────────
-
-private val OledBlack   = Color(0xFF000000)
-private val TextWhite   = Color(0xFFFFFFFF)
-private val TextGray    = Color(0xFF888888)
-private val AccentGreen = Color(0xFF4CAF50)
+// ══════════════════════════════════════════════════════════════════════════════
+//  Composable UI — uses shared AppColors + AppFonts
+// ══════════════════════════════════════════════════════════════════════════════
 
 @Composable
 private fun OnboardingScreen(
@@ -218,98 +232,264 @@ private fun OnboardingScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(OledBlack),
-        contentAlignment = Alignment.Center
+            .background(AppBgBlack)
     ) {
         Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 40.dp),
+                .fillMaxSize()
+                .padding(horizontal = 36.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            // ── Intro ───────────────────────────────────────────────────────────
-            Text("Chào bạn,", color = TextWhite, fontSize = 28.sp, fontWeight = FontWeight.Light)
+
+            // ── Intro Text ───────────────────────────────────────────────────
+            Spacer(Modifier.weight(1f))
+
+            Text(
+                text = "Chào bạn,",
+                fontFamily = NotoSansFontFamily,
+                fontWeight = FontWeight.Normal,
+                fontSize = 18.sp,
+                color = AppTextPrimary,
+                textAlign = TextAlign.Center
+            )
             Spacer(Modifier.height(20.dp))
             Text(
-                text = "Đây là một cuốn sổ phẳng \"biết điều\" — nơi dòng suy nghĩ của bạn được số hóa tức thời mà không vấp phải bất kỳ rào cản nào.",
-                color = TextGray, fontSize = 15.sp, textAlign = TextAlign.Center, lineHeight = 22.sp
+                text = "Đây là một cuốn sổ phẳng 'biết điều' – nơi\ndòng suy nghĩ của bạn được số hóa tức thời\nmà không vấp phải bất kỳ rào cản nào.",
+                fontFamily = NotoSansFontFamily,
+                fontWeight = FontWeight.Normal,
+                fontSize = 15.sp,
+                lineHeight = 24.sp,
+                color = AppTextSecondary,
+                textAlign = TextAlign.Center
             )
-            Spacer(Modifier.height(8.dp))
-            Text("Chạm để nói. Thoát là lưu.", color = AccentGreen, fontSize = 14.sp,
-                fontWeight = FontWeight.Medium, textAlign = TextAlign.Center)
+            Spacer(Modifier.height(18.dp))
+            Text(
+                text = "Chạm để nói. Thoát là lưu.",
+                fontFamily = NotoSansFontFamily,
+                fontWeight = FontWeight.Normal,
+                fontSize = 15.sp,
+                color = AppTextSecondary,
+                textAlign = TextAlign.Center
+            )
+            Spacer(Modifier.height(10.dp))
+            Text(
+                text = "Việc của bạn là trải nghiệm sự tiện ích.",
+                fontFamily = NotoSansFontFamily,
+                fontWeight = FontWeight.Normal,
+                fontSize = 15.sp,
+                color = AppTextSecondary,
+                textAlign = TextAlign.Center
+            )
+            Spacer(Modifier.height(18.dp))
+            Text(
+                text = "Hãy để chúng tôi làm người thư ký mẫn cán,\nâm thầm lưu vết hành trình cuộc sống của\nbạn từ những cái chạm bản năng nhất.",
+                fontFamily = NotoSansFontFamily,
+                fontWeight = FontWeight.Normal,
+                fontSize = 15.sp,
+                lineHeight = 24.sp,
+                color = AppTextSecondary,
+                textAlign = TextAlign.Center
+            )
 
-            Spacer(Modifier.height(60.dp))
+            Spacer(Modifier.weight(1f))
 
+            // ── Auth buttons ─────────────────────────────────────────────────
             if (!showPhoneMode) {
-                // ── Google button ─────────────────────────────────────────────
-                Button(
+                // Google button
+                OutlinedButton(
                     onClick = onGoogleSignIn,
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1A1A1A))
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(1.dp, AppBorder),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        containerColor = Color.Transparent,
+                        contentColor = AppTextSecondary
+                    )
                 ) {
-                    Text("🔵  BẮT ĐẦU VỚI GMAIL", color = TextWhite, fontSize = 15.sp)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Start,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        // Google "G" icon using text
+                        Text(
+                            text = "G",
+                            fontFamily = InterFontFamily,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 18.sp,
+                            color = AppTextSecondary,
+                            modifier = Modifier.width(32.dp),
+                            textAlign = TextAlign.Center
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            text = "Tiếp tục với Google",
+                            fontFamily = NotoSansFontFamily,
+                            fontWeight = FontWeight.Normal,
+                            fontSize = 15.sp,
+                            color = AppTextSecondary
+                        )
+                    }
                 }
-                Spacer(Modifier.height(16.dp))
-                TextButton(onClick = { showPhoneMode = true }) {
-                    Text("Dùng số điện thoại", color = TextGray, fontSize = 14.sp)
+
+                Spacer(Modifier.height(12.dp))
+
+                // Phone button
+                OutlinedButton(
+                    onClick = { showPhoneMode = true },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(1.dp, AppBorder),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        containerColor = Color.Transparent,
+                        contentColor = AppTextSecondary
+                    )
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Start,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(
+                            Icons.Default.Phone,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp).then(Modifier.width(32.dp)),
+                            tint = AppTextSecondary
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            text = "Tiếp tục với Số điện thoại",
+                            fontFamily = NotoSansFontFamily,
+                            fontWeight = FontWeight.Normal,
+                            fontSize = 15.sp,
+                            color = AppTextSecondary
+                        )
+                    }
                 }
+
             } else {
-                // ── Phone OTP ─────────────────────────────────────────────────
+                // ── Phone OTP mode ───────────────────────────────────────────
                 if (!otpSent) {
                     OutlinedTextField(
                         value = phone, onValueChange = { phone = it },
-                        label = { Text("Số điện thoại (+84...)", color = TextGray) },
+                        label = { Text("Số điện thoại (+84...)", color = AppTextMuted,
+                            fontFamily = NotoSansFontFamily, fontSize = 13.sp) },
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = TextWhite, unfocusedTextColor = TextWhite,
-                            focusedBorderColor = AccentGreen, unfocusedBorderColor = TextGray,
-                            cursorColor = AccentGreen
+                            focusedTextColor = AppTextPrimary,
+                            unfocusedTextColor = AppTextPrimary,
+                            focusedBorderColor = AppTextSecondary,
+                            unfocusedBorderColor = AppBorder,
+                            cursorColor = AppTextPrimary
                         ),
+                        textStyle = androidx.compose.ui.text.TextStyle(
+                            fontFamily = NotoSansFontFamily,
+                            fontSize = 15.sp,
+                            color = AppTextPrimary
+                        ),
+                        shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.fillMaxWidth()
                     )
-                    Spacer(Modifier.height(16.dp))
-                    Button(
+                    Spacer(Modifier.height(12.dp))
+                    OutlinedButton(
                         onClick = { if (phone.isNotBlank()) { onSendOtp(phone); otpSent = true } },
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(containerColor = AccentGreen)
-                    ) { Text("GỬI MÃ OTP", color = TextWhite) }
+                        modifier = Modifier.fillMaxWidth().height(52.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        border = BorderStroke(1.dp, AppBorder),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            containerColor = Color.Transparent,
+                            contentColor = AppTextSecondary
+                        )
+                    ) {
+                        Text("GỬI MÃ OTP", fontFamily = InterFontFamily,
+                            fontWeight = FontWeight.Medium, fontSize = 14.sp,
+                            letterSpacing = 1.sp, color = AppTextSecondary)
+                    }
                 } else {
                     OutlinedTextField(
                         value = otp, onValueChange = { otp = it },
-                        label = { Text("Nhập mã OTP", color = TextGray) },
+                        label = { Text("Nhập mã OTP", color = AppTextMuted,
+                            fontFamily = NotoSansFontFamily, fontSize = 13.sp) },
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = TextWhite, unfocusedTextColor = TextWhite,
-                            focusedBorderColor = AccentGreen, unfocusedBorderColor = TextGray,
-                            cursorColor = AccentGreen
+                            focusedTextColor = AppTextPrimary,
+                            unfocusedTextColor = AppTextPrimary,
+                            focusedBorderColor = AppTextSecondary,
+                            unfocusedBorderColor = AppBorder,
+                            cursorColor = AppTextPrimary
                         ),
+                        textStyle = androidx.compose.ui.text.TextStyle(
+                            fontFamily = NotoSansFontFamily,
+                            fontSize = 15.sp,
+                            color = AppTextPrimary
+                        ),
+                        shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.fillMaxWidth()
                     )
-                    Spacer(Modifier.height(16.dp))
-                    Button(
+                    Spacer(Modifier.height(12.dp))
+                    OutlinedButton(
                         onClick = { if (otp.isNotBlank()) onVerifyOtp(otp) },
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(containerColor = AccentGreen)
-                    ) { Text("XÁC NHẬN", color = TextWhite) }
+                        modifier = Modifier.fillMaxWidth().height(52.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        border = BorderStroke(1.dp, AppBorder),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            containerColor = Color.Transparent,
+                            contentColor = AppTextSecondary
+                        )
+                    ) {
+                        Text("XÁC NHẬN", fontFamily = InterFontFamily,
+                            fontWeight = FontWeight.Medium, fontSize = 14.sp,
+                            letterSpacing = 1.sp, color = AppTextSecondary)
+                    }
                 }
                 Spacer(Modifier.height(12.dp))
                 TextButton(onClick = { showPhoneMode = false; otpSent = false; phone = ""; otp = "" }) {
-                    Text("← Quay lại", color = TextGray, fontSize = 13.sp)
+                    Text("← Quay lại", fontFamily = NotoSansFontFamily,
+                        color = AppTextMuted, fontSize = 13.sp)
                 }
             }
 
-            // ── Guest mode ────────────────────────────────────────────────────
             Spacer(Modifier.height(40.dp))
-            TextButton(onClick = onGuestSignIn) {
-                Text("Bỏ qua, vào chế độ khách →", color = TextGray.copy(alpha = 0.6f), fontSize = 12.sp)
-            }
+
+            // ── Guest / skip section ─────────────────────────────────────────
             Text(
-                "(Dữ liệu không được đồng bộ — chỉ lưu trên thiết bị)",
-                color = TextGray.copy(alpha = 0.35f), fontSize = 10.sp, textAlign = TextAlign.Center
+                text = "BẮT ĐẦU TRẢI NGHIỆM",
+                fontFamily = InterFontFamily,
+                fontWeight = FontWeight.Medium,
+                fontSize = 11.sp,
+                letterSpacing = 2.sp,
+                color = AppTextMuted,
+                textAlign = TextAlign.Center
             )
+            Spacer(Modifier.height(10.dp))
+            OutlinedButton(
+                onClick = onGuestSignIn,
+                modifier = Modifier.height(44.dp),
+                shape = RoundedCornerShape(50.dp),
+                border = BorderStroke(1.dp, AppBorder),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    containerColor = Color.Transparent,
+                    contentColor = AppTextMuted
+                )
+            ) {
+                Text(
+                    text = "BẮT ĐẦU TRẢI NGHIỆM",
+                    fontFamily = InterFontFamily,
+                    fontWeight = FontWeight.Medium,
+                    fontSize = 12.sp,
+                    letterSpacing = 1.5.sp,
+                    color = AppTextMuted
+                )
+            }
+
+            Spacer(Modifier.height(36.dp))
         }
     }
 }

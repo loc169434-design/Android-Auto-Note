@@ -332,6 +332,16 @@ class VoiceRecordingService : Service() {
         }
     }
 
+    /**
+     * Dynamically restart speech engine with newly selected language (V38 requirement).
+     */
+    fun updateLanguageAndRestart() {
+        if (_isListening.value || shouldKeepListening) {
+            restartListening()
+        }
+    }
+
+
     private fun stopListening() {
         shouldKeepListening = false
         _isListening.value = false

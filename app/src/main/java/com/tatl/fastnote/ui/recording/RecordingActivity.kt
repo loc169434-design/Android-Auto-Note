@@ -1,4 +1,4 @@
-﻿package com.tatl.fastnote.ui.recording
+package com.tatl.fastnote.ui.recording
 
 import android.Manifest
 import android.content.ComponentName
@@ -191,6 +191,9 @@ class RecordingActivity : ComponentActivity() {
             app.noteRepository.insertNote(title = title, content = text)
 
             WidgetUpdater.updateAllWidgets(this@RecordingActivity)
+
+            // Sync to Google Drive appDataFolder in background
+            com.tatl.fastnote.sync.GoogleDriveSyncManager.sync(applicationContext)
 
             stopRecordingService()
             Toast.makeText(

@@ -1,10 +1,9 @@
-﻿package com.tatl.fastnote.widget
+package com.tatl.fastnote.widget
 
 import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
 import androidx.glance.GlanceTheme
@@ -20,144 +19,121 @@ import androidx.glance.background
 import androidx.glance.color.ColorProvider
 import androidx.glance.layout.Alignment
 import androidx.glance.layout.Box
-import androidx.glance.layout.Column
 import androidx.glance.layout.Row
 import androidx.glance.layout.Spacer
 import androidx.glance.layout.fillMaxHeight
 import androidx.glance.layout.fillMaxSize
-import androidx.glance.layout.height
 import androidx.glance.layout.padding
 import androidx.glance.layout.size
 import androidx.glance.layout.width
-import androidx.glance.text.FontWeight
-import androidx.glance.text.Text
-import androidx.glance.text.TextStyle
+import com.tatl.fastnote.R
 import com.tatl.fastnote.ui.ai.GeminiLaunchActivity
 import com.tatl.fastnote.ui.fileviewer.FileViewerActivity
 import com.tatl.fastnote.ui.recording.RecordingActivity
 
 /**
- * Widget: Triple Action (1×3)
- * Three buttons in a horizontal row:
- *  1. 🎙 Micro  → opens RecordingActivity (voice note)
- *  2. ✨ Gemini → opens Gemini app or Play Store via GeminiLaunchActivity
- *  3. 📂 File   → (to be implemented later)
+ * Widget: Triple Action 1×3
+ * Thiết kế OLED đen — container rounded xám tối, 3 SVG icon xám nhẹ.
  *
- * Supports a "highlight" blink state (triggered by WidgetPlacedReceiver)
- * to help the user spot the widget right after placing it.
+ * Layout:
+ *   [  🎙  |  🧠  |  📓  ]
+ *   ic_mic   ic_ai  ic_note
+ *
+ * Click:
+ *   🎙 → RecordingActivity
+ *   🧠 → GeminiLaunchActivity
+ *   📓 → FileViewerActivity
  */
 class TripleActionWidget : GlanceAppWidget() {
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        // Read highlight state — set by WidgetPlacedReceiver when widget is placed
-        val isHighlighted = WidgetPlacedReceiver.isHighlighted(context)
-
         provideContent {
             GlanceTheme {
-                TripleActionContent(isHighlighted = isHighlighted)
+                WidgetContent()
             }
         }
     }
 
     @Composable
-    private fun TripleActionContent(isHighlighted: Boolean) {
-        // Outer container: transparent normally, bright glow when highlighted.
-        val outerModifier = if (isHighlighted) {
-            GlanceModifier
+    private fun WidgetContent() {
+        // Outer: toàn màn hình, nền trong suốt (launcher wallpaper hiện qua)
+        Box(
+            modifier = GlanceModifier
                 .fillMaxSize()
-                .cornerRadius(20.dp)
-                .background(ColorProvider(
-                    day = Color(0xBBFFFFFF),   // white glow on light wallpaper
-                    night = Color(0x99FFFFFF)   // softer on dark wallpaper
-                ))
-                .padding(horizontal = 3.dp, vertical = 3.dp)
-        } else {
-            GlanceModifier
-                .fillMaxSize()
-                .padding(horizontal = 2.dp, vertical = 2.dp)
-        }
-
-        Row(
-            modifier = outerModifier,
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalAlignment = Alignment.CenterVertically
+                .padding(horizontal = 4.dp, vertical = 4.dp),
+            contentAlignment = Alignment.Center
         ) {
-            // ─── Button 1: Micro ──────────────────────────────
-            ActionButton(
-                iconRes = android.R.drawable.ic_btn_speak_now,
-                label = "Micro",
-                bgDayColor   = if (isHighlighted) Color(0xFF42A5F5) else Color(0xFF1565C0),
-                bgNightColor = if (isHighlighted) Color(0xFF1E88E5) else Color(0xFF0D47A1),
+            // Inner container: rounded pill, nền xám đậm — đây là "hộp" trong ảnh
+            Row(
                 modifier = GlanceModifier
-                    .defaultWeight()
-                    .fillMaxHeight()
-                    .clickable(actionStartActivity<RecordingActivity>())
-            )
+                    .fillMaxSize()
+                    .cornerRadius(22.dp)
+                    .background(
+                        ColorProvider(
+                            day = Color(0xFF000000),
+                            night = Color(0xFF000000)
+                        )
+                    )
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // ── Mic ───────────────────────────────────────────────────────
+                IconButton(
+                    iconRes = R.drawable.ic_mic,
+                    contentDescription = "Ghi âm",
+                    modifier = GlanceModifier
+                        .defaultWeight()
+                        .fillMaxHeight()
+                        .clickable(actionStartActivity<RecordingActivity>())
+                )
 
-            Spacer(modifier = GlanceModifier.width(8.dp))
+                Spacer(modifier = GlanceModifier.width(4.dp))
 
-            // ─── Button 2: Gemini ─────────────────────────────
-            ActionButton(
-                iconRes = android.R.drawable.btn_star_big_on,
-                label = "Gemini",
-                bgDayColor   = if (isHighlighted) Color(0xFFAB47BC) else Color(0xFF6A1B9A),
-                bgNightColor = if (isHighlighted) Color(0xFF8E24AA) else Color(0xFF4A148C),
-                modifier = GlanceModifier
-                    .defaultWeight()
-                    .fillMaxHeight()
-                    .clickable(actionStartActivity<GeminiLaunchActivity>())
-            )
+                // ── AI / Brain ────────────────────────────────────────────────
+                IconButton(
+                    iconRes = R.drawable.ic_ai,
+                    contentDescription = "AI",
+                    modifier = GlanceModifier
+                        .defaultWeight()
+                        .fillMaxHeight()
+                        .clickable(actionStartActivity<GeminiLaunchActivity>())
+                )
 
-            Spacer(modifier = GlanceModifier.width(8.dp))
+                Spacer(modifier = GlanceModifier.width(4.dp))
 
-            // ─── Button 3: Open File ─────────────────────
-            ActionButton(
-                iconRes = android.R.drawable.ic_menu_agenda,
-                label = "File",
-                bgDayColor   = if (isHighlighted) Color(0xFF66BB6A) else Color(0xFF2E7D32),
-                bgNightColor = if (isHighlighted) Color(0xFF43A047) else Color(0xFF1B5E20),
-                modifier = GlanceModifier
-                    .defaultWeight()
-                    .fillMaxHeight()
-                    .clickable(actionStartActivity<FileViewerActivity>())
-            )
+                // ── Note / File ───────────────────────────────────────────────
+                IconButton(
+                    iconRes = R.drawable.ic_note,
+                    contentDescription = "Ghi chú",
+                    modifier = GlanceModifier
+                        .defaultWeight()
+                        .fillMaxHeight()
+                        .clickable(actionStartActivity<FileViewerActivity>())
+                )
+            }
         }
     }
 
+    /**
+     * Một ô icon — trong suốt, icon SVG căn giữa, không label.
+     */
     @Composable
-    private fun ActionButton(
+    private fun IconButton(
         iconRes: Int,
-        label: String,
-        bgDayColor: Color,
-        bgNightColor: Color,
+        contentDescription: String,
         modifier: GlanceModifier = GlanceModifier
     ) {
         Box(
             modifier = modifier
-                .cornerRadius(14.dp)
-                .background(ColorProvider(day = bgDayColor, night = bgNightColor))
                 .padding(4.dp),
             contentAlignment = Alignment.Center
         ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Image(
-                    provider = ImageProvider(iconRes),
-                    contentDescription = label,
-                    modifier = GlanceModifier.size(28.dp)
-                )
-                Spacer(modifier = GlanceModifier.height(3.dp))
-                Text(
-                    text = label,
-                    style = TextStyle(
-                        color = ColorProvider(day = Color.White, night = Color.White),
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Medium
-                    )
-                )
-            }
+            Image(
+                provider = ImageProvider(iconRes),
+                contentDescription = contentDescription,
+                modifier = GlanceModifier.size(30.dp)
+            )
         }
     }
 }

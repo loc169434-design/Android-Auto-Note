@@ -54,12 +54,15 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.tatl.fastnote.R
 import com.tatl.fastnote.data.user.AccountType
 import com.tatl.fastnote.data.user.AppLanguage
 import com.tatl.fastnote.data.user.LanguageManager
 import com.tatl.fastnote.data.user.UserManager
 import com.tatl.fastnote.data.user.UserProfile
+import com.tatl.fastnote.ui.theme.InterFontFamily
+import com.tatl.fastnote.ui.theme.NotoSansFontFamily
 import com.tatl.fastnote.util.AppTheme
 import com.tatl.fastnote.util.ThemePreferences
 
@@ -95,7 +98,14 @@ fun SettingsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.app_name) + " - Settings") },
+                title = {
+                    Text(
+                        text = "CÀI ĐẶT",
+                        fontFamily = InterFontFamily,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.5.sp
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.btn_cancel))

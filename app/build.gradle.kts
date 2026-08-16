@@ -48,6 +48,9 @@ dependencies {
     implementation(libs.androidx.fragment.ktx)
     implementation(libs.kotlinx.coroutines.android)
 
+    // Google Fonts
+    implementation(libs.androidx.compose.ui.text.google.fonts)
+
     // Lifecycle
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
@@ -87,6 +90,7 @@ dependencies {
     implementation(libs.credentials)
     implementation(libs.credentials.play.services)
     implementation(libs.google.id)
+    implementation(libs.okhttp)
 
     // Test
     testImplementation(libs.junit)

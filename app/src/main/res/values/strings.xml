@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Fast Note</string>
+    <string name="app_name">Ghi Chú Lưu Vết Siêu Tốc</string>
 
     <!-- Widget descriptions -->
     <string name="widget_quick_record_desc">Ghi chú nhanh bằng giọng nói</string>
@@ -15,7 +15,7 @@
 
     <!-- Recording -->
     <string name="recording_notification_title">Đang ghi âm</string>
-    <string name="recording_notification_text">Fast Note đang thu âm giọng nói</string>
+    <string name="recording_notification_text">Đang thu âm tốc ký...</string>
     <string name="recording_channel_name">Ghi âm</string>
     <string name="recording_channel_desc">Thông báo khi đang ghi âm giọng nói</string>
 
@@ -51,8 +51,10 @@
     <string name="lang_system">Mặc định hệ thống 📱</string>
     <string name="lang_vi">Tiếng Việt 🇻🇳</string>
     <string name="lang_en">English 🇬🇧</string>
-    <string name="lang_de">Deutsch 🇩🇪</string>
     <string name="lang_ja">日本語 🇯🇵</string>
+    <string name="lang_de">Deutsch 🇩🇪</string>
+    <string name="lang_ru">Русский 🇷🇺</string>
+
 
     <!-- Manual Note & Timestamp -->
     <string name="btn_new_manual_note">Tạo ghi chú mới</string>

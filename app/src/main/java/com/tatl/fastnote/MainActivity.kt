@@ -4,6 +4,7 @@ import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
@@ -14,6 +15,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
+import androidx.core.view.WindowCompat
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.compose.NavHost
@@ -36,7 +40,14 @@ import kotlinx.coroutines.launch
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
+
+        // Edge-to-edge: status bar đen, icon trắng; nav bar đen, icon trắng
+        enableEdgeToEdge(
+            statusBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
+            navigationBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT)
+        )
+        // Đảm bảo nội dung vẽ sau system bars
+        WindowCompat.setDecorFitsSystemWindows(window, false)
 
         // ── Auth gate: redirect to Onboarding if not logged in ─────────────────
         if (!AuthManager.isLoggedIn()) {
@@ -55,8 +66,9 @@ class MainActivity : ComponentActivity() {
             ).show()
         }
 
-        // ── Cloud sync: pull missing entries from Firestore (background) ────────
+        // ── Cloud sync: Google Drive (appDataFolder) & Firebase (background) ──
         lifecycleScope.launch {
+            com.tatl.fastnote.sync.GoogleDriveSyncManager.sync(applicationContext)
             CloudSyncManager.syncFromCloud(applicationContext)
         }
 
@@ -66,7 +78,7 @@ class MainActivity : ComponentActivity() {
             AndroidAutoNoteTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
+                    color = Color(0xFF000000)  // đen tuyệt đối, không ghi đè edge-to-edge
                 ) {
                     val navController = rememberNavController()
                     var showPremiumDialog by remember { mutableStateOf(false) }

@@ -2,48 +2,43 @@ package com.tatl.fastnote.ui.home
 
 import android.content.Intent
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Computer
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Widgets
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.runtime.rememberCoroutineScope
-import kotlinx.coroutines.launch
-import androidx.compose.ui.res.stringResource
-import com.tatl.fastnote.R
-import com.tatl.fastnote.widget.WidgetUpdater
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -52,11 +47,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
@@ -68,27 +66,31 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.tatl.fastnote.R
 import com.tatl.fastnote.ui.fileviewer.FileViewerActivity
-import com.tatl.fastnote.ui.home.PinWidgetBottomSheet
+import com.tatl.fastnote.ui.theme.AppBgBlack
+import com.tatl.fastnote.ui.theme.InterFontFamily
+import com.tatl.fastnote.ui.theme.NotoSansFontFamily
 import com.tatl.fastnote.util.FileHelper
 import com.tatl.fastnote.util.PinWidgetHelper
 import com.tatl.fastnote.util.ThemePreferences
 import com.tatl.fastnote.widget.TripleActionWidgetReceiver
+import com.tatl.fastnote.widget.WidgetUpdater
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import androidx.compose.ui.platform.LocalContext
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
-// ── Design tokens ─────────────────────────────────────────────────────────────
-private val BgDark      = Color(0xFF0A1A0F)
-private val BgSurface   = Color(0xFF142B1A)
-private val TextPrimary = Color(0xFFECF5EE)
-private val TextMuted   = Color(0xFF7FAB8A)
-private val AccentGreen = Color(0xFF4CAF50)
-private val GoldColor   = Color(0xFFFFD54F)
-private val RedHighlight = Color(0xFFFF5252)
-private val RedBg        = Color(0x33FF5252)
+// ── Màu dùng từ bảng màu chung ────────────────────────────────────────────────
+private val HomeTextPrimary  = Color(0xFFFFFFFF)
+private val HomeTextMuted    = Color(0xFF888888)
+private val HomeIconColor    = Color(0xFFCCCCCC)
+private val HomeSearchActive = Color(0xFF4CAF50)
+private val RedHighlight     = Color(0xFFFF5252)
+private val RedBg            = Color(0x33FF5252)
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     viewModel: HomeViewModel,
@@ -102,22 +104,18 @@ fun HomeScreen(
     val lifecycleOwner = LocalLifecycleOwner.current
     val coroutineScope = rememberCoroutineScope()
 
-    // ── Widget prompt state (preserved) ───────────────────────────────────────
+    // ── State ─────────────────────────────────────────────────────────────────
     val hasPinnedWidget by ThemePreferences.hasPinnedWidget.collectAsState()
     val currentHasPinned by rememberUpdatedState(hasPinnedWidget)
     var showManualPinPrompt by remember { mutableStateOf(false) }
     var showCreateManualDialog by remember { mutableStateOf(false) }
     var widgetActiveNow by remember { mutableStateOf(true) }
     var refreshKey by remember { mutableIntStateOf(0) }
-
-    // ── File entries ──────────────────────────────────────────────────────────
     var fileEntries by remember { mutableStateOf<List<FileHelper.NoteEntry>>(emptyList()) }
-
-    // ── Search ────────────────────────────────────────────────────────────────
     var searchActive by remember { mutableStateOf(false) }
-    var searchQuery  by remember { mutableStateOf("") }
+    var searchQuery by remember { mutableStateOf("") }
 
-    // ── Lifecycle: refresh data + widget check on every resume ────────────────
+    // ── Lifecycle ─────────────────────────────────────────────────────────────
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
@@ -137,7 +135,6 @@ fun HomeScreen(
         } else false
     }
 
-    // Load file entries on every resume
     LaunchedEffect(refreshKey) {
         withContext(Dispatchers.IO) {
             fileEntries = FileHelper.parseEntries(context)
@@ -145,217 +142,227 @@ fun HomeScreen(
     }
 
     // ── Widget prompt logic ───────────────────────────────────────────────────
-    val widgetWasRemoved     = hasPinnedWidget && !widgetActiveNow
+    val widgetWasRemoved = hasPinnedWidget && !widgetActiveNow
     val shouldShowWidgetPrompt = !hasPinnedWidget || widgetWasRemoved || showManualPinPrompt
-    val isPromptMandatory    = !hasPinnedWidget || widgetWasRemoved
+    val isPromptMandatory = !hasPinnedWidget || widgetWasRemoved
 
-    // ── Filtered + masked display ──────────────────────────────────────────────
+    // ── Filter + mask ─────────────────────────────────────────────────────────
     val filteredEntries = if (searchQuery.isBlank()) fileEntries
     else fileEntries.filter {
         it.content.contains(searchQuery, ignoreCase = true) ||
         it.header.contains(searchQuery, ignoreCase = true)
     }
+    val maskedEntries = filteredEntries  // masking applied per-entry below
 
-    val displayLines = buildList {
-        filteredEntries.forEach { entry ->
-            add("- ${entry.header}: ${entry.content}")
-            add("") // blank line separator
-        }
-    }
-    val maskedLines = FileHelper.maskSensitive(displayLines)
+    // ─────────────────────────────────────────────────────────────────────────
+    //  ROOT: toàn màn hình đen, không Scaffold
+    // ─────────────────────────────────────────────────────────────────────────
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(AppBgBlack)
+    ) {
 
-    // ── UI ────────────────────────────────────────────────────────────────────
-    Scaffold(
-        containerColor = BgDark,
-        topBar = {
-            TopAppBar(
-                title = {
-                    if (searchActive) {
-                        OutlinedTextField(
-                            value = searchQuery,
-                            onValueChange = { searchQuery = it },
-                            singleLine = true,
-                            modifier = Modifier.fillMaxWidth(),
-                            placeholder = { Text("Tìm kiếm ghi chú...", color = TextMuted, fontSize = 14.sp) },
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedTextColor = TextPrimary,
-                                unfocusedTextColor = TextPrimary,
-                                focusedBorderColor = AccentGreen,
-                                unfocusedBorderColor = TextMuted.copy(alpha = 0.5f),
-                                cursorColor = AccentGreen
-                            ),
-                            textStyle = TextStyle(color = TextPrimary, fontSize = 14.sp),
-                            trailingIcon = {
-                                if (searchQuery.isNotBlank()) {
-                                    IconButton(onClick = { searchQuery = "" }) {
-                                        Icon(Icons.Default.Clear, null, tint = TextMuted, modifier = Modifier.size(16.dp))
-                                    }
-                                }
-                            }
-                        )
-                    } else {
-                        Text(
-                            text = "GHI CHÚ HÀNG NGÀY",
-                            color = TextPrimary,
-                            fontWeight = FontWeight.ExtraBold,
-                            fontSize = 18.sp
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = BgSurface),
-                actions = {
-                    // Search toggle
-                    IconButton(onClick = {
-                        searchActive = !searchActive
-                        if (!searchActive) searchQuery = ""
-                    }) {
-                        Icon(
-                            Icons.Default.Search,
-                            contentDescription = "Tìm kiếm",
-                            tint = if (searchActive) AccentGreen else TextMuted
-                        )
-                    }
-                    // Edit — opens FileViewerActivity in edit mode
-                    IconButton(onClick = {
-                        context.startActivity(
-                            Intent(context, FileViewerActivity::class.java).apply {
-                                putExtra(FileViewerActivity.EXTRA_START_EDIT, true)
-                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                            }
-                        )
-                    }) {
-                        Icon(Icons.Default.Edit, contentDescription = "Sửa file", tint = AccentGreen)
-                    }
-                    // Premium / Crown button
-                    TextButton(onClick = onPremiumClick) {
-                        Text(
-                            text = if (isPremium) "👑" else "⭐",
-                            fontSize = 18.sp
-                        )
-                    }
-                    // Widget button
-                    IconButton(onClick = { showManualPinPrompt = true }) {
-                        Icon(Icons.Default.Widgets, contentDescription = "Widget", tint = TextMuted)
-                    }
-                    // Settings
-                    IconButton(onClick = onSettingsClick) {
-                        Icon(Icons.Default.Settings, contentDescription = "Cài đặt", tint = TextMuted)
-                    }
-                }
-            )
-        },
-        floatingActionButton = {
+        Column(modifier = Modifier.fillMaxSize()) {
+
+            // ── Top bar: icon máy tính + vương miện ──────────────────────────
             Row(
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Manual New Note FAB (+)
-                FloatingActionButton(
-                    onClick = { showCreateManualDialog = true },
-                    containerColor = AccentGreen.copy(alpha = 0.85f),
-                    shape = RoundedCornerShape(16.dp)
-                ) {
-                    Icon(Icons.Default.Add, contentDescription = stringResource(R.string.btn_new_manual_note), tint = Color.White)
-                }
-                // Voice Record FAB (🎤)
-                FloatingActionButton(
-                    onClick = onRecordClick,
-                    containerColor = AccentGreen,
-                    shape = RoundedCornerShape(16.dp)
-                ) {
-                    Icon(Icons.Default.Mic, contentDescription = "Ghi chú voice", tint = Color.White)
-                }
-            }
-        }
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .background(BgDark)
-        ) {
-            // ── Big title ───────────────────────────────────────────────────────
-            Text(
-                text = "SỔ GHI CHÚ HÀNG NGÀY",
-                color = TextPrimary,
-                fontWeight = FontWeight.ExtraBold,
-                fontSize = 24.sp,
-                lineHeight = 28.sp,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)
-            )
-
-            // Divider
-            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(1.dp)
-                    .background(AccentGreen.copy(alpha = 0.3f))
-            )
+                    .windowInsetsPadding(WindowInsets.statusBars)
+                    .padding(horizontal = 20.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Trái: icon máy tính → mở widget pin
+                IconButton(
+                    onClick = { showManualPinPrompt = true },
+                    modifier = Modifier.size(40.dp)
+                ) {
+                    Icon(
+                        Icons.Default.Computer,
+                        contentDescription = "Widget",
+                        tint = HomeIconColor,
+                        modifier = Modifier.size(26.dp)
+                    )
+                }
 
-            Spacer(modifier = Modifier.height(4.dp))
+                // Phải: vương miện → premium
+                IconButton(
+                    onClick = onPremiumClick,
+                    modifier = Modifier.size(40.dp)
+                ) {
+                    Text(
+                        text = if (isPremium) "♛" else "♛",
+                        fontSize = 22.sp,
+                        color = HomeIconColor
+                    )
+                }
+            }
 
-            // ── Note list ────────────────────────────────────────────────────────
+            // ── Search bar (chỉ hiện khi active) ─────────────────────────────
+            if (searchActive) {
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    singleLine = true,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 4.dp),
+                    placeholder = {
+                        Text(
+                            "Tìm kiếm...",
+                            color = HomeTextMuted,
+                            fontFamily = NotoSansFontFamily,
+                            fontSize = 14.sp
+                        )
+                    },
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = HomeTextPrimary,
+                        unfocusedTextColor = HomeTextPrimary,
+                        focusedBorderColor = HomeSearchActive,
+                        unfocusedBorderColor = Color(0xFF333333),
+                        cursorColor = HomeTextPrimary
+                    ),
+                    textStyle = TextStyle(
+                        fontFamily = NotoSansFontFamily,
+                        fontSize = 14.sp,
+                        color = HomeTextPrimary
+                    ),
+                    trailingIcon = {
+                        if (searchQuery.isNotBlank()) {
+                            IconButton(onClick = { searchQuery = "" }) {
+                                Icon(Icons.Default.Close, null, tint = HomeTextMuted, modifier = Modifier.size(16.dp))
+                            }
+                        }
+                    },
+                    shape = RoundedCornerShape(8.dp)
+                )
+                Spacer(Modifier.height(8.dp))
+            }
+
+            // ── Danh sách ghi chú ─────────────────────────────────────────────
             if (fileEntries.isEmpty()) {
                 Box(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth(),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = "Chưa có ghi chú nào.\nHãy nói từ widget 🎤",
-                        color = TextMuted,
-                        textAlign = TextAlign.Center,
-                        fontSize = 16.sp
+                        color = HomeTextMuted,
+                        fontFamily = NotoSansFontFamily,
+                        fontSize = 15.sp,
+                        lineHeight = 24.sp,
+                        textAlign = TextAlign.Center
                     )
                 }
             } else if (filteredEntries.isEmpty() && searchQuery.isNotBlank()) {
                 Box(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth(),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = "Không tìm thấy\n\"$searchQuery\"",
-                        color = TextMuted,
-                        textAlign = TextAlign.Center,
-                        fontSize = 16.sp
+                        color = HomeTextMuted,
+                        fontFamily = NotoSansFontFamily,
+                        fontSize = 15.sp,
+                        lineHeight = 24.sp,
+                        textAlign = TextAlign.Center
                     )
                 }
             } else {
                 LazyColumn(
                     modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 16.dp)
+                        .weight(1f)
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp)
                 ) {
-                    items(maskedLines) { line ->
-                        if (line.isBlank()) {
-                            Spacer(modifier = Modifier.height(10.dp))
-                        } else {
-                            Text(
-                                text = highlightText(line, searchQuery),
-                                style = TextStyle(
-                                    color = TextPrimary,
-                                    fontSize = 15.sp,
-                                    lineHeight = 22.sp
-                                )
-                            )
-                        }
+                    item { Spacer(Modifier.height(8.dp)) }
+                    items(maskedEntries) { entry ->
+                        val rawLine = "- ${entry.header}: ${entry.content}"
+                        val maskedLine = FileHelper.maskSensitive(listOf(rawLine)).firstOrNull() ?: rawLine
+                        // Hiển thị dạng [timestamp] content — đúng như ảnh
+                        NoteEntryItem(
+                            text = maskedLine.removePrefix("- "),
+                            searchQuery = searchQuery
+                        )
+                        Spacer(Modifier.height(14.dp))
                     }
-                    item { Spacer(modifier = Modifier.height(88.dp)) }
+                    item { Spacer(Modifier.height(80.dp)) }
                 }
             }
         }
-    }
 
-    // ── Widget prompt ─────────────────────────────────────────────────────────
-    if (shouldShowWidgetPrompt) {
-        PinWidgetBottomSheet(
-            isMandatory = isPromptMandatory,
-            onDismiss = {
-                if (widgetWasRemoved) ThemePreferences.setWidgetPinned(true)
-                showManualPinPrompt = false
+        // ── Bottom bar: bút + kính lúp ────────────────────────────────────────
+        Row(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .windowInsetsPadding(WindowInsets.navigationBars)
+                .padding(horizontal = 28.dp, vertical = 24.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Trái: bút chì → mở editor / tạo ghi chú thủ công
+            IconButton(
+                onClick = { showCreateManualDialog = true },
+                modifier = Modifier.size(44.dp)
+            ) {
+                Icon(
+                    Icons.Default.Edit,
+                    contentDescription = "Tạo ghi chú",
+                    tint = HomeIconColor,
+                    modifier = Modifier.size(22.dp)
+                )
             }
-        )
+
+            // Giữa: mic → ghi âm
+            IconButton(
+                onClick = onRecordClick,
+                modifier = Modifier.size(44.dp)
+            ) {
+                Icon(
+                    Icons.Default.Mic,
+                    contentDescription = "Ghi âm",
+                    tint = HomeTextMuted,
+                    modifier = Modifier.size(22.dp)
+                )
+            }
+
+            // Phải: kính lúp → tìm kiếm
+            IconButton(
+                onClick = {
+                    searchActive = !searchActive
+                    if (!searchActive) searchQuery = ""
+                },
+                modifier = Modifier.size(44.dp)
+            ) {
+                Icon(
+                    Icons.Default.Search,
+                    contentDescription = "Tìm kiếm",
+                    tint = if (searchActive) HomeSearchActive else HomeIconColor,
+                    modifier = Modifier.size(22.dp)
+                )
+            }
+        }
+
+        // ── Widget prompt overlay ─────────────────────────────────────────────
+        if (shouldShowWidgetPrompt) {
+            PinWidgetBottomSheet(
+                isMandatory = isPromptMandatory,
+                onDismiss = {
+                    if (widgetWasRemoved) ThemePreferences.setWidgetPinned(true)
+                    showManualPinPrompt = false
+                }
+            )
+        }
     }
 
+    // ── Dialog tạo ghi chú thủ công ──────────────────────────────────────────
     if (showCreateManualDialog) {
         CreateManualNoteDialog(
             onSave = { title, content ->
@@ -370,6 +377,24 @@ fun HomeScreen(
         )
     }
 }
+
+// ── Note entry item ───────────────────────────────────────────────────────────
+
+@Composable
+private fun NoteEntryItem(text: String, searchQuery: String) {
+    Text(
+        text = highlightText(text, searchQuery),
+        style = TextStyle(
+            fontFamily = NotoSansFontFamily,
+            color = HomeTextPrimary,
+            fontSize = 15.sp,
+            lineHeight = 24.sp,
+            letterSpacing = 0.1.sp
+        )
+    )
+}
+
+// ── Create manual note dialog ─────────────────────────────────────────────────
 
 @Composable
 private fun CreateManualNoteDialog(
@@ -388,37 +413,76 @@ private fun CreateManualNoteDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.dialog_new_note_title)) },
+        containerColor = Color(0xFF1A1A1A),
+        title = {
+            Text(
+                stringResource(R.string.dialog_new_note_title),
+                fontFamily = InterFontFamily,
+                fontWeight = FontWeight.SemiBold,
+                color = HomeTextPrimary
+            )
+        },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedTextField(
                     value = titleText,
                     onValueChange = { titleText = it },
-                    label = { Text("Tiêu đề") },
+                    label = {
+                        Text("Tiêu đề", fontFamily = NotoSansFontFamily,
+                            fontSize = 13.sp, color = HomeTextMuted)
+                    },
                     singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = HomeTextPrimary,
+                        unfocusedTextColor = HomeTextPrimary,
+                        focusedBorderColor = HomeSearchActive,
+                        unfocusedBorderColor = Color(0xFF333333),
+                        cursorColor = HomeTextPrimary
+                    ),
+                    textStyle = TextStyle(fontFamily = NotoSansFontFamily, color = HomeTextPrimary)
                 )
                 OutlinedTextField(
                     value = contentText,
                     onValueChange = { contentText = it },
-                    label = { Text(stringResource(R.string.placeholder_note_content)) },
+                    label = {
+                        Text(stringResource(R.string.placeholder_note_content),
+                            fontFamily = NotoSansFontFamily, fontSize = 13.sp, color = HomeTextMuted)
+                    },
                     minLines = 4,
                     maxLines = 8,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = HomeTextPrimary,
+                        unfocusedTextColor = HomeTextPrimary,
+                        focusedBorderColor = HomeSearchActive,
+                        unfocusedBorderColor = Color(0xFF333333),
+                        cursorColor = HomeTextPrimary
+                    ),
+                    textStyle = TextStyle(fontFamily = NotoSansFontFamily, color = HomeTextPrimary)
                 )
             }
         },
         confirmButton = {
-            Button(
+            TextButton(
                 onClick = { onSave(titleText, contentText) },
                 enabled = contentText.isNotBlank() || titleText.isNotBlank()
             ) {
-                Text(stringResource(R.string.btn_save))
+                Text(
+                    stringResource(R.string.btn_save),
+                    fontFamily = InterFontFamily,
+                    fontWeight = FontWeight.Medium,
+                    color = HomeSearchActive
+                )
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.btn_cancel))
+                Text(
+                    stringResource(R.string.btn_cancel),
+                    fontFamily = InterFontFamily,
+                    color = HomeTextMuted
+                )
             }
         }
     )

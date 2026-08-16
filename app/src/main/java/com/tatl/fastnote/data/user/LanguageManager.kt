@@ -9,21 +9,74 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import java.util.Locale
 
+/**
+ * 5 ngôn ngữ chuẩn theo Bản Đặc Tả V38 (Phần 3):
+ *  - VN (vi-VN): "HÃY NÓI ĐIỀU BẠN MUỐN GHI CHÚ"
+ *  - EN (en-US): "PLEASE SAY WHAT YOU WANT TO NOTE" (Mặc định Cold-Start)
+ *  - JP (ja-JP): "メモしたい内容を話してください"
+ *  - DE (de-DE): "BITTE SPRECHEN SIE, WAS SIE NOTIEREN MÖCHTEN"
+ *  - RU (ru-RU): "ПОЖАЛУЙСТА, СКАЖИТЕ, ЧТО ВЫ ХОТИТЕ ЗАПИСАТЬ"
+ */
 enum class AppLanguage(
     val code: String,
+    val shortCode: String,
     val displayName: String,
     val flagEmoji: String,
-    val speechTag: String
+    val speechTag: String,
+    val promptText: String
 ) {
-    SYSTEM("system", "Default", "📱", ""),
-    VIETNAMESE("vi", "Tiếng Việt", "🇻🇳", "vi-VN"),
-    ENGLISH("en", "English", "🇬🇧", "en-US"),
-    GERMAN("de", "Deutsch", "🇩🇪", "de-DE"),
-    JAPANESE("ja", "日本語", "🇯🇵", "ja-JP");
+    VIETNAMESE(
+        code = "vi",
+        shortCode = "VN",
+        displayName = "Tiếng Việt",
+        flagEmoji = "🇻🇳",
+        speechTag = "vi-VN",
+        promptText = "HÃY NÓI ĐIỀU BẠN MUỐN GHI CHÚ"
+    ),
+    ENGLISH(
+        code = "en",
+        shortCode = "EN",
+        displayName = "English",
+        flagEmoji = "🇬🇧",
+        speechTag = "en-US",
+        promptText = "PLEASE SAY WHAT YOU WANT TO NOTE"
+    ),
+    JAPANESE(
+        code = "ja",
+        shortCode = "JP",
+        displayName = "日本語",
+        flagEmoji = "🇯🇵",
+        speechTag = "ja-JP",
+        promptText = "メモしたい内容を話してください"
+    ),
+    GERMAN(
+        code = "de",
+        shortCode = "DE",
+        displayName = "Deutsch",
+        flagEmoji = "🇩🇪",
+        speechTag = "de-DE",
+        promptText = "BITTE SPRECHEN SIE, WAS SIE NOTIEREN MÖCHTEN"
+    ),
+    RUSSIAN(
+        code = "ru",
+        shortCode = "RU",
+        displayName = "Русский",
+        flagEmoji = "🇷🇺",
+        speechTag = "ru-RU",
+        promptText = "ПОЖАЛУЙСТА, СКАЖИТЕ, ЧТО ВЫ ХОТИТЕ ЗАПИСАТЬ"
+    );
 
     companion object {
         fun fromCode(code: String): AppLanguage {
-            return entries.find { it.code.equals(code, ignoreCase = true) } ?: SYSTEM
+            return entries.find { it.code.equals(code, ignoreCase = true) } ?: ENGLISH
+        }
+
+        fun fromShortCode(shortCode: String): AppLanguage {
+            return entries.find { it.shortCode.equals(shortCode, ignoreCase = true) } ?: ENGLISH
+        }
+
+        fun fromSpeechTag(speechTag: String): AppLanguage {
+            return entries.find { it.speechTag.equals(speechTag, ignoreCase = true) } ?: ENGLISH
         }
     }
 }
@@ -34,42 +87,58 @@ object LanguageManager {
 
     private lateinit var prefs: SharedPreferences
 
-    private val _currentLanguage = MutableStateFlow(AppLanguage.SYSTEM)
+    // Theo V38 Phần 3: Khi chưa thiết lập trong SharedPreferences -> Mặc định tiếng Anh
+    private val _currentLanguage = MutableStateFlow(AppLanguage.ENGLISH)
     val currentLanguage: StateFlow<AppLanguage> = _currentLanguage.asStateFlow()
 
     fun init(context: Context) {
         prefs = context.applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        val savedCode = prefs.getString(KEY_SELECTED_LANGUAGE, AppLanguage.SYSTEM.code) ?: AppLanguage.SYSTEM.code
+        val savedCode = prefs.getString(KEY_SELECTED_LANGUAGE, AppLanguage.ENGLISH.code) ?: AppLanguage.ENGLISH.code
         val appLanguage = AppLanguage.fromCode(savedCode)
         _currentLanguage.value = appLanguage
         applyLocale(appLanguage)
     }
 
     fun setLanguage(context: Context, language: AppLanguage) {
+        if (!::prefs.isInitialized) {
+            prefs = context.applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        }
         prefs.edit().putString(KEY_SELECTED_LANGUAGE, language.code).apply()
         _currentLanguage.value = language
         applyLocale(language)
     }
 
     private fun applyLocale(language: AppLanguage) {
-        val localeList = if (language == AppLanguage.SYSTEM) {
-            LocaleListCompat.getEmptyLocaleList()
-        } else {
-            LocaleListCompat.forLanguageTags(language.code)
-        }
+        val localeList = LocaleListCompat.forLanguageTags(language.code)
         AppCompatDelegate.setApplicationLocales(localeList)
     }
 
     fun getSpeechLanguageTag(): String {
-        val current = _currentLanguage.value
-        if (current != AppLanguage.SYSTEM && current.speechTag.isNotEmpty()) {
-            return current.speechTag
+        return _currentLanguage.value.speechTag
+    }
+
+    fun getCurrentPromptText(): String {
+        return _currentLanguage.value.promptText
+    }
+
+    /**
+     * Tên tệp gửi AI theo quy chuẩn V38 Phần 6:
+     * - Tiếng Việt: File_gui_di_(Da_loc_bao_mat).txt
+     * - Quốc tế: Shared_File_(Privacy_Protected).txt
+     */
+    fun getSharedFileName(): String {
+        return if (_currentLanguage.value == AppLanguage.VIETNAMESE) {
+            "File_gui_di_(Da_loc_bao_mat).txt"
+        } else {
+            "Shared_File_(Privacy_Protected).txt"
         }
-        // Fallback to system default locale tag or vi-VN
-        val systemLocale = Locale.getDefault().toLanguageTag()
-        return if (systemLocale.startsWith("en", ignoreCase = true)) "en-US"
-        else if (systemLocale.startsWith("de", ignoreCase = true)) "de-DE"
-        else if (systemLocale.startsWith("ja", ignoreCase = true)) "ja-JP"
-        else "vi-VN"
+    }
+
+    fun getSharedFileTitle(): String {
+        return if (_currentLanguage.value == AppLanguage.VIETNAMESE) {
+            "File gửi đi (Đã lọc bảo mật).txt"
+        } else {
+            "Shared File (Privacy Protected).txt"
+        }
     }
 }

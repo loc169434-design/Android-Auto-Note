@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Zero-Friction Notes</string>
+
+    <string name="widget_quick_record_desc">Быстрая голосовая запись</string>
+    <string name="widget_recent_notes_desc">Показать последние заметки</string>
+    <string name="widget_stats_desc">Статистика заметок</string>
+    <string name="widget_open_notes_title">Открыть заметки</string>
+    <string name="widget_open_notes_desc">Просмотреть все заметки</string>
+    <string name="widget_ai_title">ИИ Резюме</string>
+    <string name="widget_ai_desc">Краткое резюме сегодняшних заметок через ИИ</string>
+    <string name="widget_triple_action_title">Тройное действие</string>
+    <string name="widget_triple_action_desc">Микрофон, Gemini и просмотр файлов в одном виджете</string>
+
+    <string name="recording_notification_title">Идет запись</string>
+    <string name="recording_notification_text">Zero-Friction Notes записывает голос...</string>
+    <string name="recording_channel_name">Голосовая запись</string>
+    <string name="recording_channel_desc">Уведомление во время активной голосовой записи</string>
+
+    <string name="btn_start_recording">Начать запись</string>
+    <string name="btn_stop_recording">Стоп</string>
+    <string name="btn_save">Сохранить</string>
+    <string name="btn_cancel">Отмена</string>
+    <string name="btn_delete">Удалить</string>
+    <string name="btn_share">Поделиться</string>
+    <string name="btn_export">Экспорт файла</string>
+    <string name="btn_upgrade">Обновить до Premium</string>
+    <string name="btn_restore">Восстановить покупку</string>
+
+    <string name="empty_notes">Заметок пока нет.\nНажмите +, чтобы начать!</string>
+    <string name="delete_confirm_title">Удалить заметку?</string>
+    <string name="delete_confirm_message">Вы уверены, что хотите удалить эту заметку?</string>
+
+    <string name="label_total_notes">Всего заметок</string>
+    <string name="label_today_notes">Сегодня</string>
+    <string name="label_free">Бесплатно</string>
+    <string name="label_premium">Premium</string>
+
+    <string name="title_user_profile">Аккаунт и профиль</string>
+    <string name="account_guest">Гость (Не вошел)</string>
+    <string name="account_google">Аккаунт Google</string>
+    <string name="btn_login_google">Войти через Google</string>
+    <string name="btn_logout">Выйти</string>
+
+    <string name="title_language">Язык приложения</string>
+    <string name="lang_system">По умолчанию 📱</string>
+    <string name="lang_vi">Tiếng Việt 🇻🇳</string>
+    <string name="lang_en">English 🇬🇧</string>
+    <string name="lang_ja">日本語 🇯🇵</string>
+    <string name="lang_de">Deutsch 🇩🇪</string>
+    <string name="lang_ru">Русский 🇷🇺</string>
+
+    <string name="btn_new_manual_note">Создать новую заметку</string>
+    <string name="default_note_title_prefix">Заметка</string>
+    <string name="dialog_new_note_title">Создать новую заметку</string>
+    <string name="placeholder_note_content">Введите текст заметки...</string>
+</resources>
