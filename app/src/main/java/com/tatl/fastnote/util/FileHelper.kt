@@ -1,4 +1,4 @@
-﻿package com.tatl.fastnote.util
+package com.tatl.fastnote.util
 
 import android.content.Context
 import android.util.Log
@@ -78,7 +78,7 @@ object FileHelper {
         val year  = cal.get(Calendar.YEAR)
         val hour  = String.format(Locale.getDefault(), "%02d", cal.get(Calendar.HOUR_OF_DAY))
         val min   = String.format(Locale.getDefault(), "%02d", cal.get(Calendar.MINUTE))
-        return "\n- $dayName, ngày $day-$month-$year lúc $hour.$min: $text"
+        return "\n\n- $dayName, ngày $day-$month-$year lúc $hour.$min: $text"
     }
 
     // ── Read / Parse ──────────────────────────────────────────────────────────
@@ -161,8 +161,8 @@ object FileHelper {
         }
 
         val linesRemoved = origLines.size - editLines.size
-        if (linesRemoved >= 3) {
-            return "Không thể xóa $linesRemoved dòng cùng lúc (tối đa 2 dòng mỗi lần)"
+        if (linesRemoved >= 5) {
+            return "Không thể xóa $linesRemoved dòng cùng lúc (tối đa 4 dòng mỗi lần)"
         }
         return null
     }

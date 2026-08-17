@@ -92,6 +92,9 @@ dependencies {
     implementation(libs.google.id)
     implementation(libs.okhttp)
 
+    // Zip4j — AES-256 encrypted zip cho tính năng Gửi PC
+    implementation("net.lingala.zip4j:zip4j:2.11.5")
+
     // Test
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

@@ -31,6 +31,7 @@ import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Widgets
+import androidx.compose.ui.res.painterResource
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
@@ -98,6 +99,7 @@ fun HomeScreen(
     onSettingsClick: () -> Unit,
     onAIShareClick: () -> Unit = {},
     onPremiumClick: () -> Unit = {},
+    onComputerClick: () -> Unit = {},
     isPremium: Boolean = false
 ) {
     val context = LocalContext.current
@@ -170,32 +172,33 @@ fun HomeScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .windowInsetsPadding(WindowInsets.statusBars)
-                    .padding(horizontal = 20.dp, vertical = 12.dp),
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Trái: icon máy tính → mở widget pin
+                // Trái: icon máy tính → gửi PC (gate premium)
                 IconButton(
-                    onClick = { showManualPinPrompt = true },
-                    modifier = Modifier.size(40.dp)
+                    onClick = onComputerClick,
+                    modifier = Modifier.size(48.dp)
                 ) {
                     Icon(
                         Icons.Default.Computer,
                         contentDescription = "Widget",
                         tint = HomeIconColor,
-                        modifier = Modifier.size(26.dp)
+                        modifier = Modifier.size(44.dp)
                     )
                 }
 
-                // Phải: vương miện → premium
+                // Phải: ic_premium → premium
                 IconButton(
                     onClick = onPremiumClick,
-                    modifier = Modifier.size(40.dp)
+                    modifier = Modifier.size(48.dp)
                 ) {
-                    Text(
-                        text = if (isPremium) "♛" else "♛",
-                        fontSize = 22.sp,
-                        color = HomeIconColor
+                    Icon(
+                        painter = painterResource(R.drawable.ic_premium),
+                        contentDescription = "Premium",
+                        tint = HomeIconColor,
+                        modifier = Modifier.size(44.dp)
                     )
                 }
             }
@@ -287,10 +290,10 @@ fun HomeScreen(
                         val maskedLine = FileHelper.maskSensitive(listOf(rawLine)).firstOrNull() ?: rawLine
                         // Hiển thị dạng [timestamp] content — đúng như ảnh
                         NoteEntryItem(
-                            text = maskedLine.removePrefix("- "),
+                            text = "• " + maskedLine.removePrefix("- "),
                             searchQuery = searchQuery
                         )
-                        Spacer(Modifier.height(14.dp))
+                        Spacer(Modifier.height(28.dp))
                     }
                     item { Spacer(Modifier.height(80.dp)) }
                 }
@@ -303,33 +306,33 @@ fun HomeScreen(
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
                 .windowInsetsPadding(WindowInsets.navigationBars)
-                .padding(horizontal = 28.dp, vertical = 24.dp),
+                .padding(horizontal = 16.dp, vertical = 24.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Trái: bút chì → mở editor / tạo ghi chú thủ công
             IconButton(
                 onClick = { showCreateManualDialog = true },
-                modifier = Modifier.size(44.dp)
+                modifier = Modifier.size(56.dp)
             ) {
                 Icon(
                     Icons.Default.Edit,
                     contentDescription = "Tạo ghi chú",
                     tint = HomeIconColor,
-                    modifier = Modifier.size(22.dp)
+                    modifier = Modifier.size(44.dp)
                 )
             }
 
             // Giữa: mic → ghi âm
             IconButton(
                 onClick = onRecordClick,
-                modifier = Modifier.size(44.dp)
+                modifier = Modifier.size(56.dp)
             ) {
                 Icon(
                     Icons.Default.Mic,
                     contentDescription = "Ghi âm",
                     tint = HomeTextMuted,
-                    modifier = Modifier.size(22.dp)
+                    modifier = Modifier.size(44.dp)
                 )
             }
 
@@ -339,13 +342,13 @@ fun HomeScreen(
                     searchActive = !searchActive
                     if (!searchActive) searchQuery = ""
                 },
-                modifier = Modifier.size(44.dp)
+                modifier = Modifier.size(56.dp)
             ) {
                 Icon(
                     Icons.Default.Search,
                     contentDescription = "Tìm kiếm",
                     tint = if (searchActive) HomeSearchActive else HomeIconColor,
-                    modifier = Modifier.size(22.dp)
+                    modifier = Modifier.size(44.dp)
                 )
             }
         }

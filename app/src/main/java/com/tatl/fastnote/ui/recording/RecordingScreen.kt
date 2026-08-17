@@ -212,13 +212,8 @@ fun RecordingScreen(
         ) {
             Spacer(Modifier.weight(1f))
 
-            // ── Vòng tròn mic lớn, trắng (chạm để lưu & đóng) ────────────────
-            Box(
-                modifier = Modifier.clickable(
-                    indication = null,
-                    interactionSource = remember { MutableInteractionSource() }
-                ) { onSaveAndExit() }
-            ) {
+            // ── Vòng tròn mic lớn, trắng — chỉ hiện thị, không cần tap để lưu ────────
+            Box {
                 MicCircle(isActive = isActive, isPaused = isPaused)
             }
 

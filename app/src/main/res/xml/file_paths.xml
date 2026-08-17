@@ -3,6 +3,9 @@
     <cache-path
         name="exports"
         path="exports/" />
+    <cache-path
+        name="send_pc"
+        path="send_pc/" />
     <!-- App-specific AndroidAutoNote folder: getExternalFilesDir("AndroidAutoNote") -->
     <external-files-path
         name="autonote_docs"

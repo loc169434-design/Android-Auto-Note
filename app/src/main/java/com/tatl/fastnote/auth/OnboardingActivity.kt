@@ -119,6 +119,7 @@ class OnboardingActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        // Nếu đã đăng nhập rồi thì vào thẳng
         if (AuthManager.isLoggedIn()) { goToMain(); return }
 
         setContent {
@@ -126,7 +127,8 @@ class OnboardingActivity : ComponentActivity() {
                 onGoogleSignIn = { launchGoogleSignIn() },
                 onSendOtp      = { phone -> sendPhoneOtp(phone) },
                 onVerifyOtp    = { otp   -> verifyOtp(otp) },
-                onGuestSignIn  = { launchGuestSignIn() }
+                // "BẮT ĐẦU TRẢI NGHIỆM" → vào thẳng app, không cần đăng nhập
+                onGuestSignIn  = { goToMain() }
             )
         }
     }
@@ -294,167 +296,8 @@ private fun OnboardingScreen(
 
             Spacer(Modifier.weight(1f))
 
-            // ── Auth buttons ─────────────────────────────────────────────────
-            if (!showPhoneMode) {
-                // Google button
-                OutlinedButton(
-                    onClick = onGoogleSignIn,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(52.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    border = BorderStroke(1.dp, AppBorder),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        containerColor = Color.Transparent,
-                        contentColor = AppTextSecondary
-                    )
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Start,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        // Google "G" icon using text
-                        Text(
-                            text = "G",
-                            fontFamily = InterFontFamily,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 18.sp,
-                            color = AppTextSecondary,
-                            modifier = Modifier.width(32.dp),
-                            textAlign = TextAlign.Center
-                        )
-                        Spacer(Modifier.width(8.dp))
-                        Text(
-                            text = "Tiếp tục với Google",
-                            fontFamily = NotoSansFontFamily,
-                            fontWeight = FontWeight.Normal,
-                            fontSize = 15.sp,
-                            color = AppTextSecondary
-                        )
-                    }
-                }
-
-                Spacer(Modifier.height(12.dp))
-
-                // Phone button
-                OutlinedButton(
-                    onClick = { showPhoneMode = true },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(52.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    border = BorderStroke(1.dp, AppBorder),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        containerColor = Color.Transparent,
-                        contentColor = AppTextSecondary
-                    )
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Start,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Icon(
-                            Icons.Default.Phone,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp).then(Modifier.width(32.dp)),
-                            tint = AppTextSecondary
-                        )
-                        Spacer(Modifier.width(8.dp))
-                        Text(
-                            text = "Tiếp tục với Số điện thoại",
-                            fontFamily = NotoSansFontFamily,
-                            fontWeight = FontWeight.Normal,
-                            fontSize = 15.sp,
-                            color = AppTextSecondary
-                        )
-                    }
-                }
-
-            } else {
-                // ── Phone OTP mode ───────────────────────────────────────────
-                if (!otpSent) {
-                    OutlinedTextField(
-                        value = phone, onValueChange = { phone = it },
-                        label = { Text("Số điện thoại (+84...)", color = AppTextMuted,
-                            fontFamily = NotoSansFontFamily, fontSize = 13.sp) },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = AppTextPrimary,
-                            unfocusedTextColor = AppTextPrimary,
-                            focusedBorderColor = AppTextSecondary,
-                            unfocusedBorderColor = AppBorder,
-                            cursorColor = AppTextPrimary
-                        ),
-                        textStyle = androidx.compose.ui.text.TextStyle(
-                            fontFamily = NotoSansFontFamily,
-                            fontSize = 15.sp,
-                            color = AppTextPrimary
-                        ),
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Spacer(Modifier.height(12.dp))
-                    OutlinedButton(
-                        onClick = { if (phone.isNotBlank()) { onSendOtp(phone); otpSent = true } },
-                        modifier = Modifier.fillMaxWidth().height(52.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        border = BorderStroke(1.dp, AppBorder),
-                        colors = ButtonDefaults.outlinedButtonColors(
-                            containerColor = Color.Transparent,
-                            contentColor = AppTextSecondary
-                        )
-                    ) {
-                        Text("GỬI MÃ OTP", fontFamily = InterFontFamily,
-                            fontWeight = FontWeight.Medium, fontSize = 14.sp,
-                            letterSpacing = 1.sp, color = AppTextSecondary)
-                    }
-                } else {
-                    OutlinedTextField(
-                        value = otp, onValueChange = { otp = it },
-                        label = { Text("Nhập mã OTP", color = AppTextMuted,
-                            fontFamily = NotoSansFontFamily, fontSize = 13.sp) },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = AppTextPrimary,
-                            unfocusedTextColor = AppTextPrimary,
-                            focusedBorderColor = AppTextSecondary,
-                            unfocusedBorderColor = AppBorder,
-                            cursorColor = AppTextPrimary
-                        ),
-                        textStyle = androidx.compose.ui.text.TextStyle(
-                            fontFamily = NotoSansFontFamily,
-                            fontSize = 15.sp,
-                            color = AppTextPrimary
-                        ),
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Spacer(Modifier.height(12.dp))
-                    OutlinedButton(
-                        onClick = { if (otp.isNotBlank()) onVerifyOtp(otp) },
-                        modifier = Modifier.fillMaxWidth().height(52.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        border = BorderStroke(1.dp, AppBorder),
-                        colors = ButtonDefaults.outlinedButtonColors(
-                            containerColor = Color.Transparent,
-                            contentColor = AppTextSecondary
-                        )
-                    ) {
-                        Text("XÁC NHẬN", fontFamily = InterFontFamily,
-                            fontWeight = FontWeight.Medium, fontSize = 14.sp,
-                            letterSpacing = 1.sp, color = AppTextSecondary)
-                    }
-                }
-                Spacer(Modifier.height(12.dp))
-                TextButton(onClick = { showPhoneMode = false; otpSent = false; phone = ""; otp = "" }) {
-                    Text("← Quay lại", fontFamily = NotoSansFontFamily,
-                        color = AppTextMuted, fontSize = 13.sp)
-                }
-            }
+            // ── Chỉ hiển thị nút BẮT ĐẦU TRẢI NGHIỆM ──────────────────────
+            // (Google Sign-In giữ lại cho luồng Premium, không hiện ở đây)
 
             Spacer(Modifier.height(40.dp))
 

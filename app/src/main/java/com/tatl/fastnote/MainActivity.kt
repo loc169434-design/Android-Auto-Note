@@ -8,6 +8,7 @@ import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.getValue
@@ -17,6 +18,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
@@ -35,6 +38,8 @@ import com.tatl.fastnote.ui.recording.RecordingActivity
 import com.tatl.fastnote.ui.settings.SettingsScreen
 import com.tatl.fastnote.ui.theme.AndroidAutoNoteTheme
 import com.tatl.fastnote.util.AIShareHelper
+import com.tatl.fastnote.util.SendPcDialog
+import com.tatl.fastnote.util.SendPcHelper
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -49,12 +54,7 @@ class MainActivity : ComponentActivity() {
         // Đảm bảo nội dung vẽ sau system bars
         WindowCompat.setDecorFitsSystemWindows(window, false)
 
-        // ── Auth gate: redirect to Onboarding if not logged in ─────────────────
-        if (!AuthManager.isLoggedIn()) {
-            startActivity(Intent(this, OnboardingActivity::class.java))
-            finish()
-            return
-        }
+        // ── Không ép đăng nhập khi khởi động — người dùng vào thẳng app ──────────
 
         // ── Trial: record first launch + show countdown toast ─────────────────
         TrialManager.initFirstLaunch(applicationContext)
@@ -66,10 +66,19 @@ class MainActivity : ComponentActivity() {
             ).show()
         }
 
-        // ── Cloud sync: Google Drive (appDataFolder) & Firebase (background) ──
+        // Từ widget callback khi trial hết hạn
+        if (intent?.getBooleanExtra("SHOW_TRIAL_EXPIRED", false) == true) {
+            showTrialExpiredToast()
+        }
+
+        // ── Cloud sync: chỉ chạy khi isPremium VÀ đã đăng nhập Google thật ─────
         lifecycleScope.launch {
-            com.tatl.fastnote.sync.GoogleDriveSyncManager.sync(applicationContext)
-            CloudSyncManager.syncFromCloud(applicationContext)
+            val isGoogleUser = AuthManager.isLoggedIn() && !AuthManager.isAnonymous
+            val isPremiumUser = com.tatl.fastnote.billing.PremiumManager.isPremium()
+            if (isGoogleUser && isPremiumUser) {
+                com.tatl.fastnote.sync.GoogleDriveSyncManager.sync(applicationContext)
+                CloudSyncManager.syncFromCloud(applicationContext)
+            }
         }
 
         val app = application as AutoNoteApplication
@@ -81,8 +90,10 @@ class MainActivity : ComponentActivity() {
                     color = Color(0xFF000000)  // đen tuyệt đối, không ghi đè edge-to-edge
                 ) {
                     val navController = rememberNavController()
-                    var showPremiumDialog by remember { mutableStateOf(false) }
-                    var isPremiumUser    by remember { mutableStateOf(false) }
+                    var showPremiumDialog  by remember { mutableStateOf(false) }
+                    var isPremiumUser      by remember { mutableStateOf(false) }
+                    var showComputerGate  by remember { mutableStateOf(false) }
+                    var showSendPcDialog  by remember { mutableStateOf(false) }
 
                     NavHost(
                         navController = navController,
@@ -111,6 +122,14 @@ class MainActivity : ComponentActivity() {
                                 onPremiumClick = {
                                     showPremiumDialog = true
                                 },
+                                // Nút Gửi PC: chặn nếu chưa premium → mở dialog nâng cấp
+                                onComputerClick = {
+                                    if (isPremiumUser) {
+                                        showSendPcDialog = true
+                                    } else {
+                                        showComputerGate = true
+                                    }
+                                },
                                 isPremium = isPremiumUser
                             )
                         }
@@ -132,7 +151,7 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
-                    // Premium gate dialog
+                    // ── Premium gate dialog ───────────────────────────────────
                     if (showPremiumDialog) {
                         PremiumGateDialog(
                             onDismiss = { showPremiumDialog = false },
@@ -141,14 +160,100 @@ class MainActivity : ComponentActivity() {
                                 showPremiumDialog = false
                                 Toast.makeText(
                                     this@MainActivity,
-                                    "🎉 Cảm ơn! Đặc quyền Premium đã được kích hoạt!",
-                                    Toast.LENGTH_LONG
+                                    "Cảm ơn bạn. Các đặc quyền Premium đã được mở thành công!",
+                                    Toast.LENGTH_SHORT
                                 ).show()
+                            }
+                        )
+                    }
+
+                    // ── Computer gate dialog (chim mồi) ──────────────────────
+                    if (showComputerGate) {
+                        androidx.compose.material3.AlertDialog(
+                            onDismissRequest = { showComputerGate = false },
+                            containerColor = androidx.compose.ui.graphics.Color(0xFF111111),
+                            title = {
+                                androidx.compose.material3.Text(
+                                    "Tính năng Premium",
+                                    color = androidx.compose.ui.graphics.Color.White,
+                                    fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                                )
+                            },
+                            text = {
+                                androidx.compose.material3.Text(
+                                    "Hãy nâng cấp lên Premium để sử dụng tính năng xuất file bảo mật này.",
+                                    color = androidx.compose.ui.graphics.Color(0xFFAAAAAA),
+                                    fontSize = 14.sp
+                                )
+                            },
+                            confirmButton = {
+                                androidx.compose.material3.Button(
+                                    onClick = {
+                                        showComputerGate = false
+                                        showPremiumDialog = true
+                                    },
+                                    colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                                        containerColor = androidx.compose.ui.graphics.Color.White
+                                    ),
+                                    shape = androidx.compose.foundation.shape.RoundedCornerShape(10.dp)
+                                ) {
+                                    androidx.compose.material3.Text(
+                                        "Nâng Cấp Ngay",
+                                        color = androidx.compose.ui.graphics.Color.Black,
+                                        fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                                    )
+                                }
+                            },
+                            dismissButton = {
+                                androidx.compose.material3.TextButton(onClick = { showComputerGate = false }) {
+                                    androidx.compose.material3.Text(
+                                        "Để sau",
+                                        color = androidx.compose.ui.graphics.Color(0xFF666666)
+                                    )
+                                }
+                            }
+                        )
+                    }
+
+                    // ── Send PC dialog ───────────────────────────────
+                    if (showSendPcDialog) {
+                        SendPcDialog(
+                            onDismiss = { showSendPcDialog = false },
+                            onConfirm = { pwd ->
+                                showSendPcDialog = false
+                                lifecycleScope.launch {
+                                    val err = SendPcHelper.zipAndShare(
+                                        this@MainActivity, pwd
+                                    )
+                                    if (err != null) {
+                                        Toast.makeText(
+                                            this@MainActivity,
+                                            err,
+                                            Toast.LENGTH_LONG
+                                        ).show()
+                                    }
+                                }
                             }
                         )
                     }
                 }
             }
         }
+    }
+
+    override fun onNewIntent(intent: android.content.Intent) {
+        super.onNewIntent(intent)
+        if (intent.getBooleanExtra("SHOW_TRIAL_EXPIRED", false)) {
+            showTrialExpiredToast()
+        }
+    }
+
+    private fun showTrialExpiredToast() {
+        Toast.makeText(
+            this,
+            "Cuốn sổ của bạn đã đồng hành cùng bạn 30 ngày. " +
+            "Hãy nâng cấp để tiếp tục lưu giữ những khoảnh khắc tiếp theo nhé!",
+            Toast.LENGTH_LONG
+        ).show()
     }
 }
