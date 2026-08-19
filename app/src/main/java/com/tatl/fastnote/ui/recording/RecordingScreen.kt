@@ -23,6 +23,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Mic
@@ -57,27 +62,23 @@ import com.tatl.fastnote.ui.theme.AppBgBlack
 import com.tatl.fastnote.ui.theme.InterFontFamily
 import com.tatl.fastnote.ui.theme.NotoSansFontFamily
 
-// ── Màu dùng chung từ AppColors ───────────────────────────────────────────────
-private val MicCircleBg   = Color(0xFFEEEEEE)   // vòng tròn mic màu trắng xám
-private val MicIconColor  = Color(0xFF111111)   // icon mic đen
-private val TextPrimary   = Color(0xFFFFFFFF)
-private val TextMuted     = Color(0xFF888888)
-private val CancelBorder  = Color(0xFF444444)
+// Mau dung chung
+private val MicCircleBg  = Color(0xFFEEEEEE)
+private val MicIconColor = Color(0xFF111111)
+private val TextPrimary  = Color(0xFFFFFFFF)
+private val TextMuted    = Color(0xFF888888)
+private val CancelBorder = Color(0xFF444444)
+private val SaveBorder   = Color(0xFF555555)
 
 /**
- * Recording screen — OLED black, full screen (Bản Đặc Tả V38 - Phần 3).
+ * Recording screen -- OLED black, full screen.
  *
  * Layout:
- *  - Nút chuyển đổi ngôn ngữ (VN / EN / JP / DE / RU) góc trên cùng bên phải
- *  - Vòng tròn trắng lớn + icon mic đen — giữa màn hình
- *  - Dòng chữ hướng dẫn động theo ngôn ngữ đã chọn:
- *      * VN: "HÃY NÓI ĐIỀU BẠN MUỐN GHI CHÚ"
- *      * EN: "PLEASE SAY WHAT YOU WANT TO NOTE"
- *      * JP: "メモしたい内容を話してください"
- *      * DE: "BITTE SPRECHEN SIE, WAS SIE NOTIEREN MÖCHTEN"
- *      * RU: "ПОЖАЛУЙСТА, СКАЖИТЕ, ЧТО ВЫ ХОТИТЕ ЗАПИСАТЬ"
- *  - Transcript (ẩn nếu trống) — cuộn được
- *  - Nút "HỦY" — circle outlined ở dưới cùng
+ *  - Nut LUU (theo ngon ngu) -- goc tren trai
+ *  - Chon ngon ngu -- goc tren phai
+ *  - Vong tron mic lon -- giua man hinh
+ *  - Transcript cuon duoc, auto-scroll moi nhat len tren
+ *  - Nut HUY -- duoi cung
  */
 @Composable
 fun RecordingScreen(
@@ -110,7 +111,7 @@ fun RecordingScreen(
     val context = LocalContext.current
     var showLangMenu by remember { mutableStateOf(false) }
 
-    // 5 ngôn ngữ chuẩn theo V38
+    // 5 ngon ngu chuan
     val languages = listOf(
         AppLanguage.VIETNAMESE,
         AppLanguage.ENGLISH,
@@ -119,7 +120,25 @@ fun RecordingScreen(
         AppLanguage.RUSSIAN
     )
 
-    // Tap ngoài = lưu và thoát
+    // Van ban nut LUU theo ngon ngu
+    val saveText = when (currentLanguage) {
+        AppLanguage.VIETNAMESE -> "Lu01afU"
+        AppLanguage.ENGLISH    -> "SAVE"
+        AppLanguage.JAPANESE   -> "u4fddu5b58"
+        AppLanguage.GERMAN     -> "SPEICHERN"
+        AppLanguage.RUSSIAN    -> "u0421u041eu0425u0420u0410u041du0418u0422u042c"
+    }
+
+    // Van ban nut HUY theo ngon ngu
+    val cancelText = when (currentLanguage) {
+        AppLanguage.VIETNAMESE -> "Hu1ee6Y"
+        AppLanguage.ENGLISH    -> "CANCEL"
+        AppLanguage.JAPANESE   -> "u30adu30e3u30f3u30bbu30eb"
+        AppLanguage.GERMAN     -> "ABBRECHEN"
+        AppLanguage.RUSSIAN    -> "u041eu0422u041cu0415u041du0410"
+    }
+
+    // Tap ngoai = luu va thoat
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -129,13 +148,33 @@ fun RecordingScreen(
                 interactionSource = remember { MutableInteractionSource() }
             ) { onSaveAndExit() }
     ) {
-        // ── Nút Chọn Ngôn Ngữ Tức Thời (VN / EN / JP / DE / RU) — góc trên phải ──
+        // -- Nut LUU -- goc tren trai --
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .padding(top = 52.dp, start = 24.dp)
+        ) {
+            Text(
+                text = saveText,
+                fontFamily = InterFontFamily,
+                fontWeight = FontWeight.Medium,
+                fontSize = 14.sp,
+                letterSpacing = 1.sp,
+                color = Color.White,
+                modifier = Modifier
+                    .clickable(
+                        indication = null,
+                        interactionSource = remember { MutableInteractionSource() }
+                    ) { onSaveAndExit() }
+            )
+        }
+
+        // -- Nut Chon Ngon Ngu -- goc tren phai --
         Box(
             modifier = Modifier
                 .align(Alignment.TopEnd)
                 .padding(top = 52.dp, end = 24.dp)
         ) {
-            // Label viết tắt bấm được
             Text(
                 text = langLabel,
                 fontFamily = InterFontFamily,
@@ -150,7 +189,7 @@ fun RecordingScreen(
                     ) { showLangMenu = true }
             )
 
-            // Dropdown menu — nền đen tuyền, viền xám
+            // Dropdown ngon ngu
             DropdownMenu(
                 expanded = showLangMenu,
                 onDismissRequest = { showLangMenu = false },
@@ -164,10 +203,7 @@ fun RecordingScreen(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
-                                Text(
-                                    text = lang.flagEmoji,
-                                    fontSize = 16.sp
-                                )
+                                Text(text = lang.flagEmoji, fontSize = 16.sp)
                                 Text(
                                     text = "${lang.shortCode} - ${lang.displayName}",
                                     fontFamily = InterFontFamily,
@@ -190,15 +226,13 @@ fun RecordingScreen(
                             service?.updateLanguageAndRestart()
                             showLangMenu = false
                         },
-                        colors = MenuDefaults.itemColors(
-                            textColor = TextMuted
-                        )
+                        colors = MenuDefaults.itemColors(textColor = TextMuted)
                     )
                 }
             }
         }
 
-        // ── Nội dung chính — căn giữa ────────────────────────────────────────
+        // -- Noi dung chinh -- can giua --
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -212,29 +246,29 @@ fun RecordingScreen(
         ) {
             Spacer(Modifier.weight(1f))
 
-            // ── Vòng tròn mic lớn, trắng — chỉ hiện thị, không cần tap để lưu ────────
+            // -- Vong tron mic lon --
             Box {
                 MicCircle(isActive = isActive, isPaused = isPaused)
             }
 
             Spacer(Modifier.height(36.dp))
 
-            // ── Dòng chữ hướng dẫn động (V38 Phần 3) ─────────────────────────
+            // -- Dong chu huong dan --
             Text(
                 text = when {
                     isPaused -> when (currentLanguage) {
-                        AppLanguage.VIETNAMESE -> "ĐÃ TẠM DỪNG"
+                        AppLanguage.VIETNAMESE -> "u0110u00c3 Tu1ea0M Du1ebeNG"
                         AppLanguage.ENGLISH    -> "PAUSED"
-                        AppLanguage.JAPANESE   -> "一時停止中"
+                        AppLanguage.JAPANESE   -> "u4e00u6642u505cu6b62u4e2d"
                         AppLanguage.GERMAN     -> "PAUSIERT"
-                        AppLanguage.RUSSIAN    -> "ПРИОСТАНОВЛЕНО"
+                        AppLanguage.RUSSIAN    -> "u041fu0420u0418u041eu0421u0422u0410u041du041eu0412u041bu0415u041du041e"
                     }
                     !isBound -> when (currentLanguage) {
-                        AppLanguage.VIETNAMESE -> "ĐANG KẾT NỐI..."
+                        AppLanguage.VIETNAMESE -> "u0110ANG Ku1ebeT Nu1ed0I..."
                         AppLanguage.ENGLISH    -> "CONNECTING..."
-                        AppLanguage.JAPANESE   -> "接続中..."
+                        AppLanguage.JAPANESE   -> "u63a5u7d9au4e2d..."
                         AppLanguage.GERMAN     -> "VERBINDEN..."
-                        AppLanguage.RUSSIAN    -> "ПОДКЛЮЧЕНИЕ..."
+                        AppLanguage.RUSSIAN    -> "u041fu041eu0414u041au041bu042eu0427u0415u041du0418u0415..."
                     }
                     else -> currentLanguage.promptText
                 },
@@ -246,14 +280,41 @@ fun RecordingScreen(
                 textAlign = TextAlign.Center
             )
 
-            // ── Transcript (chỉ hiện khi có nội dung) ────────────────────────
+            // -- Transcript cuon duoc --
             if (displayText.isNotBlank()) {
                 Spacer(Modifier.height(28.dp))
+                val scrollState = rememberScrollState()
+                // Auto-scroll xuong cuoi moi khi co text moi
+                LaunchedEffect(displayText) {
+                    scrollState.animateScrollTo(scrollState.maxValue)
+                }
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(120.dp)
-                        .verticalScroll(rememberScrollState())
+                        .drawBehind {
+                            val barWidth = 3.dp.toPx()
+                            val trackHeight = size.height
+                            val maxScroll = scrollState.maxValue.toFloat()
+                            val scrollFraction = if (maxScroll > 0f) scrollState.value / maxScroll else 0f
+                            val thumbHeightFraction = trackHeight / (trackHeight + maxScroll).coerceAtLeast(1f)
+                            val thumbHeight = (trackHeight * thumbHeightFraction).coerceAtLeast(24.dp.toPx())
+                            val thumbTop = (trackHeight - thumbHeight) * scrollFraction
+                            val x = size.width - barWidth - 2.dp.toPx()
+                            drawRoundRect(
+                                color = androidx.compose.ui.graphics.Color(0x22FFFFFF),
+                                topLeft = Offset(x, 0f),
+                                size = Size(barWidth, trackHeight),
+                                cornerRadius = CornerRadius(barWidth / 2)
+                            )
+                            drawRoundRect(
+                                color = androidx.compose.ui.graphics.Color(0x88FFFFFF.toInt()),
+                                topLeft = Offset(x, thumbTop),
+                                size = Size(barWidth, thumbHeight),
+                                cornerRadius = CornerRadius(barWidth / 2)
+                            )
+                        }
+                        .verticalScroll(scrollState)
                 ) {
                     Text(
                         text = displayText,
@@ -262,22 +323,15 @@ fun RecordingScreen(
                         fontSize = 15.sp,
                         lineHeight = 24.sp,
                         color = TextPrimary,
-                        textAlign = TextAlign.Center
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(end = 8.dp)
                     )
                 }
             }
 
             Spacer(Modifier.weight(1f))
 
-            // ── Nút HỦY — circle outlined ────────────────────────────────────
-            val cancelText = when (currentLanguage) {
-                AppLanguage.VIETNAMESE -> "HỦY"
-                AppLanguage.ENGLISH    -> "CANCEL"
-                AppLanguage.JAPANESE   -> "キャンセル"
-                AppLanguage.GERMAN     -> "ABBRECHEN"
-                AppLanguage.RUSSIAN    -> "ОТМЕНА"
-            }
-
+            // -- Nut HUY -- circle outlined --
             OutlinedButton(
                 onClick = onCancel,
                 modifier = Modifier.size(72.dp),
@@ -305,7 +359,7 @@ fun RecordingScreen(
     }
 }
 
-// ── Vòng tròn mic — trắng lớn, pulse khi active ────────────────────────────────
+// -- Vong tron mic -- trang lon, pulse khi active --
 
 @Composable
 private fun MicCircle(isActive: Boolean, isPaused: Boolean) {
@@ -330,7 +384,7 @@ private fun MicCircle(isActive: Boolean, isPaused: Boolean) {
     ) {
         Icon(
             imageVector = if (!isPaused) Icons.Default.Mic else Icons.Default.MicOff,
-            contentDescription = if (isActive) "Đang ghi âm" else "Mic",
+            contentDescription = if (isActive) "u0110ang ghi u00e2m" else "Mic",
             tint = MicIconColor,
             modifier = Modifier.size(44.dp)
         )

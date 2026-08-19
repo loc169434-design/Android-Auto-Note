@@ -13,6 +13,7 @@ import android.util.Log
 import android.view.WindowManager
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.OnBackPressedCallback
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.getValue
@@ -101,10 +102,17 @@ class RecordingActivity : ComponentActivity() {
                     service = voiceService,
                     isBound = isBound,
                     onCancel = { cancelRecording() },
-                    onSaveAndExit = { autoSaveNote() }  // tap outside = save + close
+                    onSaveAndExit = { autoSaveNote() }
                 )
             }
         }
+
+        // Back button -> auto save (khong discard)
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                autoSaveNote()
+            }
+        })
     }
 
     /**

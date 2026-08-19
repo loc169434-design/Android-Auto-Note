@@ -18,7 +18,6 @@ import android.speech.SpeechRecognizer
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.tatl.fastnote.R
-import com.tatl.fastnote.util.ThemePreferences
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -41,14 +40,11 @@ class VoiceRecordingService : Service() {
 
         const val ACTION_START        = "ACTION_START"
         const val ACTION_STOP         = "ACTION_STOP"
-        // Notification button: triggers autoSaveTriggered → Activity saves then stops
         const val ACTION_SAVE_AND_STOP = "ACTION_SAVE_AND_STOP"
 
-        // Maximum continuous recording cap (10 minutes)
         private const val MAX_RECORDING_TIMEOUT_MS = 600_000L
     }
 
-    // Binder for Activity to observe state
     inner class LocalBinder : Binder() {
         fun getService(): VoiceRecordingService = this@VoiceRecordingService
     }
@@ -56,7 +52,6 @@ class VoiceRecordingService : Service() {
     private val binder = LocalBinder()
     private var speechRecognizer: SpeechRecognizer? = null
 
-    // --- Observable State ---
     private val _recognizedText = MutableStateFlow("")
     val recognizedText: StateFlow<String> = _recognizedText.asStateFlow()
 
@@ -72,27 +67,16 @@ class VoiceRecordingService : Service() {
     private val _recordingSeconds = MutableStateFlow(0)
     val recordingSeconds: StateFlow<Int> = _recordingSeconds.asStateFlow()
 
-    /**
-     * Emits true when mic auto-stops due to idle timeout.
-     * The Activity observes this to trigger auto-save.
-     */
     private val _autoSaveTriggered = MutableStateFlow(false)
     val autoSaveTriggered: StateFlow<Boolean> = _autoSaveTriggered.asStateFlow()
 
-    // Accumulated text buffer (persists across SpeechRecognizer restarts)
     private val textBuffer = StringBuilder()
-
-    // True after Activity saves — prevents double-save in onDestroy()
     private var isSaved = false
 
-    /** Called by RecordingActivity after it successfully saves the note. */
     fun markAsSaved() { isSaved = true }
 
-    // Timer for recording duration
     private var timerRunnable: Runnable? = null
     private val handler = android.os.Handler(android.os.Looper.getMainLooper())
-
-    // Flag to auto-restart listening after speech ends
     private var shouldKeepListening = false
 
     override fun onBind(intent: Intent?): IBinder = binder
@@ -115,12 +99,10 @@ class VoiceRecordingService : Service() {
                 stopForeground(STOP_FOREGROUND_REMOVE)
                 stopSelf()
             }
-            // Notification "Dừng & Lưu" → signal Activity to save, then stop
             ACTION_SAVE_AND_STOP -> {
                 stopListening()
                 stopTimer()
                 _autoSaveTriggered.value = true
-                // Activity observes this, saves, then calls ACTION_STOP
             }
         }
         return START_NOT_STICKY
@@ -129,18 +111,13 @@ class VoiceRecordingService : Service() {
     private fun startForegroundWithNotification() {
         val notification = buildNotification()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            startForeground(
-                NOTIFICATION_ID,
-                notification,
-                ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE
-            )
+            startForeground(NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE)
         } else {
             startForeground(NOTIFICATION_ID, notification)
         }
     }
 
     private fun buildNotification(): Notification {
-        // Notification action: "Dừng & Lưu" → triggers auto-save via Activity
         val saveStopIntent = Intent(this, VoiceRecordingService::class.java).apply {
             action = ACTION_SAVE_AND_STOP
         }
@@ -148,17 +125,12 @@ class VoiceRecordingService : Service() {
             this, 0, saveStopIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle(getString(R.string.recording_notification_title))
             .setContentText(getString(R.string.recording_notification_text))
             .setSmallIcon(android.R.drawable.ic_btn_speak_now)
             .setOngoing(true)
-            .addAction(
-                android.R.drawable.ic_media_pause,
-                "Dừng & Lưu",
-                saveStopPendingIntent
-            )
+            .addAction(android.R.drawable.ic_media_pause, "Dung & Luu", saveStopPendingIntent)
             .build()
     }
 
@@ -167,21 +139,15 @@ class VoiceRecordingService : Service() {
             CHANNEL_ID,
             getString(R.string.recording_channel_name),
             NotificationManager.IMPORTANCE_LOW
-        ).apply {
-            description = getString(R.string.recording_channel_desc)
-        }
+        ).apply { description = getString(R.string.recording_channel_desc) }
         val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         manager.createNotificationChannel(channel)
     }
 
-    /**
-     * Auto-stop and signal the Activity to save.
-     */
     private fun triggerAutoSave() {
         stopListening()
         stopTimer()
         _autoSaveTriggered.value = true
-        // Don't stopSelf() here — let the Activity handle save then stop service
     }
 
     // --- Speech Recognition ---
@@ -197,7 +163,7 @@ class VoiceRecordingService : Service() {
         _autoSaveTriggered.value = false
 
         speechRecognizer?.destroy()
-        speechRecognizer = createSpeechRecognizerInstance().apply {
+        speechRecognizer = SpeechRecognizer.createSpeechRecognizer(this).apply {
             setRecognitionListener(createRecognitionListener())
         }
 
@@ -209,7 +175,6 @@ class VoiceRecordingService : Service() {
     }
 
     private fun createSpeechRecognizerInstance(): SpeechRecognizer {
-        // Standard SpeechRecognizer uses high-precision cloud/hybrid model (instant & ultra-sensitive)
         Log.d(TAG, "Creating high-sensitivity SpeechRecognizer")
         return SpeechRecognizer.createSpeechRecognizer(this)
     }
@@ -222,26 +187,13 @@ class VoiceRecordingService : Service() {
         }
 
         return Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
-            putExtra(
-                RecognizerIntent.EXTRA_LANGUAGE_MODEL,
-                RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
-            )
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
             putExtra(RecognizerIntent.EXTRA_LANGUAGE, langLocale)
             putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
             putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1)
-            // Instant sensitivity: process sentence after 1.5s of silence
-            putExtra(
-                RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS,
-                1500L
-            )
-            putExtra(
-                RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS,
-                1500L
-            )
-            putExtra(
-                RecognizerIntent.EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS,
-                1000L
-            )
+            putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 1500L)
+            putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 1500L)
+            putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS, 1000L)
         }
     }
 
@@ -269,7 +221,6 @@ class VoiceRecordingService : Service() {
                 Log.w(TAG, "Recognition error: $errorMessage (code: $error)")
 
                 if (shouldKeepListening && !_isPaused.value) {
-                    // Ultra-fast restart on silence timeout or no match to keep mic active without gap
                     when (error) {
                         SpeechRecognizer.ERROR_NO_MATCH,
                         SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> {
@@ -306,8 +257,7 @@ class VoiceRecordingService : Service() {
             }
 
             override fun onPartialResults(partialResults: Bundle?) {
-                val matches =
-                    partialResults?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
+                val matches = partialResults?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
                 val partial = matches?.firstOrNull() ?: ""
                 _partialText.value = partial
             }
@@ -332,15 +282,11 @@ class VoiceRecordingService : Service() {
         }
     }
 
-    /**
-     * Dynamically restart speech engine with newly selected language (V38 requirement).
-     */
     fun updateLanguageAndRestart() {
         if (_isListening.value || shouldKeepListening) {
             restartListening()
         }
     }
-
 
     private fun stopListening() {
         shouldKeepListening = false
@@ -400,7 +346,6 @@ class VoiceRecordingService : Service() {
             override fun run() {
                 if (!_isPaused.value) {
                     _recordingSeconds.value += 1
-                    // 10 minutes max recording limit (600s)
                     if (_recordingSeconds.value >= 600) {
                         Log.d(TAG, "Reached 10-minute max recording limit — auto-saving")
                         triggerAutoSave()
@@ -419,8 +364,6 @@ class VoiceRecordingService : Service() {
     }
 
     override fun onDestroy() {
-        // Emergency save: handles phone-off / system-kill scenarios.
-        // Only runs if Activity hasn't saved yet (isSaved = false).
         if (!isSaved) {
             val text = getFullText()
             if (text.isNotBlank()) {
@@ -437,26 +380,21 @@ class VoiceRecordingService : Service() {
         super.onDestroy()
     }
 
-    /**
-     * Synchronous file save — safe to call from onDestroy().
-     * Writes to internal filesDir (no external storage permission needed,
-     * always accessible even when external storage is unavailable).
-     */
     private fun emergencySaveToFiles(text: String) {
         com.tatl.fastnote.util.FileHelper.appendNote(applicationContext, text)
         android.util.Log.d(TAG, "Emergency save via FileHelper")
     }
 
     private fun getErrorMessage(error: Int): String = when (error) {
-        SpeechRecognizer.ERROR_AUDIO -> "Audio recording error"
-        SpeechRecognizer.ERROR_CLIENT -> "Client side error"
+        SpeechRecognizer.ERROR_AUDIO                    -> "Audio recording error"
+        SpeechRecognizer.ERROR_CLIENT                   -> "Client side error"
         SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> "Insufficient permissions"
-        SpeechRecognizer.ERROR_NETWORK -> "Network error"
-        SpeechRecognizer.ERROR_NETWORK_TIMEOUT -> "Network timeout"
-        SpeechRecognizer.ERROR_NO_MATCH -> "No match found"
-        SpeechRecognizer.ERROR_RECOGNIZER_BUSY -> "Recognizer busy"
-        SpeechRecognizer.ERROR_SERVER -> "Server error"
-        SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> "Speech timeout"
-        else -> "Unknown error"
+        SpeechRecognizer.ERROR_NETWORK                  -> "Network error"
+        SpeechRecognizer.ERROR_NETWORK_TIMEOUT          -> "Network timeout"
+        SpeechRecognizer.ERROR_NO_MATCH                 -> "No match found"
+        SpeechRecognizer.ERROR_RECOGNIZER_BUSY          -> "Recognizer busy"
+        SpeechRecognizer.ERROR_SERVER                   -> "Server error"
+        SpeechRecognizer.ERROR_SPEECH_TIMEOUT           -> "Speech timeout"
+        else                                            -> "Unknown error"
     }
 }
