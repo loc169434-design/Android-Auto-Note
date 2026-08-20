@@ -61,4 +61,34 @@
     <string name="default_note_title_prefix">Ghi chú</string>
     <string name="dialog_new_note_title">Tạo ghi chú mới</string>
     <string name="placeholder_note_content">Nhập nội dung ghi chú...</string>
+
+    <!-- Recording Screen -->
+    <string name="btn_save_upper">LƯU</string>
+    <string name="btn_cancel_upper">HỦY</string>
+    <string name="btn_done">XONG</string>
+    <string name="str_saved">Đã lưu</string>
+    <string name="str_paused">TẠM DỪNG</string>
+    <string name="str_connecting">ĐANG KẾT NỐI...</string>
+    <string name="str_no_audio_content">Không có nội dung ghi âm</string>
+    <string name="str_need_audio_permission">Cần quyền ghi âm để sử dụng tính năng này</string>
+    <string name="str_no_recording_content">Chưa có nội dung ghi âm</string>
+
+    <!-- Home Screen -->
+    <string name="str_search_hint">Tìm kiếm...</string>
+    <string name="str_empty_notes">Chưa có ghi chú nào.\nHãy nói từ widget 🎙️</string>
+    <string name="str_create_widget">XIN MỜI TẠO WIDGET</string>
+    <string name="str_settings">CÀI ĐẶT</string>
+    <string name="str_appearance">Giao diện</string>
+
+    <!-- Settings Screen -->
+    <string name="str_premium_unlocked">Bạn đã mở khóa tất cả tính năng Premium!</string>
+    <string name="str_upgrade_prompt">Nâng cấp để mở khóa tất cả tính năng.</string>
+    <string name="str_app_version">Fast Note v1.1</string>
+
+    <!-- File Viewer -->
+    <string name="str_no_notes_yet">Chưa có ghi chú nào...</string>
+
+    <!-- Send PC Dialog -->
+    <string name="str_send_pc_title">Bạn hãy nhập mật khẩu và ghi\nnhớ nó để mở file trên PC</string>
+    <string name="str_send_pc_confirm">ĐỒNG Ý</string>
 </resources>

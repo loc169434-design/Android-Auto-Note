@@ -50,9 +50,34 @@
     <string name="lang_de">Deutsch 🇩🇪</string>
     <string name="lang_ru">Русский 🇷🇺</string>
 
-
     <string name="btn_new_manual_note">Neue Notiz</string>
     <string name="default_note_title_prefix">Notiz</string>
     <string name="dialog_new_note_title">Neue Notiz erstellen</string>
     <string name="placeholder_note_content">Notizinhalt eingeben...</string>
+
+    <string name="btn_save_upper">SPEICHERN</string>
+    <string name="btn_cancel_upper">ABBRECHEN</string>
+    <string name="btn_done">FERTIG</string>
+    <string name="str_saved">Gespeichert</string>
+    <string name="str_paused">PAUSIERT</string>
+    <string name="str_connecting">VERBINDEN...</string>
+    <string name="str_no_audio_content">Kein Audioinhalt aufgezeichnet</string>
+    <string name="str_need_audio_permission">Mikrofonberechtigung erforderlich</string>
+    <string name="str_no_recording_content">Noch kein Aufnahmeinhalt</string>
+
+    <string name="str_search_hint">Suchen...</string>
+    <string name="str_empty_notes">Noch keine Notizen.\nSprechen Sie über das Widget 🎙️</string>
+    <string name="str_create_widget">WIDGET ERSTELLEN</string>
+    <string name="str_settings">EINSTELLUNGEN</string>
+    <string name="str_appearance">Erscheinungsbild</string>
+
+    <string name="str_premium_unlocked">Alle Premium-Funktionen freigeschaltet!</string>
+    <string name="str_upgrade_prompt">Upgraden Sie, um alle Funktionen freizuschalten.</string>
+    <string name="str_app_version">Fast Note v1.1</string>
+
+    <string name="str_no_notes_yet">Noch keine Notizen...</string>
+
+    <string name="str_send_pc_title">Passwort eingeben und merken,\num die Datei auf dem PC zu öffnen</string>
+    <string name="str_send_pc_confirm">BESTÄTIGEN</string>
+
 </resources>

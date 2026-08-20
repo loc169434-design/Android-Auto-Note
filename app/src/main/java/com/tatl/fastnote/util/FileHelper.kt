@@ -25,7 +25,7 @@ object FileHelper {
     private const val TAG = "FileHelper"
     const val FOLDER_NAME = "AndroidAutoNote"
     const val RAW_FILE    = "raw.txt"
-    const val GUIDI_FILE  = "fileguidi.txt"
+    const val GUIDI_FILE  = "ghichu_clean.txt"
 
     private val DAY_NAMES = mapOf(
         Calendar.MONDAY    to "Thứ hai",
@@ -146,15 +146,21 @@ object FileHelper {
     /**
      * Validate edit constraints:
      * - Date header lines (starting with "- Thứ" / "- Chủ") must not be removed or modified
-     * - No more than 2 lines removed in one edit session
+     * - Only the TIMESTAMP part (before ": ") is protected; content after ": " can be edited freely
+     * - No more than 4 lines removed in one edit session
      */
     private fun validateEdit(original: String, edited: String): String? {
         val origLines = original.lines()
         val editLines = edited.lines()
 
         val isDateLine = { l: String -> l.trimStart().startsWith("- Thứ") || l.trimStart().startsWith("- Chủ") }
-        val origHeaders = origLines.filter(isDateLine)
-        val editHeaders = editLines.filter(isDateLine)
+        // Chi lay phan truoc ": " de so sanh — cho phep sua content sau dau hai cham
+        val headerOnly = { l: String ->
+            val idx = l.indexOf(": ")
+            if (idx != -1) l.substring(0, idx) else l
+        }
+        val origHeaders = origLines.filter(isDateLine).map(headerOnly)
+        val editHeaders = editLines.filter(isDateLine).map(headerOnly)
 
         if (origHeaders.size != editHeaders.size || origHeaders.zip(editHeaders).any { (a, b) -> a != b }) {
             return "Không được xóa hoặc sửa dòng ngày tháng cố định"
@@ -167,24 +173,55 @@ object FileHelper {
         return null
     }
 
-    // ── Password masking (display only) ───────────────────────────────────────
+    // ── Sensitive data masking (display only) ─────────────────────────────────
 
     /**
-     * Apply line-by-line masking: if line N contains a sensitive keyword,
-     * line N+1 is displayed as "***" (actual file content is never changed).
+     * Mask sensitive data in a list of lines (display only, file never changed).
+     *
+     * Rules:
+     *  1. CCCD/CMND: 12 or 9 consecutive digits → ***
+     *  2. Password keywords (mk:, pass:, password:, mat khau:, ma pin:) → mask value after ':'
+     *  3. Bank account (STK:, tai khoan:) 8-16 digits → ***
+     *  4. Visa/Master card pattern (4 groups of 4 digits) → ***
+     *  5. VN phone number (10 digits starting 0[3-9]) → ***
+     *  6. Email addresses → ***
      */
     fun maskSensitive(lines: List<String>): List<String> {
-        var maskNext = false
-        return lines.map { line ->
-            if (maskNext) {
-                maskNext = false
-                "***"
-            } else {
-                val lower = line.lowercase()
-                maskNext = SENSITIVE_KEYWORDS.any { lower.contains(it) }
-                line
-            }
-        }
+        return lines.map { line -> maskLine(line) }
+    }
+
+    private fun maskLine(line: String): String {
+        var result = line
+
+        // Rule 1: CCCD (12 digits) hoac CMND (9 digits) — standalone
+        result = result.replace(Regex("""\b(\d{12}|\d{9})\b"""), "***")
+
+        // Rule 2: Sau keyword mat khau / pass / mk / ma pin → che gia tri
+        result = result.replace(
+            Regex("""(?i)(mk|pass(?:word)?|m[aậ]t\s*kh[aẩ]u|m[aã]\s*pin)\s*:\s*\S+""")
+        ) { mr -> "${mr.groupValues[1]}: ***" }
+
+        // Rule 3: STK / tai khoan kem theo 8-16 so
+        result = result.replace(
+            Regex("""(?i)(stk|t[aà]i\s*kho[aả]n)\s*:\s*(\d{8,16})""")
+        ) { mr -> "${mr.groupValues[1]}: ***" }
+
+        // Rule 4: So the Visa/Master (dddd dddd dddd dddd hoac lien tuc 16 chu so)
+        result = result.replace(
+            Regex("""\b(\d{4}[\s\-]?\d{4}[\s\-]?\d{4}[\s\-]?\d{4})\b"""), "***"
+        )
+
+        // Rule 5: SĐT Việt Nam (10 chu so bat dau bang 0[3-9])
+        result = result.replace(
+            Regex("""\b(0[3-9]\d{8})\b"""), "***"
+        )
+
+        // Rule 6: Email
+        result = result.replace(
+            Regex("""[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}"""), "***"
+        )
+
+        return result
     }
 
     // ── Compatibility: read fileguidi (for Gemini sharing) ───────────────────

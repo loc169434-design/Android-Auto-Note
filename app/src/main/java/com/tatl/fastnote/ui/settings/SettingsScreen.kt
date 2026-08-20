@@ -100,7 +100,7 @@ fun SettingsScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = "CÀI ĐẶT",
+                        text = stringResource(R.string.str_settings),
                         fontFamily = InterFontFamily,
                         fontWeight = FontWeight.Bold,
                         letterSpacing = 1.5.sp
@@ -253,7 +253,7 @@ fun SettingsScreen(
                             modifier = Modifier.size(24.dp)
                         )
                         Text(
-                            text = "Giao diện",
+                            text = stringResource(R.string.str_appearance),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold
                         )
@@ -299,9 +299,9 @@ fun SettingsScreen(
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         text = if (isPremium) {
-                            "Bạn đã mở khóa tất cả tính năng Premium!"
+                            stringResource(R.string.str_premium_unlocked)
                         } else {
-                            "Nâng cấp để mở khóa tất cả tính năng."
+                            stringResource(R.string.str_upgrade_prompt)
                         },
                         style = MaterialTheme.typography.bodyMedium
                     )
@@ -330,7 +330,7 @@ fun SettingsScreen(
             Spacer(modifier = Modifier.height(24.dp))
 
             Text(
-                text = "Fast Note v1.1",
+                text = stringResource(R.string.str_app_version),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

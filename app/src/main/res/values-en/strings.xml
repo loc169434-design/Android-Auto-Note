@@ -55,4 +55,35 @@
     <string name="default_note_title_prefix">Note</string>
     <string name="dialog_new_note_title">New Note</string>
     <string name="placeholder_note_content">Type note content here...</string>
+
+    <!-- Recording Screen -->
+    <string name="btn_save_upper">SAVE</string>
+    <string name="btn_cancel_upper">CANCEL</string>
+    <string name="btn_done">DONE</string>
+    <string name="str_saved">Saved</string>
+    <string name="str_paused">PAUSED</string>
+    <string name="str_connecting">CONNECTING...</string>
+    <string name="str_no_audio_content">No audio content recorded</string>
+    <string name="str_need_audio_permission">Microphone permission required</string>
+    <string name="str_no_recording_content">No recording content yet</string>
+
+    <!-- Home Screen -->
+    <string name="str_search_hint">Search...</string>
+    <string name="str_empty_notes">No notes yet.\nTry speaking from the widget 🎙️</string>
+    <string name="str_create_widget">PLEASE CREATE A WIDGET</string>
+    <string name="str_settings">SETTINGS</string>
+    <string name="str_appearance">Appearance</string>
+
+    <!-- Settings Screen -->
+    <string name="str_premium_unlocked">You\'ve unlocked all Premium features!</string>
+    <string name="str_upgrade_prompt">Upgrade to unlock all features.</string>
+    <string name="str_app_version">Fast Note v1.1</string>
+
+    <!-- File Viewer -->
+    <string name="str_no_notes_yet">No notes yet...</string>
+
+    <!-- Send PC Dialog -->
+    <string name="str_send_pc_title">Enter a password and remember\nit to open the file on PC</string>
+    <string name="str_send_pc_confirm">CONFIRM</string>
+
 </resources>

@@ -194,7 +194,31 @@ class VoiceRecordingService : Service() {
             putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 1500L)
             putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 1500L)
             putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS, 1000L)
+            // Android 13+: Google tu them dau cau, viet hoa dau cau, dinh dang so
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                putExtra(
+                    RecognizerIntent.EXTRA_ENABLE_FORMATTING,
+                    RecognizerIntent.FORMATTING_OPTIMIZE_QUALITY
+                )
+            }
         }
+    }
+
+    /**
+     * Format van ban thanh cau co nghia:
+     * - Viet hoa chu dau tien
+     * - Them dau cham neu chua co dau cau cuoi
+     * Dung cho Android < 13 (Android 13+ da co EXTRA_ENABLE_FORMATTING)
+     */
+    private fun formatSentence(text: String): String {
+        if (text.isBlank()) return text
+        val trimmed = text.trim()
+        // Viet hoa chu dau tien
+        val capitalized = trimmed.replaceFirstChar { it.uppercaseChar() }
+        // Them dau cham neu chua co dau cau ket thuc
+        val endPunctuations = setOf('.', '!', '?', '…')
+        return if (capitalized.last() in endPunctuations) capitalized
+               else "$capitalized."
     }
 
     private fun createRecognitionListener(): RecognitionListener {
@@ -238,11 +262,17 @@ class VoiceRecordingService : Service() {
 
             override fun onResults(results: Bundle?) {
                 val matches = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
-                val spokenText = matches?.firstOrNull() ?: ""
+                val raw = matches?.firstOrNull() ?: ""
+
+                // Android 13+ da co EXTRA_ENABLE_FORMATTING nen khong can xu ly them
+                // Android < 13: tu format de tao cau co nghia
+                val spokenText = if (
+                    Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+                ) raw else formatSentence(raw)
 
                 if (spokenText.isNotBlank()) {
                     if (textBuffer.isNotEmpty()) {
-                        textBuffer.append(". ")
+                        textBuffer.append(" ")
                     }
                     textBuffer.append(spokenText)
                     _recognizedText.value = textBuffer.toString()

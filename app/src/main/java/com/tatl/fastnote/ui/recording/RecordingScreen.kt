@@ -58,9 +58,12 @@ import androidx.compose.ui.unit.sp
 import com.tatl.fastnote.data.user.AppLanguage
 import com.tatl.fastnote.data.user.LanguageManager
 import com.tatl.fastnote.service.VoiceRecordingService
+import com.tatl.fastnote.ui.common.AppToast
 import com.tatl.fastnote.ui.theme.AppBgBlack
 import com.tatl.fastnote.ui.theme.InterFontFamily
 import com.tatl.fastnote.ui.theme.NotoSansFontFamily
+import androidx.compose.ui.res.stringResource
+import com.tatl.fastnote.R
 
 // Mau dung chung
 private val MicCircleBg  = Color(0xFFEEEEEE)
@@ -84,6 +87,7 @@ private val SaveBorder   = Color(0xFF555555)
 fun RecordingScreen(
     service: VoiceRecordingService?,
     isBound: Boolean,
+    showSavedToast: Boolean = false,
     onCancel: () -> Unit,
     onSaveAndExit: () -> Unit
 ) {
@@ -120,23 +124,9 @@ fun RecordingScreen(
         AppLanguage.RUSSIAN
     )
 
-    // Van ban nut LUU theo ngon ngu
-    val saveText = when (currentLanguage) {
-        AppLanguage.VIETNAMESE -> "Lu01afU"
-        AppLanguage.ENGLISH    -> "SAVE"
-        AppLanguage.JAPANESE   -> "u4fddu5b58"
-        AppLanguage.GERMAN     -> "SPEICHERN"
-        AppLanguage.RUSSIAN    -> "u0421u041eu0425u0420u0410u041du0418u0422u042c"
-    }
-
-    // Van ban nut HUY theo ngon ngu
-    val cancelText = when (currentLanguage) {
-        AppLanguage.VIETNAMESE -> "Hu1ee6Y"
-        AppLanguage.ENGLISH    -> "CANCEL"
-        AppLanguage.JAPANESE   -> "u30adu30e3u30f3u30bbu30eb"
-        AppLanguage.GERMAN     -> "ABBRECHEN"
-        AppLanguage.RUSSIAN    -> "u041eu0422u041cu0415u041du0410"
-    }
+    // Van ban nut LUU/HUY — dung string resource theo ngon ngu he thong
+    val saveText   = stringResource(R.string.btn_save_upper)
+    val cancelText = stringResource(R.string.btn_cancel_upper)
 
     // Tap ngoai = luu va thoat
     Box(
@@ -148,26 +138,6 @@ fun RecordingScreen(
                 interactionSource = remember { MutableInteractionSource() }
             ) { onSaveAndExit() }
     ) {
-        // -- Nut LUU -- goc tren trai --
-        Box(
-            modifier = Modifier
-                .align(Alignment.TopStart)
-                .padding(top = 52.dp, start = 24.dp)
-        ) {
-            Text(
-                text = saveText,
-                fontFamily = InterFontFamily,
-                fontWeight = FontWeight.Medium,
-                fontSize = 14.sp,
-                letterSpacing = 1.sp,
-                color = Color.White,
-                modifier = Modifier
-                    .clickable(
-                        indication = null,
-                        interactionSource = remember { MutableInteractionSource() }
-                    ) { onSaveAndExit() }
-            )
-        }
 
         // -- Nut Chon Ngon Ngu -- goc tren phai --
         Box(
@@ -225,6 +195,8 @@ fun RecordingScreen(
                             LanguageManager.setLanguage(context, lang)
                             service?.updateLanguageAndRestart()
                             showLangMenu = false
+                            // Recreate activity de ap dung locale moi ngay lap tuc
+                            (context as? android.app.Activity)?.recreate()
                         },
                         colors = MenuDefaults.itemColors(textColor = TextMuted)
                     )
@@ -246,9 +218,25 @@ fun RecordingScreen(
         ) {
             Spacer(Modifier.weight(1f))
 
-            // -- Vong tron mic lon --
-            Box {
+            // -- Nut LUU lon o giua (thay micro) -- nhan de luu --
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier
+                    .clickable(
+                        indication = null,
+                        interactionSource = remember { MutableInteractionSource() }
+                    ) { onSaveAndExit() }
+            ) {
                 MicCircle(isActive = isActive, isPaused = isPaused)
+                Spacer(Modifier.height(14.dp))
+                Text(
+                    text = saveText,
+                    fontFamily = InterFontFamily,
+                    fontWeight = FontWeight.Medium,
+                    fontSize = 13.sp,
+                    letterSpacing = 2.sp,
+                    color = Color.White
+                )
             }
 
             Spacer(Modifier.height(36.dp))
@@ -256,21 +244,9 @@ fun RecordingScreen(
             // -- Dong chu huong dan --
             Text(
                 text = when {
-                    isPaused -> when (currentLanguage) {
-                        AppLanguage.VIETNAMESE -> "u0110u00c3 Tu1ea0M Du1ebeNG"
-                        AppLanguage.ENGLISH    -> "PAUSED"
-                        AppLanguage.JAPANESE   -> "u4e00u6642u505cu6b62u4e2d"
-                        AppLanguage.GERMAN     -> "PAUSIERT"
-                        AppLanguage.RUSSIAN    -> "u041fu0420u0418u041eu0421u0422u0410u041du041eu0412u041bu0415u041du041e"
-                    }
-                    !isBound -> when (currentLanguage) {
-                        AppLanguage.VIETNAMESE -> "u0110ANG Ku1ebeT Nu1ed0I..."
-                        AppLanguage.ENGLISH    -> "CONNECTING..."
-                        AppLanguage.JAPANESE   -> "u63a5u7d9au4e2d..."
-                        AppLanguage.GERMAN     -> "VERBINDEN..."
-                        AppLanguage.RUSSIAN    -> "u041fu041eu0414u041au041bu042eu0427u0415u041du0418u0415..."
-                    }
-                    else -> currentLanguage.promptText
+                    isPaused -> stringResource(R.string.str_paused)
+                    !isBound -> stringResource(R.string.str_connecting)
+                    else     -> currentLanguage.promptText
                 },
                 fontFamily = InterFontFamily,
                 fontWeight = FontWeight.Normal,
@@ -356,6 +332,15 @@ fun RecordingScreen(
 
             Spacer(Modifier.height(56.dp))
         }
+
+        // -- Custom Toast: hien khi luu xong --
+        val savedMessage = stringResource(R.string.str_saved)
+        AppToast(
+            visible = showSavedToast,
+            message = savedMessage,
+            durationMs = 1400L,
+            onDismiss = { /* Activity tu finish */ }
+        )
     }
 }
 

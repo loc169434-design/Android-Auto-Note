@@ -46,6 +46,7 @@ class RecordingActivity : ComponentActivity() {
     private var voiceService: VoiceRecordingService? = null
     private var isBound by mutableStateOf(false)
     private var hasSaved = false    // Guard: prevent double-save
+    private var showSavedToast by mutableStateOf(false)
 
     private val serviceConnection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, binder: IBinder?) {
@@ -101,6 +102,7 @@ class RecordingActivity : ComponentActivity() {
                 RecordingScreen(
                     service = voiceService,
                     isBound = isBound,
+                    showSavedToast = showSavedToast,
                     onCancel = { cancelRecording() },
                     onSaveAndExit = { autoSaveNote() }
                 )
@@ -204,11 +206,10 @@ class RecordingActivity : ComponentActivity() {
             com.tatl.fastnote.sync.GoogleDriveSyncManager.sync(applicationContext)
 
             stopRecordingService()
-            Toast.makeText(
-                this@RecordingActivity,
-                "✅ Đã lưu ghi chú + raw.txt + fileguidi.txt",
-                Toast.LENGTH_SHORT
-            ).show()
+
+            // Hien thi custom toast roi finish sau 1.4s
+            showSavedToast = true
+            kotlinx.coroutines.delay(1400)
             finish()
         }
     }

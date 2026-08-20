@@ -54,4 +54,30 @@
     <string name="default_note_title_prefix">Заметка</string>
     <string name="dialog_new_note_title">Создать новую заметку</string>
     <string name="placeholder_note_content">Введите текст заметки...</string>
+
+    <string name="btn_save_upper">СОХРАНИТЬ</string>
+    <string name="btn_cancel_upper">ОТМЕНА</string>
+    <string name="btn_done">ГОТОВО</string>
+    <string name="str_saved">Сохранено</string>
+    <string name="str_paused">ПАУЗА</string>
+    <string name="str_connecting">ПОДКЛЮЧЕНИЕ...</string>
+    <string name="str_no_audio_content">Нет записанного содержимого</string>
+    <string name="str_need_audio_permission">Необходимо разрешение на использование микрофона</string>
+    <string name="str_no_recording_content">Нет содержимого записи</string>
+
+    <string name="str_search_hint">Поиск...</string>
+    <string name="str_empty_notes">Заметок нет.\nГоворите через виджет 🎙️</string>
+    <string name="str_create_widget">СОЗДАЙТЕ ВИДЖЕТ</string>
+    <string name="str_settings">НАСТРОЙКИ</string>
+    <string name="str_appearance">Внешний вид</string>
+
+    <string name="str_premium_unlocked">Все функции Premium разблокированы!</string>
+    <string name="str_upgrade_prompt">Обновитесь, чтобы разблокировать все функции.</string>
+    <string name="str_app_version">Fast Note v1.1</string>
+
+    <string name="str_no_notes_yet">Заметок пока нет...</string>
+
+    <string name="str_send_pc_title">Введите пароль и запомните его,\nчтобы открыть файл на ПК</string>
+    <string name="str_send_pc_confirm">ПОДТВЕРДИТЬ</string>
+
 </resources>

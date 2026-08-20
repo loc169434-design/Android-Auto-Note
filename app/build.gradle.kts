@@ -95,6 +95,9 @@ dependencies {
     // Zip4j — AES-256 encrypted zip cho tính năng Gửi PC
     implementation("net.lingala.zip4j:zip4j:2.11.5")
 
+    // Splash Screen API (Android 12+)
+    implementation("androidx.core:core-splashscreen:1.0.1")
+
     // Test
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

@@ -19,10 +19,6 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Snackbar
-import androidx.compose.material3.SnackbarDuration
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -33,6 +29,10 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
@@ -48,10 +48,14 @@ import androidx.compose.ui.unit.sp
 import com.tatl.fastnote.ui.theme.AppBgBlack
 import com.tatl.fastnote.ui.theme.InterFontFamily
 import com.tatl.fastnote.ui.theme.NotoSansFontFamily
+import com.tatl.fastnote.ui.common.AppToast
+import com.tatl.fastnote.R
 import com.tatl.fastnote.util.FileHelper
+import androidx.compose.ui.res.stringResource
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+
 
 // ── Màu từ bảng màu chung ─────────────────────────────────────────────────────
 private val FvTextPrimary  = Color(0xFFFFFFFF)
@@ -83,26 +87,29 @@ fun FileViewerScreen(
 ) {
     val context = LocalContext.current
     val scope   = rememberCoroutineScope()
-    val snackbar = remember { SnackbarHostState() }
 
     var rawContent      by remember { mutableStateOf("") }
     var originalContent by remember { mutableStateOf("") }
     var isSaving        by remember { mutableStateOf(false) }
     var tfv by remember { mutableStateOf(TextFieldValue("")) }
+    var showProtectToast by remember { mutableStateOf(false) }
 
-    // ── Load file ─────────────────────────────────────────────────────────────
+    // ── Load file — dao nguoc de moi nhat len dau ────────────────────────────
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) {
-            rawContent      = FileHelper.readRawFile(context)
-            originalContent = rawContent
+            val raw = FileHelper.readRawFile(context)
+            // Tach thanh cac entry theo dau gach "- ", dao nguoc, ghep lai
+            val reversed = reverseEntries(raw)
+            rawContent      = reversed
+            originalContent = raw  // luu ban goc de diff khi save
         }
-        tfv = TextFieldValue(rawContent, selection = TextRange(rawContent.length))
+        tfv = TextFieldValue(rawContent, selection = TextRange(0))
     }
 
     // ── Sync tfv khi file load xong ──────────────────────────────────────────
     LaunchedEffect(rawContent) {
         if (rawContent.isNotEmpty() && tfv.text != rawContent) {
-            tfv = TextFieldValue(rawContent, selection = TextRange(rawContent.length))
+            tfv = TextFieldValue(rawContent, selection = TextRange(0))
         }
     }
 
@@ -111,14 +118,16 @@ fun FileViewerScreen(
         if (isSaving) return
         isSaving = true
         scope.launch {
+            // tfv.text dang o thu tu dao nguoc (moi->cu), can dao lai ve goc (cu->moi) truoc khi luu
+            val textToSave = reverseEntries(tfv.text)
             val error = withContext(Dispatchers.IO) {
-                FileHelper.saveEditedRaw(context, originalContent, tfv.text)
+                FileHelper.saveEditedRaw(context, originalContent, textToSave)
             }
             isSaving = false
             if (error == null) {
                 onClose()
             } else {
-                snackbar.showSnackbar(error, duration = SnackbarDuration.Short)
+                showProtectToast = true
             }
         }
     }
@@ -141,76 +150,101 @@ fun FileViewerScreen(
             )
 
 
-            // ── Editor: BasicTextField toàn màn hình ─────────────────────────
-            BasicTextField(
-                value = tfv,
-                onValueChange = { newTfv ->
-                    val oldText = tfv.text
-                    val newText = newTfv.text
-
-                    if (newText == oldText) {
-                        tfv = newTfv
-                        return@BasicTextField
-                    }
-
-                    val oldLines = oldText.lines()
-                    val newLines = newText.lines()
-
-                    // Rule 1: bảo vệ dòng ngày tháng
-                    val oldHeaders = oldLines.filter(IS_DATE_LINE)
-                    val newHeaders = newLines.filter(IS_DATE_LINE)
-                    if (oldHeaders.size != newHeaders.size ||
-                        oldHeaders.zip(newHeaders).any { (a, b) -> a != b }
-                    ) {
-                        scope.launch {
-                            snackbar.showSnackbar(
-                                "Lá chắn kích hoạt: Dòng ngày cố định, không thể xóa",
-                                duration = SnackbarDuration.Short
-                            )
-                        }
-                        return@BasicTextField
-                    }
-
-                    // Rule 2: không xóa > 5 dòng cùng lúc
-                    val linesRemoved = oldLines.size - newLines.size
-                    if (linesRemoved > 5) {
-                        scope.launch {
-                            snackbar.showSnackbar(
-                                "Lá chắn kích hoạt: Chọn quá 5 dòng không thể xóa",
-                                duration = SnackbarDuration.Short
-                            )
-                        }
-                        return@BasicTextField
-                    }
-
-                    tfv = newTfv
-                    rawContent = newText
-                },
+            // ── Editor: BasicTextField voi scrollbar ─────────────────────────
+            val scrollState = rememberScrollState()
+            Box(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()
-                    .padding(horizontal = 20.dp)
-                    .verticalScroll(rememberScrollState()),
-                textStyle = TextStyle(
-                    fontFamily = NotoSansFontFamily,
-                    color = FvTextPrimary,
-                    fontSize = 15.sp,
-                    lineHeight = 26.sp,
-                    letterSpacing = 0.1.sp
-                ),
-                cursorBrush = SolidColor(FvTextPrimary),
-                decorationBox = { innerTextField ->
-                    if (tfv.text.isEmpty()) {
-                        Text(
-                            text = "Chưa có ghi chú nào...",
-                            color = FvTextMuted,
-                            fontFamily = NotoSansFontFamily,
-                            fontSize = 15.sp
+                    .drawBehind {
+                        val barWidth = 3.dp.toPx()
+                        val trackH   = size.height
+                        val maxScroll = scrollState.maxValue.toFloat()
+                        val fraction  = if (maxScroll > 0f) scrollState.value / maxScroll else 0f
+                        val thumbFrac = trackH / (trackH + maxScroll).coerceAtLeast(1f)
+                        val thumbH    = (trackH * thumbFrac).coerceAtLeast(32.dp.toPx())
+                        val thumbTop  = (trackH - thumbH) * fraction
+                        val x = size.width - barWidth - 4.dp.toPx()
+                        // Track
+                        drawRoundRect(
+                            color = Color(0x18FFFFFF),
+                            topLeft = Offset(x, 0f),
+                            size = Size(barWidth, trackH),
+                            cornerRadius = CornerRadius(barWidth / 2)
+                        )
+                        // Thumb
+                        drawRoundRect(
+                            color = Color(0x66FFFFFF),
+                            topLeft = Offset(x, thumbTop),
+                            size = Size(barWidth, thumbH),
+                            cornerRadius = CornerRadius(barWidth / 2)
                         )
                     }
-                    innerTextField()
-                }
-            )
+            ) {
+                BasicTextField(
+                    value = tfv,
+                    onValueChange = { newTfv ->
+                        val oldText = tfv.text
+                        val newText = newTfv.text
+
+                        if (newText == oldText) {
+                            tfv = newTfv
+                            return@BasicTextField
+                        }
+
+                        val oldLines = oldText.lines()
+                        val newLines = newText.lines()
+
+                        // Rule: bao ve dong thoi gian, khong cho xoa/sua PHAN HEADER
+                        // Chi so sanh phan truoc ": " (thoi gian), KHONG so sanh phan content sau ": "
+                        fun headerOnly(line: String): String {
+                            val idx = line.indexOf(": ")
+                            return if (idx != -1) line.substring(0, idx) else line
+                        }
+                        val oldHeaders = oldLines.filter(IS_DATE_LINE).map { headerOnly(it) }
+                        val newHeaders = newLines.filter(IS_DATE_LINE).map { headerOnly(it) }
+                        if (oldHeaders.size != newHeaders.size ||
+                            oldHeaders.zip(newHeaders).any { (a, b) -> a != b }
+                        ) {
+                            return@BasicTextField
+                        }
+
+                        // Rule: gioi han xoa nhieu qua mot lan (boi den qua nhieu)
+                        // Moi entry la 1 dong dai, nen dem ky tu thay vi dong
+                        // ~200 ky tu ~ khoang 2-3 dong hien thi tren man hinh
+                        val charsRemoved = oldText.length - newText.length
+                        if (charsRemoved >= 100) {
+                            return@BasicTextField
+                        }
+
+                        tfv = newTfv
+                        rawContent = newText
+                    },
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 20.dp, vertical = 4.dp)
+                        .verticalScroll(scrollState),
+                    textStyle = TextStyle(
+                        fontFamily = NotoSansFontFamily,
+                        color = FvTextPrimary,
+                        fontSize = 15.sp,
+                        lineHeight = 26.sp,
+                        letterSpacing = 0.1.sp
+                    ),
+                    cursorBrush = SolidColor(FvTextPrimary),
+                    decorationBox = { innerTextField ->
+                        if (tfv.text.isEmpty()) {
+                            Text(
+                                text = "Chua co ghi chu nao...",
+                                color = FvTextMuted,
+                                fontFamily = NotoSansFontFamily,
+                                fontSize = 15.sp
+                            )
+                        }
+                        innerTextField()
+                    }
+                )
+            }
 
             // Nav bar padding ở dưới cùng
             Spacer(
@@ -231,7 +265,7 @@ fun FileViewerScreen(
             contentAlignment = Alignment.Center
         ) {
             Text(
-                text = "XONG",
+                text = stringResource(R.string.btn_done),
                 fontFamily = InterFontFamily,
                 fontWeight = FontWeight.Normal,
                 fontSize = 15.sp,
@@ -246,28 +280,13 @@ fun FileViewerScreen(
             )
         }
 
-        // ── Snackbar "Lá chắn kích hoạt..." ─────────────────────────────────
-        SnackbarHost(
-            hostState = snackbar,
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .windowInsetsPadding(WindowInsets.statusBars)
-                .padding(top = 60.dp)
-        ) { data ->
-            Snackbar(
-                modifier = Modifier.padding(horizontal = 20.dp),
-                containerColor = Color(0xFF1E1E1E),
-                contentColor = FvTextMuted,
-                content = {
-                    Text(
-                        text = data.visuals.message,
-                        fontFamily = NotoSansFontFamily,
-                        fontSize = 12.sp,
-                        color = FvTextMuted
-                    )
-                }
-            )
-        }
+        // -- AppToast: canh bao khi co gang xoa dong thoi gian --
+        AppToast(
+            visible = showProtectToast,
+            message = "Không thể xóa dòng thời gian ghi chú",
+            durationMs = 2000L,
+            onDismiss = { showProtectToast = false }
+        )
     }
 }
 
@@ -289,4 +308,23 @@ private fun highlight(text: String, query: String): AnnotatedString {
         }
         append(text.substring(last))
     }
+}
+
+/**
+ * Dao nguoc thu tu cac entry trong file ghi chu.
+ * Format: moi entry la 1 dong "- Thu/Chu..." dau bang dong trong.
+ * Ket qua: moi nhat len dau.
+ */
+private fun reverseEntries(raw: String): String {
+    if (raw.isBlank()) return raw
+
+    // Tach thanh cac block ngan cach boi dong trong
+    // Moi block thuong la: "\n\n- Thu ba, ngay...: text"
+    // Split bang "\n\n" de giu nguyen structure
+    val blocks = raw.split("\n\n")
+        .map { it.trim() }
+        .filter { it.isNotBlank() }
+
+    // Dao nguoc: moi nhat len dau
+    return blocks.reversed().joinToString("\n\n")
 }

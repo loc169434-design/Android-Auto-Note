@@ -54,4 +54,30 @@
     <string name="default_note_title_prefix">メモ</string>
     <string name="dialog_new_note_title">新規メモ作成</string>
     <string name="placeholder_note_content">メモの内容を入力...</string>
+
+    <string name="btn_save_upper">保存</string>
+    <string name="btn_cancel_upper">キャンセル</string>
+    <string name="btn_done">完了</string>
+    <string name="str_saved">保存しました</string>
+    <string name="str_paused">一時停止</string>
+    <string name="str_connecting">接続中...</string>
+    <string name="str_no_audio_content">録音内容がありません</string>
+    <string name="str_need_audio_permission">マイクの権限が必要です</string>
+    <string name="str_no_recording_content">録音内容がありません</string>
+
+    <string name="str_search_hint">検索...</string>
+    <string name="str_empty_notes">メモがありません。\nウィジェットから話しかけてみて 🎙️</string>
+    <string name="str_create_widget">ウィジェットを作成してください</string>
+    <string name="str_settings">設定</string>
+    <string name="str_appearance">外観</string>
+
+    <string name="str_premium_unlocked">すべてのプレミアム機能が解放されました！</string>
+    <string name="str_upgrade_prompt">アップグレードして全機能を解放しましょう。</string>
+    <string name="str_app_version">Fast Note v1.1</string>
+
+    <string name="str_no_notes_yet">まだメモがありません...</string>
+
+    <string name="str_send_pc_title">パスワードを入力して\nPCでファイルを開いてください</string>
+    <string name="str_send_pc_confirm">確認</string>
+
 </resources>

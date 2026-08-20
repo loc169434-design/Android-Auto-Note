@@ -88,7 +88,7 @@ import java.util.Locale
 private val HomeTextPrimary  = Color(0xFFFFFFFF)
 private val HomeTextMuted    = Color(0xFF888888)
 private val HomeIconColor    = Color(0xFFCCCCCC)
-private val HomeSearchActive = Color(0xFF4CAF50)
+private val HomeSearchActive = Color(0xFFFFFFFF)  // trang khi active
 private val RedHighlight     = Color(0xFFFF5252)
 private val RedBg            = Color(0x33FF5252)
 
@@ -214,7 +214,7 @@ fun HomeScreen(
                         .padding(horizontal = 20.dp, vertical = 4.dp),
                     placeholder = {
                         Text(
-                            "Tìm kiếm...",
+                            stringResource(R.string.str_search_hint),
                             color = HomeTextMuted,
                             fontFamily = NotoSansFontFamily,
                             fontSize = 14.sp
@@ -223,8 +223,8 @@ fun HomeScreen(
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedTextColor = HomeTextPrimary,
                         unfocusedTextColor = HomeTextPrimary,
-                        focusedBorderColor = HomeSearchActive,
-                        unfocusedBorderColor = Color(0xFF333333),
+                        focusedBorderColor = Color(0xFFFFFFFF),    // trang khi focus
+                        unfocusedBorderColor = Color(0xFF555555),  // xam nhe khi khong focus
                         cursorColor = HomeTextPrimary
                     ),
                     textStyle = TextStyle(
@@ -253,7 +253,7 @@ fun HomeScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "Chưa có ghi chú nào.\nHãy nói từ widget 🎤",
+                        text = stringResource(R.string.str_empty_notes),
                         color = HomeTextMuted,
                         fontFamily = NotoSansFontFamily,
                         fontSize = 15.sp,
@@ -295,29 +295,32 @@ fun HomeScreen(
                         )
                         Spacer(Modifier.height(28.dp))
                     }
-                    item { Spacer(Modifier.height(80.dp)) }
                 }
             }
-        }
 
-        // ── Bottom bar: bút + kính lúp ────────────────────────────────────────
+        // ── Bottom bar: bút + mic + kính lúp ────────────────────────────────────
         Row(
             modifier = Modifier
-                .align(Alignment.BottomCenter)
                 .fillMaxWidth()
                 .windowInsetsPadding(WindowInsets.navigationBars)
                 .padding(horizontal = 16.dp, vertical = 24.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Trái: bút chì → mở editor / tạo ghi chú thủ công
+            // Trái: bút chì → mở FileViewerActivity (edit mode) — giống widget cuốn sổ
             IconButton(
-                onClick = { showCreateManualDialog = true },
+                onClick = {
+                    context.startActivity(
+                        Intent(context, FileViewerActivity::class.java).apply {
+                            putExtra(FileViewerActivity.EXTRA_START_EDIT, true)
+                        }
+                    )
+                },
                 modifier = Modifier.size(56.dp)
             ) {
                 Icon(
                     Icons.Default.Edit,
-                    contentDescription = "Tạo ghi chú",
+                    contentDescription = "Mở ghi chú",
                     tint = HomeIconColor,
                     modifier = Modifier.size(44.dp)
                 )
@@ -352,6 +355,8 @@ fun HomeScreen(
                 )
             }
         }
+
+        } // end Column
 
         // ── Widget prompt overlay ─────────────────────────────────────────────
         if (shouldShowWidgetPrompt) {

@@ -40,11 +40,49 @@ import com.tatl.fastnote.ui.theme.AndroidAutoNoteTheme
 import com.tatl.fastnote.util.AIShareHelper
 import com.tatl.fastnote.util.SendPcDialog
 import com.tatl.fastnote.util.SendPcHelper
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.core.animation.doOnEnd
+import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
+        val splashScreen = installSplashScreen()
         super.onCreate(savedInstanceState)
+
+        // Exit animation: icon thu nho + fade out truoc khi vao app
+        splashScreen.setOnExitAnimationListener { splashViewProvider ->
+            val iconView  = splashViewProvider.iconView
+            val rootView  = splashViewProvider.view
+
+            // Scale icon xuong 60%
+            val scaleX = android.animation.ObjectAnimator
+                .ofFloat(iconView, android.view.View.SCALE_X, 1f, 0.6f)
+                .apply { duration = 350 }
+            val scaleY = android.animation.ObjectAnimator
+                .ofFloat(iconView, android.view.View.SCALE_Y, 1f, 0.6f)
+                .apply { duration = 350 }
+
+            // Fade out toan bo splash
+            val fade = android.animation.ObjectAnimator
+                .ofFloat(rootView, android.view.View.ALPHA, 1f, 0f)
+                .apply {
+                    duration = 400
+                    startDelay = 80
+                    doOnEnd { splashViewProvider.remove() }
+                }
+
+            android.animation.AnimatorSet().apply {
+                playTogether(scaleX, scaleY, fade)
+                start()
+            }
+        }
 
         // Edge-to-edge: status bar đen, icon trắng; nav bar đen, icon trắng
         enableEdgeToEdge(
@@ -92,7 +130,6 @@ class MainActivity : ComponentActivity() {
                     val navController = rememberNavController()
                     var showPremiumDialog  by remember { mutableStateOf(false) }
                     var isPremiumUser      by remember { mutableStateOf(false) }
-                    var showComputerGate  by remember { mutableStateOf(false) }
                     var showSendPcDialog  by remember { mutableStateOf(false) }
 
                     NavHost(
@@ -104,6 +141,22 @@ class MainActivity : ComponentActivity() {
                                 this@MainActivity,
                                 HomeViewModel.Factory(app.noteRepository)
                             )[HomeViewModel::class.java]
+
+                            // Bam back 2 lan de thoat app
+                            var lastBackMs by remember { mutableStateOf(0L) }
+                            BackHandler {
+                                val now = System.currentTimeMillis()
+                                if (now - lastBackMs < 2000L) {
+                                    finish()
+                                } else {
+                                    lastBackMs = now
+                                    Toast.makeText(
+                                        this@MainActivity,
+                                        "Bấm lại để thoát",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                }
+                            }
 
                             HomeScreen(
                                 viewModel = viewModel,
@@ -122,13 +175,9 @@ class MainActivity : ComponentActivity() {
                                 onPremiumClick = {
                                     showPremiumDialog = true
                                 },
-                                // Nút Gửi PC: chặn nếu chưa premium → mở dialog nâng cấp
+                                // Nut Gui PC: mo thang, khong can premium
                                 onComputerClick = {
-                                    if (isPremiumUser) {
-                                        showSendPcDialog = true
-                                    } else {
-                                        showComputerGate = true
-                                    }
+                                    showSendPcDialog = true
                                 },
                                 isPremium = isPremiumUser
                             )
@@ -152,7 +201,11 @@ class MainActivity : ComponentActivity() {
                     }
 
                     // ── Premium gate dialog ───────────────────────────────────
-                    if (showPremiumDialog) {
+                    AnimatedVisibility(
+                        visible = showPremiumDialog,
+                        enter = slideInVertically(tween(320)) { it / 2 } + fadeIn(tween(280)),
+                        exit  = slideOutVertically(tween(240)) { it / 2 } + fadeOut(tween(200))
+                    ) {
                         PremiumGateDialog(
                             onDismiss = { showPremiumDialog = false },
                             onPremiumGranted = {
@@ -167,56 +220,13 @@ class MainActivity : ComponentActivity() {
                         )
                     }
 
-                    // ── Computer gate dialog (chim mồi) ──────────────────────
-                    if (showComputerGate) {
-                        androidx.compose.material3.AlertDialog(
-                            onDismissRequest = { showComputerGate = false },
-                            containerColor = androidx.compose.ui.graphics.Color(0xFF111111),
-                            title = {
-                                androidx.compose.material3.Text(
-                                    "Tính năng Premium",
-                                    color = androidx.compose.ui.graphics.Color.White,
-                                    fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
-                                )
-                            },
-                            text = {
-                                androidx.compose.material3.Text(
-                                    "Hãy nâng cấp lên Premium để sử dụng tính năng xuất file bảo mật này.",
-                                    color = androidx.compose.ui.graphics.Color(0xFFAAAAAA),
-                                    fontSize = 14.sp
-                                )
-                            },
-                            confirmButton = {
-                                androidx.compose.material3.Button(
-                                    onClick = {
-                                        showComputerGate = false
-                                        showPremiumDialog = true
-                                    },
-                                    colors = androidx.compose.material3.ButtonDefaults.buttonColors(
-                                        containerColor = androidx.compose.ui.graphics.Color.White
-                                    ),
-                                    shape = androidx.compose.foundation.shape.RoundedCornerShape(10.dp)
-                                ) {
-                                    androidx.compose.material3.Text(
-                                        "Nâng Cấp Ngay",
-                                        color = androidx.compose.ui.graphics.Color.Black,
-                                        fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
-                                    )
-                                }
-                            },
-                            dismissButton = {
-                                androidx.compose.material3.TextButton(onClick = { showComputerGate = false }) {
-                                    androidx.compose.material3.Text(
-                                        "Để sau",
-                                        color = androidx.compose.ui.graphics.Color(0xFF666666)
-                                    )
-                                }
-                            }
-                        )
-                    }
 
-                    // ── Send PC dialog ───────────────────────────────
-                    if (showSendPcDialog) {
+                    // ── Send PC dialog ────────────────────────────────────
+                    AnimatedVisibility(
+                        visible = showSendPcDialog,
+                        enter = slideInVertically(tween(320)) { it / 2 } + fadeIn(tween(280)),
+                        exit  = slideOutVertically(tween(240)) { it / 2 } + fadeOut(tween(200))
+                    ) {
                         SendPcDialog(
                             onDismiss = { showSendPcDialog = false },
                             onConfirm = { pwd ->

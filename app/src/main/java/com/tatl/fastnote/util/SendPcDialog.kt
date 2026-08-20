@@ -21,6 +21,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -29,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.tatl.fastnote.R
 
 private val BgDialog   = Color(0xFF1A1A1A)
 private val BgField    = Color(0xFF000000)
@@ -66,7 +68,7 @@ fun SendPcDialog(
         ) {
             // ── Tiêu đề ───────────────────────────────────────────────────────
             Text(
-                text = "Bạn hãy nhập mật khẩu và ghi\nnhớ nó để mở file trên PC",
+                text = stringResource(R.string.str_send_pc_title),
                 color = TextWhite,
                 fontSize = 17.sp,
                 fontWeight = FontWeight.Normal,
@@ -144,7 +146,7 @@ fun SendPcDialog(
                 elevation = ButtonDefaults.buttonElevation(0.dp)
             ) {
                 Text(
-                    text = "ĐỒNG Ý",
+                    text = stringResource(R.string.str_send_pc_confirm),
                     color = TextWhite,
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Medium,
