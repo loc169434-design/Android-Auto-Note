@@ -40,6 +40,7 @@ import com.tatl.fastnote.ui.theme.AndroidAutoNoteTheme
 import com.tatl.fastnote.util.AIShareHelper
 import com.tatl.fastnote.util.SendPcDialog
 import com.tatl.fastnote.util.SendPcHelper
+import com.tatl.fastnote.util.SendPcPrefs
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.animation.doOnEnd
 import androidx.activity.compose.BackHandler
@@ -175,9 +176,21 @@ class MainActivity : ComponentActivity() {
                                 onPremiumClick = {
                                     showPremiumDialog = true
                                 },
-                                // Nut Gui PC: mo thang, khong can premium
+                                // Nut Gui PC: neu da co mat khau -> gui luon, chua co -> hoi
                                 onComputerClick = {
-                                    showSendPcDialog = true
+                                    val saved = SendPcPrefs.getSavedPassword(this@MainActivity)
+                                    if (saved != null) {
+                                        // Da co mat khau -> zip + share ngay
+                                        lifecycleScope.launch {
+                                            val err = SendPcHelper.zipAndShare(this@MainActivity, saved)
+                                            if (err != null) {
+                                                Toast.makeText(this@MainActivity, err, Toast.LENGTH_LONG).show()
+                                            }
+                                        }
+                                    } else {
+                                        // Chua co mat khau -> hien dialog de nhap lan dau
+                                        showSendPcDialog = true
+                                    }
                                 },
                                 isPremium = isPremiumUser
                             )
@@ -230,6 +243,8 @@ class MainActivity : ComponentActivity() {
                         SendPcDialog(
                             onDismiss = { showSendPcDialog = false },
                             onConfirm = { pwd ->
+                                // Luu mat khau lan dau de khong hoi lai
+                                SendPcPrefs.savePassword(this@MainActivity, pwd)
                                 showSendPcDialog = false
                                 lifecycleScope.launch {
                                     val err = SendPcHelper.zipAndShare(

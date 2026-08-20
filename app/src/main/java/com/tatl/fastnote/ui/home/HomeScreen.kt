@@ -313,6 +313,7 @@ fun HomeScreen(
                     context.startActivity(
                         Intent(context, FileViewerActivity::class.java).apply {
                             putExtra(FileViewerActivity.EXTRA_START_EDIT, true)
+                            putExtra(FileViewerActivity.EXTRA_FROM_APP, true)
                         }
                     )
                 },
