@@ -1,8 +1,9 @@
 package com.tatl.fastnote.ui.fileviewer
 
+import android.content.Intent
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -14,11 +15,23 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Keyboard
+import androidx.compose.material.icons.filled.KeyboardHide
+import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.Save
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -30,56 +43,46 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.tatl.fastnote.ui.theme.AppBgBlack
+import com.tatl.fastnote.ui.common.AppToast
+import com.tatl.fastnote.ui.recording.RecordingActivity
 import com.tatl.fastnote.ui.theme.InterFontFamily
 import com.tatl.fastnote.ui.theme.NotoSansFontFamily
-import com.tatl.fastnote.ui.common.AppToast
-import com.tatl.fastnote.R
 import com.tatl.fastnote.util.FileHelper
-import androidx.compose.ui.res.stringResource
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-
-// ── Màu từ bảng màu chung ─────────────────────────────────────────────────────
-private val FvTextPrimary  = Color(0xFFFFFFFF)
-private val FvTextMuted    = Color(0xFF888888)
-private val FvXongColor    = Color(0xFFCCCCCC)
-private val FvRedHighlight = Color(0xFFFF5252)
-private val FvRedBg        = Color(0x33FF5252)
+// ── Bảng màu giao diện chuẩn theo thiết kế ───────────────────────────────────
+private val FvBgTop         = Color(0xFF1A2B39)
+private val FvBgMid         = Color(0xFF12202C)
+private val FvBgBottom      = Color(0xFF0C161F)
+private val FvBottomBarBg   = Color(0xFF0D1721).copy(alpha = 0.96f)
+private val FvBottomBarBorder = Color(0xFF1B2B3A)
+private val FvTextPrimary   = Color(0xFFF1F5F9)
+private val FvTextMuted     = Color(0xFF888888)
 
 // Rule: dòng ngày tháng cố định
 private val IS_DATE_LINE: (String) -> Boolean = { line ->
     val t = line.trimStart()
-    t.startsWith("- Thứ") || t.startsWith("- Chủ")
+    t.startsWith("- Thứ") || t.startsWith("- Chủ") || t.startsWith("- Ngày")
 }
 
-/**
- * FileViewerScreen — thiết kế mới khớp ảnh.
- *
- * Giao diện:
- *  - Nền đen tuyệt đối, không TopAppBar
- *  - "XONG" góc trên phải → lưu + thoát
- *  - BasicTextField toàn màn hình, nội dung file thô
- *  - Snackbar nhỏ hiện ở trên khi vi phạm rule ("Lá chắn kích hoạt...")
- *  - imePadding đẩy content lên khi bàn phím mở
- */
 @Composable
 fun FileViewerScreen(
     startInEditMode: Boolean = false,
@@ -87,26 +90,27 @@ fun FileViewerScreen(
 ) {
     val context = LocalContext.current
     val scope   = rememberCoroutineScope()
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val focusRequester = remember { FocusRequester() }
 
     var rawContent      by remember { mutableStateOf("") }
     var originalContent by remember { mutableStateOf("") }
     var isSaving        by remember { mutableStateOf(false) }
     var tfv by remember { mutableStateOf(TextFieldValue("")) }
     var showProtectToast by remember { mutableStateOf(false) }
+    var autoSaveJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
 
-    // ── Load file — dao nguoc de moi nhat len dau ────────────────────────────
+    // ── Load file — đảo ngược để mới nhất lên đầu ────────────────────────────
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) {
             val raw = FileHelper.readRawFile(context)
-            // Tach thanh cac entry theo dau gach "- ", dao nguoc, ghep lai
             val reversed = reverseEntries(raw)
             rawContent      = reversed
-            originalContent = raw  // luu ban goc de diff khi save
+            originalContent = raw
         }
         tfv = TextFieldValue(rawContent, selection = TextRange(0))
     }
 
-    // ── Sync tfv khi file load xong ──────────────────────────────────────────
     LaunchedEffect(rawContent) {
         if (rawContent.isNotEmpty() && tfv.text != rawContent) {
             tfv = TextFieldValue(rawContent, selection = TextRange(0))
@@ -117,14 +121,18 @@ fun FileViewerScreen(
     fun doSave() {
         if (isSaving) return
         isSaving = true
+        autoSaveJob?.cancel()
         scope.launch {
-            // tfv.text dang o thu tu dao nguoc (moi->cu), can dao lai ve goc (cu->moi) truoc khi luu
             val textToSave = reverseEntries(tfv.text)
             val error = withContext(Dispatchers.IO) {
                 FileHelper.saveEditedRaw(context, originalContent, textToSave)
             }
             isSaving = false
             if (error == null) {
+                keyboardController?.hide()
+                withContext(Dispatchers.IO) {
+                    com.tatl.fastnote.sync.GoogleDriveSyncManager.sync(context)
+                }
                 onClose()
             } else {
                 showProtectToast = true
@@ -136,21 +144,24 @@ fun FileViewerScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(AppBgBlack)
+            .background(
+                brush = Brush.verticalGradient(
+                    colors = listOf(FvBgTop, FvBgMid, FvBgBottom)
+                )
+            )
             .imePadding()
     ) {
         Column(
             modifier = Modifier.fillMaxSize()
         ) {
-            // Khoảng trống status bar (XONG thực sự ở Box overlay bên dưới)
+            // Khoảng trống status bar
             Spacer(
                 Modifier
                     .windowInsetsPadding(WindowInsets.statusBars)
-                    .height(48.dp) // chiều cao top bar
+                    .height(12.dp)
             )
 
-
-            // ── Editor: BasicTextField voi scrollbar ─────────────────────────
+            // ── Editor: BasicTextField với scrollbar ─────────────────────────
             val scrollState = rememberScrollState()
             Box(
                 modifier = Modifier
@@ -165,14 +176,12 @@ fun FileViewerScreen(
                         val thumbH    = (trackH * thumbFrac).coerceAtLeast(32.dp.toPx())
                         val thumbTop  = (trackH - thumbH) * fraction
                         val x = size.width - barWidth - 4.dp.toPx()
-                        // Track
                         drawRoundRect(
                             color = Color(0x18FFFFFF),
                             topLeft = Offset(x, 0f),
                             size = Size(barWidth, trackH),
                             cornerRadius = CornerRadius(barWidth / 2)
                         )
-                        // Thumb
                         drawRoundRect(
                             color = Color(0x66FFFFFF),
                             topLeft = Offset(x, thumbTop),
@@ -195,8 +204,6 @@ fun FileViewerScreen(
                         val oldLines = oldText.lines()
                         val newLines = newText.lines()
 
-                        // Rule: bao ve dong thoi gian, khong cho xoa/sua PHAN HEADER
-                        // Chi so sanh phan truoc ": " (thoi gian), KHONG so sanh phan content sau ": "
                         fun headerOnly(line: String): String {
                             val idx = line.indexOf(": ")
                             return if (idx != -1) line.substring(0, idx) else line
@@ -206,12 +213,10 @@ fun FileViewerScreen(
                         if (oldHeaders.size != newHeaders.size ||
                             oldHeaders.zip(newHeaders).any { (a, b) -> a != b }
                         ) {
+                            showProtectToast = true
                             return@BasicTextField
                         }
 
-                        // Rule: gioi han xoa nhieu qua mot lan (boi den qua nhieu)
-                        // Moi entry la 1 dong dai, nen dem ky tu thay vi dong
-                        // ~200 ky tu ~ khoang 2-3 dong hien thi tren man hinh
                         val charsRemoved = oldText.length - newText.length
                         if (charsRemoved >= 100) {
                             return@BasicTextField
@@ -219,9 +224,18 @@ fun FileViewerScreen(
 
                         tfv = newTfv
                         rawContent = newText
+
+                        // ── Tự động lưu theo thời gian thực (Cứ sửa tới đâu lưu tới đó) ──
+                        autoSaveJob?.cancel()
+                        autoSaveJob = scope.launch(Dispatchers.IO) {
+                            kotlinx.coroutines.delay(200L)
+                            val textToSave = reverseEntries(newText)
+                            FileHelper.saveEditedRaw(context, originalContent, textToSave)
+                        }
                     },
                     modifier = Modifier
                         .fillMaxSize()
+                        .focusRequester(focusRequester)
                         .padding(horizontal = 20.dp, vertical = 4.dp)
                         .verticalScroll(scrollState),
                     textStyle = TextStyle(
@@ -231,11 +245,11 @@ fun FileViewerScreen(
                         lineHeight = 26.sp,
                         letterSpacing = 0.1.sp
                     ),
-                    cursorBrush = SolidColor(FvTextPrimary),
+                    cursorBrush = SolidColor(Color.White),
                     decorationBox = { innerTextField ->
                         if (tfv.text.isEmpty()) {
                             Text(
-                                text = "Chua co ghi chu nao...",
+                                text = "Chưa có ghi chú nào...",
                                 color = FvTextMuted,
                                 fontFamily = NotoSansFontFamily,
                                 fontSize = 15.sp
@@ -246,41 +260,103 @@ fun FileViewerScreen(
                 )
             }
 
-            // Nav bar padding ở dưới cùng
-            Spacer(
-                Modifier
-                    .windowInsetsPadding(WindowInsets.navigationBars)
-                    .height(8.dp)
-            )
+            // ── Thanh công cụ dưới: [ ⌨️ Bàn phím ] - [ LƯU ] - [ 🎤 Mic xanh ] ──
+            @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+            val isImeVisible = WindowInsets.isImeVisible
+
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                color = FvBottomBarBg,
+                border = BorderStroke(width = 0.5.dp, color = FvBottomBarBorder)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .windowInsetsPadding(WindowInsets.navigationBars)
+                        .padding(horizontal = 20.dp, vertical = 10.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Nút nhỏ góc trái: Bật/tắt mở bàn phím
+                    Surface(
+                        onClick = {
+                            if (isImeVisible) {
+                                keyboardController?.hide()
+                            } else {
+                                focusRequester.requestFocus()
+                                keyboardController?.show()
+                            }
+                        },
+                        shape = RoundedCornerShape(8.dp),
+                        color = if (isImeVisible) Color(0xFF1E3A8A).copy(alpha = 0.5f) else Color(0xFF223547).copy(alpha = 0.85f),
+                        border = BorderStroke(1.dp, if (isImeVisible) Color(0xFF3B82F6) else Color(0xFF354C62)),
+                        modifier = Modifier.size(44.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = if (isImeVisible) Icons.Default.KeyboardHide else Icons.Default.Keyboard,
+                                contentDescription = if (isImeVisible) "Ẩn bàn phím" else "Hiện bàn phím",
+                                tint = if (isImeVisible) Color(0xFF93C5FD) else Color(0xFFCBD5E1),
+                                modifier = Modifier.size(22.dp)
+                            )
+                        }
+                    }
+
+                    // Nút LƯU ở giữa
+                    Surface(
+                        onClick = { doSave() },
+                        shape = RoundedCornerShape(8.dp),
+                        color = Color(0xFF1E3A8A).copy(alpha = 0.6f),
+                        border = BorderStroke(1.dp, Color(0xFF3B82F6)),
+                        modifier = Modifier.height(44.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 24.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Save,
+                                contentDescription = "Lưu",
+                                tint = Color(0xFF60A5FA),
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Text(
+                                text = if (isSaving) "Đang lưu..." else "LƯU",
+                                color = Color(0xFF93C5FD),
+                                fontFamily = InterFontFamily,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 15.sp,
+                                letterSpacing = 1.sp
+                            )
+                        }
+                    }
+
+                    // Nút Micro xanh lá tròn góc phải
+                    Surface(
+                        onClick = {
+                            keyboardController?.hide()
+                            context.startActivity(Intent(context, RecordingActivity::class.java))
+                        },
+                        shape = CircleShape,
+                        color = Color(0xFF00E676),
+                        modifier = Modifier.size(46.dp),
+                        shadowElevation = 4.dp
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Default.Mic,
+                                contentDescription = "Ghi âm",
+                                tint = Color(0xFF003300),
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                    }
+                }
+            }
         }
 
-        // ── "XONG" clickable — overlay góc trên phải ──────────────────────
-        Box(
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .windowInsetsPadding(WindowInsets.statusBars)
-                .padding(top = 8.dp, end = 20.dp)
-                .height(44.dp)
-                .padding(horizontal = 8.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = stringResource(R.string.btn_done),
-                fontFamily = InterFontFamily,
-                fontWeight = FontWeight.Normal,
-                fontSize = 15.sp,
-                letterSpacing = 1.5.sp,
-                color = if (isSaving) FvTextMuted else FvXongColor,
-                modifier = Modifier.clickable(
-                    enabled = !isSaving,
-                    indication = null,
-                    interactionSource = remember { MutableInteractionSource() },
-                    onClick = { doSave() }
-                )
-            )
-        }
-
-        // -- AppToast: canh bao khi co gang xoa dong thoi gian --
+        // -- AppToast: cảnh báo khi có gắng xóa dòng thời gian --
         AppToast(
             visible = showProtectToast,
             message = "Không thể xóa dòng thời gian ghi chú",
@@ -290,25 +366,7 @@ fun FileViewerScreen(
     }
 }
 
-// ── Search highlight (giữ lại để dùng nếu cần) ─────────────────────────────────
-private fun highlight(text: String, query: String): AnnotatedString {
-    if (query.isBlank()) return AnnotatedString(text)
-    return buildAnnotatedString {
-        val lower = text.lowercase()
-        val lq    = query.lowercase()
-        var last  = 0
-        var idx   = lower.indexOf(lq, last)
-        while (idx != -1) {
-            append(text.substring(last, idx))
-            pushStyle(SpanStyle(color = FvRedHighlight, background = FvRedBg, fontWeight = FontWeight.Bold))
-            append(text.substring(idx, idx + query.length))
-            pop()
-            last = idx + query.length
-            idx  = lower.indexOf(lq, last)
-        }
-        append(text.substring(last))
-    }
-}
+// ── Đảo ngược thứ tự các entry trong file ghi chú ────────────────────────────
 
 /**
  * Dao nguoc thu tu cac entry trong file ghi chu.

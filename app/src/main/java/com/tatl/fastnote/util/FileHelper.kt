@@ -94,26 +94,54 @@ object FileHelper {
 
     /**
      * Parse fileguidi.txt into a list of NoteEntry objects, newest first.
+     * Supports single-line and multi-line notes.
      */
     fun parseEntries(context: Context): List<NoteEntry> {
         val file = getGuidiFile(context)
         if (!file.exists()) return emptyList()
 
         return try {
-            file.readLines(Charsets.UTF_8)
-                .asSequence()
-                .map { it.trim() }
-                .filter { it.startsWith("- Thứ") || it.startsWith("- Chủ") }
-                .mapNotNull { line ->
-                    // Format: "- Thứ ba, ngày DD-MM-YYYY lúc HH.mm: content"
-                    val colonIdx = line.indexOf(": ")
-                    if (colonIdx == -1) return@mapNotNull null
-                    val header  = line.substring(2, colonIdx).trim() // strip leading "- "
-                    val content = line.substring(colonIdx + 2).trim()
-                    NoteEntry(header, content, line)
+            val lines = file.readLines(Charsets.UTF_8)
+            val entries = mutableListOf<NoteEntry>()
+            var currentHeader: String? = null
+            val currentContent = StringBuilder()
+            val currentFull = StringBuilder()
+
+            fun flush() {
+                val h = currentHeader
+                if (h != null) {
+                    entries.add(NoteEntry(h, currentContent.toString().trim(), currentFull.toString().trim()))
                 }
-                .toList()
-                .reversed()  // newest first
+                currentHeader = null
+                currentContent.clear()
+                currentFull.clear()
+            }
+
+            for (line in lines) {
+                val trimmed = line.trim()
+                if (trimmed.startsWith("- Thứ") || trimmed.startsWith("- Chủ") || trimmed.startsWith("- Ngày")) {
+                    flush()
+                    val colonIdx = line.indexOf(": ")
+                    if (colonIdx != -1) {
+                        val dashIdx = line.indexOf("- ")
+                        val headerStart = if (dashIdx != -1) dashIdx + 2 else 0
+                        currentHeader = line.substring(headerStart, colonIdx).trim()
+                        currentContent.append(line.substring(colonIdx + 2))
+                        currentFull.append(line)
+                    } else {
+                        currentFull.append(line)
+                    }
+                } else if (currentHeader != null) {
+                    if (trimmed.isNotEmpty()) {
+                        if (currentContent.isNotEmpty()) currentContent.append("\n")
+                        currentContent.append(line)
+                    }
+                    if (currentFull.isNotEmpty()) currentFull.append("\n")
+                    currentFull.append(line)
+                }
+            }
+            flush()
+            entries.reversed()  // newest first
         } catch (e: Exception) {
             Log.e(TAG, "parseEntries failed", e)
             emptyList()

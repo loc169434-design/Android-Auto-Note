@@ -181,7 +181,6 @@ class RecordingActivity : ComponentActivity() {
 
         if (text.isBlank()) {
             stopRecordingService()
-            Toast.makeText(this, "Không có nội dung ghi âm", Toast.LENGTH_SHORT).show()
             finish()
             return
         }
@@ -206,10 +205,6 @@ class RecordingActivity : ComponentActivity() {
             com.tatl.fastnote.sync.GoogleDriveSyncManager.sync(applicationContext)
 
             stopRecordingService()
-
-            // Hien thi custom toast roi finish sau 1.4s
-            showSavedToast = true
-            kotlinx.coroutines.delay(1400)
             finish()
         }
     }

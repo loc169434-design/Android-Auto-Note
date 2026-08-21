@@ -176,21 +176,9 @@ class MainActivity : ComponentActivity() {
                                 onPremiumClick = {
                                     showPremiumDialog = true
                                 },
-                                // Nut Gui PC: neu da co mat khau -> gui luon, chua co -> hoi
+                                // Nut Gui PC: moi lan gui la nhap mat khau lai luon
                                 onComputerClick = {
-                                    val saved = SendPcPrefs.getSavedPassword(this@MainActivity)
-                                    if (saved != null) {
-                                        // Da co mat khau -> zip + share ngay
-                                        lifecycleScope.launch {
-                                            val err = SendPcHelper.zipAndShare(this@MainActivity, saved)
-                                            if (err != null) {
-                                                Toast.makeText(this@MainActivity, err, Toast.LENGTH_LONG).show()
-                                            }
-                                        }
-                                    } else {
-                                        // Chua co mat khau -> hien dialog de nhap lan dau
-                                        showSendPcDialog = true
-                                    }
+                                    showSendPcDialog = true
                                 },
                                 isPremium = isPremiumUser
                             )

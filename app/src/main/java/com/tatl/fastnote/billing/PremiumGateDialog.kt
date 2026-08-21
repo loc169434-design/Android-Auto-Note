@@ -1,19 +1,27 @@
 package com.tatl.fastnote.billing
 
 import android.app.Activity
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -25,8 +33,10 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -34,20 +44,24 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.android.billingclient.api.ProductDetails
+import com.tatl.fastnote.R
+import com.tatl.fastnote.ui.theme.InterFontFamily
+import com.tatl.fastnote.ui.theme.NotoSansFontFamily
 import kotlinx.coroutines.launch
 
-private val Black     = Color(0xFF000000)
-private val White     = Color(0xFFFFFFFF)
-private val TextGray  = Color(0xFFAAAAAA)
-private val BoxBorder = Color(0xFF444444)
+// ── Bảng màu chuẩn Slate-Blue ────────────────────────────────────────────────
+private val DialogBgTop      = Color(0xFF1C2D3D)
+private val DialogBgBottom   = Color(0xFF101B26)
+private val DialogBorder     = Color(0xFF2E465E)
+private val CardBg           = Color(0xFF0B151E)
+private val CardBorder       = Color(0xFF253B4F)
+private val TextTitle        = Color(0xFFF8FAFC)
+private val TextBody         = Color(0xFFE2E8F0)
+private val TextMuted        = Color(0xFF94A3B8)
+private val AccentGold       = Color(0xFFFFB800)
 
 /**
- * Premium gate dialog — shown when trial expires or user taps Crown button.
- *
- * Shows:
- *  - Benefits box listing upgrade perks
- *  - Buy button → Google Play Billing flow
- *  - Restore link → queryExistingPurchases()
+ * Premium gate dialog — giao diện Slate-Blue sang trọng, chữ to rõ ràng.
  */
 @Composable
 fun PremiumGateDialog(
@@ -79,65 +93,125 @@ fun PremiumGateDialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
-        Box(
+        Surface(
             modifier = Modifier
-                .fillMaxSize()
-                .background(Black)
-                .padding(horizontal = 24.dp),
-            contentAlignment = Alignment.Center
+                .fillMaxWidth(0.92f),
+            shape = RoundedCornerShape(20.dp),
+            color = Color.Transparent,
+            border = BorderStroke(1.dp, DialogBorder),
+            shadowElevation = 16.dp
         ) {
             Column(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(
+                        brush = Brush.verticalGradient(
+                            colors = listOf(DialogBgTop, DialogBgBottom)
+                        )
+                    )
+                    .padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
 
-                // ── Benefits box ──────────────────────────────────────────
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .border(
-                            width = 1.dp,
-                            color = BoxBorder,
-                            shape = RoundedCornerShape(12.dp)
-                        )
-                        .padding(20.dp)
+                // ── Huy hiệu vương miện Premium ──────────────────────────────
+                Surface(
+                    shape = CircleShape,
+                    color = AccentGold.copy(alpha = 0.15f),
+                    border = BorderStroke(1.5.dp, AccentGold.copy(alpha = 0.8f)),
+                    modifier = Modifier.size(56.dp)
                 ) {
-                    Column {
-                        Text(
-                            text = "QUYỀN LỢI KHI BẠN ĐỒNG Ý\nNÂNG CẤP:",
-                            color = White,
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.Bold,
-                            lineHeight = 22.sp
-                        )
-
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        Text(
-                            text = "1. Gửi tệp tin nén bảo mật mã hóa AES-256 sang máy tính cá nhân (Gửi PC);",
-                            color = White,
-                            fontSize = 14.sp,
-                            lineHeight = 21.sp
-                        )
-
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        Text(
-                            text = "2. Tự động sao lưu và đồng bộ an toàn lên đám mây cá nhân Google Drive.",
-                            color = White,
-                            fontSize = 14.sp,
-                            lineHeight = 21.sp
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_premium),
+                            contentDescription = "Premium",
+                            tint = AccentGold,
+                            modifier = Modifier.size(28.dp)
                         )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(28.dp))
+                Spacer(modifier = Modifier.height(14.dp))
 
-                // ── Buy button ────────────────────────────────────────────
+                // ── Tiêu đề ───────────────────────────────────────────────────
+                Text(
+                    text = "QUYỀN LỢI BẢN PREMIUM",
+                    color = TextTitle,
+                    fontSize = 18.sp,
+                    fontFamily = InterFontFamily,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 0.5.sp,
+                    textAlign = TextAlign.Center
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // ── Khung danh sách quyền lợi ────────────────────────────────
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(14.dp),
+                    color = CardBg,
+                    border = BorderStroke(1.dp, CardBorder)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(14.dp)
+                    ) {
+                        // Quyền lợi 1: Gửi PC
+                        Row(
+                            verticalAlignment = Alignment.Top,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.CheckCircle,
+                                contentDescription = null,
+                                tint = Color(0xFF38BDF8),
+                                modifier = Modifier
+                                    .size(20.dp)
+                                    .padding(top = 2.dp)
+                            )
+                            Text(
+                                text = "Gửi tệp tin nén bảo mật mã hóa AES-256 sang máy tính cá nhân (Gửi PC).",
+                                color = TextBody,
+                                fontSize = 15.sp,
+                                fontFamily = NotoSansFontFamily,
+                                lineHeight = 22.sp
+                            )
+                        }
+
+                        // Quyền lợi 2: Google Drive
+                        Row(
+                            verticalAlignment = Alignment.Top,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.CheckCircle,
+                                contentDescription = null,
+                                tint = Color(0xFF38BDF8),
+                                modifier = Modifier
+                                    .size(20.dp)
+                                    .padding(top = 2.dp)
+                            )
+                            Text(
+                                text = "Tự động sao lưu và đồng bộ an toàn dữ liệu lên đám mây cá nhân Google Drive.",
+                                color = TextBody,
+                                fontSize = 15.sp,
+                                fontFamily = NotoSansFontFamily,
+                                lineHeight = 22.sp
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                // ── Buy button ────────────────────────────────────────────────
                 val priceLabel = product?.oneTimePurchaseOfferDetails?.formattedPrice ?: "200k"
 
                 if (isLoading) {
-                    CircularProgressIndicator(color = White)
+                    CircularProgressIndicator(
+                        color = AccentGold,
+                        modifier = Modifier.size(36.dp)
+                    )
                 } else {
                     Button(
                         onClick = {
@@ -157,33 +231,38 @@ fun PremiumGateDialog(
                         },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(52.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = White),
-                        shape  = RoundedCornerShape(12.dp)
+                            .height(50.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF2563EB)
+                        ),
+                        shape = RoundedCornerShape(12.dp),
+                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
                     ) {
                         Text(
-                            text       = "Nâng Cấp Ngay - $priceLabel/Trọn Đời",
-                            color      = Black,
+                            text       = "Nâng Cấp Ngay - $priceLabel / Trọn Đời",
+                            color      = Color.White,
                             fontSize   = 15.sp,
+                            fontFamily = InterFontFamily,
                             fontWeight = FontWeight.Bold
                         )
                     }
                 }
 
-                // ── Status / error ────────────────────────────────────────
+                // ── Status / error ────────────────────────────────────────────
                 if (statusText.isNotBlank()) {
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         text      = statusText,
-                        color     = Color.Red,
-                        fontSize  = 12.sp,
+                        color     = Color(0xFFFF5252),
+                        fontSize  = 13.sp,
+                        fontFamily = NotoSansFontFamily,
                         textAlign = TextAlign.Center
                     )
                 }
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(10.dp))
 
-                // ── Restore link ──────────────────────────────────────────
+                // ── Restore link ──────────────────────────────────────────────
                 TextButton(
                     onClick = {
                         scope.launch {
@@ -203,18 +282,33 @@ fun PremiumGateDialog(
                     }
                 ) {
                     Text(
-                        text     = if (isRestoring) "Đang kiểm tra..." else "Bạn đã mua trước đó? Chạm để khôi phục.",
-                        color    = TextGray,
-                        fontSize = 12.sp
+                        text     = if (isRestoring) "Đang kiểm tra..." else "Đã mua trước đó? Chạm để khôi phục",
+                        color    = Color(0xFF60A5FA),
+                        fontFamily = InterFontFamily,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium
                     )
                 }
 
-                // ── Dismiss ───────────────────────────────────────────────
-                TextButton(onClick = onDismiss) {
+                // ── Nút ĐỂ SAU (To, rõ ràng, dễ nhìn) ────────────────────────
+                OutlinedButton(
+                    onClick = onDismiss,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(44.dp),
+                    shape = RoundedCornerShape(10.dp),
+                    border = BorderStroke(1.dp, Color(0xFF334B63)),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = Color(0xFFCBD5E1)
+                    )
+                ) {
                     Text(
-                        text     = "Để sau",
-                        color    = TextGray.copy(alpha = 0.5f),
-                        fontSize = 11.sp
+                        text     = "ĐỂ SAU",
+                        color    = Color(0xFFCBD5E1),
+                        fontFamily = InterFontFamily,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 14.sp,
+                        letterSpacing = 1.5.sp
                     )
                 }
             }

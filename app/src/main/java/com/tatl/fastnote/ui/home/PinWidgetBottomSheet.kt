@@ -1,7 +1,10 @@
 package com.tatl.fastnote.ui.home
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -10,33 +13,43 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Widgets
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.tatl.fastnote.ui.theme.AppBgBlack
-import com.tatl.fastnote.ui.theme.AppTextMuted
 import com.tatl.fastnote.ui.theme.InterFontFamily
+import com.tatl.fastnote.ui.theme.NotoSansFontFamily
 import com.tatl.fastnote.util.PinWidgetHelper
 import com.tatl.fastnote.util.ThemePreferences
 import com.tatl.fastnote.widget.TripleActionWidgetReceiver
 
+// ── Bảng màu chuẩn Slate-Blue ────────────────────────────────────────────────
+private val BgTop          = Color(0xFF1A2B39)
+private val BgMid          = Color(0xFF12202C)
+private val BgBottom       = Color(0xFF0C161F)
+private val WidgetCardBg   = Color(0xFF142433).copy(alpha = 0.9f)
+private val WidgetCardBorder = Color(0xFF38BDF8)
+private val TextTitle      = Color(0xFFF8FAFC)
+private val TextMuted      = Color(0xFF94A3B8)
+
 /**
- * Full-screen OLED black widget invite screen.
- *
- * Design:
- *   - Nền đen tuyệt đối
- *   - Hình vuông viền mỏng ở giữa, chữ "XIN MỜI TẠO WIDGET"
- *   - Nút "TIẾP TỤC" spacing đều ở dưới
- *
- * Thay thế hoàn toàn ModalBottomSheet cũ.
+ * Màn hình mời tạo Widget — Nền Slate-Blue chuẩn đồng bộ app.
+ * Chạm trực tiếp vào ô vuông "XIN MỜI TẠO WIDGET" để tạo widget ngay.
  */
 @Composable
 fun PinWidgetBottomSheet(
@@ -45,84 +58,108 @@ fun PinWidgetBottomSheet(
 ) {
     val context = LocalContext.current
 
+    fun pinAndDismiss() {
+        ThemePreferences.setWidgetPinned(true)
+        PinWidgetHelper.pinWidget(
+            context,
+            TripleActionWidgetReceiver::class.java,
+            "Bộ 3 tính năng"
+        )
+        onDismiss()
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(AppBgBlack),
+            .background(
+                brush = Brush.verticalGradient(
+                    colors = listOf(BgTop, BgMid, BgBottom)
+                )
+            ),
         contentAlignment = Alignment.Center
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 48.dp),
+                .padding(horizontal = 40.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // ── Top spacer — đẩy hộp vuông lên giữa ──────────────────────────
+            // ── Top spacer ────────────────────────────────────────────────────
             Spacer(Modifier.weight(1f))
 
-            // ── Hình vuông viền mỏng ──────────────────────────────────────────
-            Box(
+            // ── Ô vuông tạo widget (Chạm trực tiếp vào ô để tạo) ─────────────
+            Surface(
+                onClick = { pinAndDismiss() },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .aspectRatio(1f)                      // vuông tỉ lệ 1:1
-                    .border(
-                        width = 0.7.dp,
-                        color = Color(0xFF3A3A3A)         // viền xám rất nhẹ
-                    ),
-                contentAlignment = Alignment.Center
+                    .aspectRatio(1f),
+                shape = RoundedCornerShape(20.dp),
+                color = WidgetCardBg,
+                border = BorderStroke(1.5.dp, WidgetCardBorder.copy(alpha = 0.7f)),
+                shadowElevation = 12.dp
             ) {
-                Text(
-                    text = "XIN MỜI TẠO WIDGET",
-                    fontFamily = InterFontFamily,
-                    fontWeight = FontWeight.Normal,
-                    fontSize = 14.sp,
-                    letterSpacing = 1.5.sp,
-                    color = Color(0xFFCCCCCC),
-                    textAlign = TextAlign.Center
-                )
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    // Icon Widget nổi bật
+                    Icon(
+                        imageVector = Icons.Default.Widgets,
+                        contentDescription = "Tạo Widget",
+                        tint = Color(0xFF38BDF8),
+                        modifier = Modifier.size(48.dp)
+                    )
+
+                    Spacer(Modifier.height(18.dp))
+
+                    Text(
+                        text = "XIN MỜI TẠO WIDGET",
+                        fontFamily = InterFontFamily,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 17.sp,
+                        letterSpacing = 1.sp,
+                        color = TextTitle,
+                        textAlign = TextAlign.Center
+                    )
+
+                    Spacer(Modifier.height(8.dp))
+
+                    Text(
+                        text = "(Chạm vào đây để tạo widget ra màn hình chính)",
+                        fontFamily = NotoSansFontFamily,
+                        fontWeight = FontWeight.Normal,
+                        fontSize = 13.sp,
+                        color = TextMuted,
+                        textAlign = TextAlign.Center,
+                        lineHeight = 18.sp
+                    )
+                }
             }
 
-            // ── Bottom spacer — khoảng cách đều từ hộp xuống nút ─────────────
+            // ── Bottom spacer ─────────────────────────────────────────────────
             Spacer(Modifier.weight(1f))
 
-            // ── Nút TIẾP TỤC ─────────────────────────────────────────────────
-            TextButton(
-                onClick = {
-                    ThemePreferences.setWidgetPinned(true)
-                    PinWidgetHelper.pinWidget(
-                        context,
-                        TripleActionWidgetReceiver::class.java,
-                        "Bộ 3 tính năng"
-                    )
-                    onDismiss()
-                }
-            ) {
-                Text(
-                    text = "TIẾP TỤC",
-                    fontFamily = InterFontFamily,
-                    fontWeight = FontWeight.Medium,
-                    fontSize = 13.sp,
-                    letterSpacing = 3.sp,
-                    color = AppTextMuted
-                )
-            }
-
-            // Nút bỏ qua — chỉ hiện khi không bắt buộc
+            // Nút để sau — chỉ hiện khi không bắt buộc
             if (!isMandatory) {
-                Spacer(Modifier.height(4.dp))
-                TextButton(onClick = onDismiss) {
+                TextButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.padding(bottom = 32.dp)
+                ) {
                     Text(
-                        text = "để sau",
+                        text = "ĐỂ SAU",
                         fontFamily = InterFontFamily,
-                        fontWeight = FontWeight.Normal,
-                        fontSize = 11.sp,
-                        letterSpacing = 1.sp,
-                        color = Color(0xFF444444)
+                        fontWeight = FontWeight.Medium,
+                        fontSize = 14.sp,
+                        letterSpacing = 1.5.sp,
+                        color = TextMuted
                     )
                 }
+            } else {
+                Spacer(Modifier.height(48.dp))
             }
-
-            Spacer(Modifier.height(48.dp))
         }
     }
 }
