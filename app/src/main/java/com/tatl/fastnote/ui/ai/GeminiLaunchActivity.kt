@@ -1,4 +1,4 @@
-﻿package com.tatl.fastnote.ui.ai
+package com.tatl.fastnote.ui.ai
 
 import android.content.Intent
 import android.net.Uri
@@ -45,15 +45,15 @@ class GeminiLaunchActivity : ComponentActivity() {
             return
         }
 
-        val guidiFile = FileHelper.getGuidiFile(this)
+        val aiSharedFile = FileHelper.getAiSharedFile(this)
 
-        if (guidiFile.exists() && guidiFile.length() > 0) {
+        if (aiSharedFile.exists() && aiSharedFile.length() > 0) {
             // Build a content:// URI via FileProvider so Gemini can read the file
             val uri: Uri = try {
                 FileProvider.getUriForFile(
                     this,
                     "${packageName}.fileprovider",
-                    guidiFile
+                    aiSharedFile
                 )
             } catch (e: Exception) {
                 // FileProvider misconfigured — fall back to text share
@@ -81,7 +81,8 @@ class GeminiLaunchActivity : ComponentActivity() {
             } else {
                 // Gemini can't handle file intent directly —
                 // open system share sheet so user can pick Gemini
-                val chooser = Intent.createChooser(fileIntent, "Gửi fileguidi.txt tới Gemini")
+                val title = com.tatl.fastnote.data.user.LanguageManager.getSharedFileTitle()
+                val chooser = Intent.createChooser(fileIntent, title)
                     .apply { addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) }
                 startActivity(chooser)
             }
@@ -89,10 +90,7 @@ class GeminiLaunchActivity : ComponentActivity() {
         }
 
         // No file yet
-        val msg = if (guidiFile.exists())
-            "fileguidi.txt trống — ghi âm trước để có nội dung"
-        else
-            "Chưa có ghi chú. Hãy ghi âm trước!"
+        val msg = "Chưa có ghi chú. Hãy ghi âm trước!"
         Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
 
         // Launch Gemini normally without attachment

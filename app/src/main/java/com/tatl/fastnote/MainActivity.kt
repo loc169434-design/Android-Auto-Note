@@ -50,38 +50,58 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import com.tatl.fastnote.util.PinWidgetHelper
+import com.tatl.fastnote.util.ThemePreferences
+import com.tatl.fastnote.widget.TripleActionWidgetReceiver
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        val fromWidgetNote = intent.getBooleanExtra("FROM_WIDGET_NOTE", false) ||
+                             intent.action == "com.tatl.fastnote.ACTION_VIEW_NOTES"
+        val showTrialExpired = intent.getBooleanExtra("SHOW_TRIAL_EXPIRED", false)
+        if (showTrialExpired) {
+            showTrialExpiredToast()
+        }
+        if (!fromWidgetNote && !showTrialExpired) {
+            val hasPinned = ThemePreferences.hasPinnedWidget.value
+            val isWidgetActive = PinWidgetHelper.isWidgetActive(this, TripleActionWidgetReceiver::class.java)
+            if (hasPinned && isWidgetActive) {
+                val recordIntent = Intent(this, RecordingActivity::class.java).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                }
+                startActivity(recordIntent)
+                finishAffinity()
+                finishAndRemoveTask()
+            }
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
-        val splashScreen = installSplashScreen()
+        installSplashScreen()
         super.onCreate(savedInstanceState)
 
-        // Exit animation: icon thu nho + fade out truoc khi vao app
-        splashScreen.setOnExitAnimationListener { splashViewProvider ->
-            val iconView  = splashViewProvider.iconView
-            val rootView  = splashViewProvider.view
+        // ── Kiểm tra điều hướng: Mở từ App Icon (Launcher) vs Mở từ Nút Sổ trên Widget ──
+        val fromWidgetNote = intent?.getBooleanExtra("FROM_WIDGET_NOTE", false) == true ||
+                             intent?.action == "com.tatl.fastnote.ACTION_VIEW_NOTES"
+        val showTrialExpired = intent?.getBooleanExtra("SHOW_TRIAL_EXPIRED", false) == true
 
-            // Scale icon xuong 60%
-            val scaleX = android.animation.ObjectAnimator
-                .ofFloat(iconView, android.view.View.SCALE_X, 1f, 0.6f)
-                .apply { duration = 350 }
-            val scaleY = android.animation.ObjectAnimator
-                .ofFloat(iconView, android.view.View.SCALE_Y, 1f, 0.6f)
-                .apply { duration = 350 }
-
-            // Fade out toan bo splash
-            val fade = android.animation.ObjectAnimator
-                .ofFloat(rootView, android.view.View.ALPHA, 1f, 0f)
-                .apply {
-                    duration = 400
-                    startDelay = 80
-                    doOnEnd { splashViewProvider.remove() }
+        // Nếu mở từ App Icon: Nếu đã có widget đang active -> Biến hình App Icon thành Mic nói
+        // Nếu chưa có widget -> Vào Home để hiện màn hình mời tạo Widget
+        if (!fromWidgetNote && !showTrialExpired) {
+            val hasPinned = ThemePreferences.hasPinnedWidget.value
+            val isWidgetActive = PinWidgetHelper.isWidgetActive(this, TripleActionWidgetReceiver::class.java)
+            if (hasPinned && isWidgetActive) {
+                val recordIntent = Intent(this, RecordingActivity::class.java).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
                 }
-
-            android.animation.AnimatorSet().apply {
-                playTogether(scaleX, scaleY, fade)
-                start()
+                startActivity(recordIntent)
+                finishAffinity()
+                finishAndRemoveTask()
+                return
             }
         }
 
@@ -251,13 +271,6 @@ class MainActivity : ComponentActivity() {
                     }
                 }
             }
-        }
-    }
-
-    override fun onNewIntent(intent: android.content.Intent) {
-        super.onNewIntent(intent)
-        if (intent.getBooleanExtra("SHOW_TRIAL_EXPIRED", false)) {
-            showTrialExpiredToast()
         }
     }
 

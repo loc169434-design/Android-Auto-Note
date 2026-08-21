@@ -112,14 +112,14 @@ class TripleActionWidget : GlanceAppWidget() {
 
                 Spacer(modifier = GlanceModifier.width(4.dp))
 
-                // ── Note — luôn mở (xem sổ không bị chặn) ───────────────────
+                // ── Note — luôn mở màn hình Xem sổ ghi chú (HomeScreen) ───────────────────
                 IconButton(
                     iconRes            = R.drawable.ic_note,
                     contentDescription = "Ghi chú",
                     modifier           = GlanceModifier
                         .defaultWeight()
                         .fillMaxHeight()
-                        .clickable(actionStartActivity<FileViewerActivity>())
+                        .clickable(actionRunCallback<OpenNoteViewCallback>())
                 )
             }
         }
@@ -141,6 +141,23 @@ class TripleActionWidget : GlanceAppWidget() {
                 modifier           = GlanceModifier.size(30.dp)
             )
         }
+    }
+}
+
+// ── Callback mở Màn hình Xem sổ ghi chú khi bấm nút Sổ trên Widget ────────────
+
+class OpenNoteViewCallback : ActionCallback {
+    override suspend fun onAction(
+        context: Context,
+        glanceId: GlanceId,
+        parameters: ActionParameters
+    ) {
+        val intent = Intent(context, com.tatl.fastnote.MainActivity::class.java).apply {
+            action = "com.tatl.fastnote.ACTION_VIEW_NOTES"
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+            putExtra("FROM_WIDGET_NOTE", true)
+        }
+        context.startActivity(intent)
     }
 }
 

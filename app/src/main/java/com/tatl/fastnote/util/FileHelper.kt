@@ -260,4 +260,21 @@ object FileHelper {
             try { f.readText(Charsets.UTF_8) } catch (e: Exception) { null }
         } else null
     }
+
+    /**
+     * Xuất tệp tin sạch đã lọc bảo mật để gửi sang Google Gemini (V38 Phần 6):
+     * - Tiếng Việt: File_gui_di_(Da_loc_bao_mat).txt
+     * - Quốc tế: Shared_File_(Privacy_Protected).txt
+     */
+    fun getAiSharedFile(context: Context): File {
+        val fileName = com.tatl.fastnote.data.user.LanguageManager.getSharedFileName()
+        val cleanFile = File(getNotesDir(context), fileName)
+        val rawText = readRawFile(context).ifBlank { readGuidiFile(context) ?: "" }
+        if (rawText.isNotBlank()) {
+            val lines = rawText.lines()
+            val maskedLines = maskSensitive(lines)
+            cleanFile.writeText(maskedLines.joinToString("\n"), Charsets.UTF_8)
+        }
+        return cleanFile
+    }
 }

@@ -263,8 +263,8 @@ object GoogleDriveSyncManager {
                 return@withContext false
             }
 
-            // 1. Đọc dữ liệu local
-            val localRaw = FileHelper.readGuidiFile(context) ?: ""
+            // 1. Đọc dữ liệu local (ưu tiên raw.txt, fallback ghichu_clean.txt)
+            val localRaw = FileHelper.readRawFile(context).ifBlank { FileHelper.readGuidiFile(context) ?: "" }
             val localEntries = parseRawTextToBlocks(localRaw)
             val localHeaderMap = localEntries.associateBy { it.header }
 
@@ -311,10 +311,10 @@ object GoogleDriveSyncManager {
                 "- ${entry.header}: ${entry.content}"
             }
 
-            // 6. Ghi đè file local nếu có bản ghi mới từ Drive
+            // 6. Ghi đè file local nếu có bản ghi mới từ Drive (đồng bộ cả raw.txt và ghichu_clean.txt)
             if (missingOnLocal.isNotEmpty()) {
-                val guidiFile = FileHelper.getGuidiFile(context)
-                guidiFile.writeText(mergedText, Charsets.UTF_8)
+                FileHelper.getRawFile(context).writeText(mergedText, Charsets.UTF_8)
+                FileHelper.getGuidiFile(context).writeText(mergedText, Charsets.UTF_8)
 
                 // Cập nhật Room DB
                 val app = context.applicationContext as? AutoNoteApplication

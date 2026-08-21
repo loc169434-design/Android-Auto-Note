@@ -181,7 +181,7 @@ class RecordingActivity : ComponentActivity() {
 
         if (text.isBlank()) {
             stopRecordingService()
-            finish()
+            finishAndRemoveTask()
             return
         }
 
@@ -205,18 +205,16 @@ class RecordingActivity : ComponentActivity() {
             com.tatl.fastnote.sync.GoogleDriveSyncManager.sync(applicationContext)
 
             stopRecordingService()
-            finish()
+            finishAndRemoveTask()
         }
     }
-
-
 
     private fun cancelRecording() {
         hasSaved = true     // prevent onStop from auto-saving
         voiceService?.clearText()
         voiceService?.markAsSaved()
         stopRecordingService()
-        finish()
+        finishAndRemoveTask()
     }
 
     // ── Service lifecycle ────────────────────────────────────────────────────

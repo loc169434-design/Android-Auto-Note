@@ -36,15 +36,30 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.AndroidAutoNote">
 
-        <!-- Main Activity -->
+        <!-- Trampoline Router for App Icon Launcher (Zero-flash routing) -->
+        <activity
+            android:name=".LauncherActivity"
+            android:exported="true"
+            android:noHistory="true"
+            android:excludeFromRecents="true"
+            android:taskAffinity=""
+            android:theme="@style/Theme.AndroidAutoNote.Launcher">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- Main Activity (Opened from Widget Note icon or when pin widget prompt needed) -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
             android:label="@string/app_name"
+            android:launchMode="singleTask"
             android:theme="@style/Theme.AndroidAutoNote.Splash">
             <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
+                <action android:name="com.tatl.fastnote.ACTION_VIEW_NOTES" />
+                <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
 
