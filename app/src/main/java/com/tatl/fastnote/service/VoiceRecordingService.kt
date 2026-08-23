@@ -363,6 +363,20 @@ class VoiceRecordingService : Service() {
         return fullText.trim()
     }
 
+    /**
+     * Commit any pending partial result into the main buffer.
+     * Call this before saving to ensure mid-speech text is not lost.
+     */
+    fun flushPartialToBuffer() {
+        val partial = _partialText.value.trim()
+        if (partial.isNotBlank()) {
+            if (textBuffer.isNotEmpty()) textBuffer.append(" ")
+            textBuffer.append(partial)
+            _recognizedText.value = textBuffer.toString()
+            _partialText.value = ""
+        }
+    }
+
     fun clearText() {
         textBuffer.clear()
         _recognizedText.value = ""

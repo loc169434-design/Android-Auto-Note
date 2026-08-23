@@ -58,28 +58,20 @@ class TripleActionWidget : GlanceAppWidget() {
 
     @Composable
     private fun WidgetContent(trialExpired: Boolean) {
+        // Outer box: TRONG SUỐT hoàn toàn — không có nền widget
         Box(
             modifier = GlanceModifier
                 .fillMaxSize()
-                .padding(horizontal = 4.dp, vertical = 4.dp),
+                .padding(horizontal = 2.dp, vertical = 4.dp),
             contentAlignment = Alignment.Center
         ) {
             Row(
-                modifier = GlanceModifier
-                    .fillMaxSize()
-                    .cornerRadius(22.dp)
-                    .background(
-                        ColorProvider(
-                            day   = Color(0xFF000000),
-                            night = Color(0xFF000000)
-                        )
-                    )
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                modifier = GlanceModifier.fillMaxSize(),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalAlignment   = Alignment.CenterVertically
             ) {
-                // ── Mic — bị chặn khi hết trial ──────────────────────────────
-                IconButton(
+                // ── Mic — nút pill riêng biệt ────────────────────────────────
+                PillIconButton(
                     iconRes            = R.drawable.ic_mic,
                     contentDescription = "Ghi âm",
                     modifier           = GlanceModifier
@@ -93,10 +85,10 @@ class TripleActionWidget : GlanceAppWidget() {
                         )
                 )
 
-                Spacer(modifier = GlanceModifier.width(4.dp))
+                Spacer(modifier = GlanceModifier.width(6.dp))
 
-                // ── AI — bị chặn khi hết trial ───────────────────────────────
-                IconButton(
+                // ── AI — nút pill riêng biệt ──────────────────────────────────
+                PillIconButton(
                     iconRes            = R.drawable.ic_ai,
                     contentDescription = "AI",
                     modifier           = GlanceModifier
@@ -110,10 +102,10 @@ class TripleActionWidget : GlanceAppWidget() {
                         )
                 )
 
-                Spacer(modifier = GlanceModifier.width(4.dp))
+                Spacer(modifier = GlanceModifier.width(6.dp))
 
-                // ── Note — luôn mở màn hình Xem sổ ghi chú (HomeScreen) ───────────────────
-                IconButton(
+                // ── Note — nút pill riêng biệt ────────────────────────────────
+                PillIconButton(
                     iconRes            = R.drawable.ic_note,
                     contentDescription = "Ghi chú",
                     modifier           = GlanceModifier
@@ -125,20 +117,33 @@ class TripleActionWidget : GlanceAppWidget() {
         }
     }
 
+    /**
+     * Mỗi icon nằm trong "pill" mờ riêng → 3 nút trông độc lập nhau,
+     * nền widget tổng thể vẫn TRONG SUỐT.
+     */
     @Composable
-    private fun IconButton(
+    private fun PillIconButton(
         iconRes: Int,
         contentDescription: String,
         modifier: GlanceModifier = GlanceModifier
     ) {
         Box(
-            modifier          = modifier.padding(4.dp),
-            contentAlignment  = Alignment.Center
+            modifier = modifier
+                .cornerRadius(20.dp)
+                .background(
+                    ColorProvider(
+                        // Nền mờ tối — đủ nhìn thấy icon trên mọi wallpaper
+                        day   = Color(0xCC000000),   // 80% đen
+                        night = Color(0xCC000000)
+                    )
+                )
+                .padding(4.dp),
+            contentAlignment = Alignment.Center
         ) {
             Image(
                 provider           = ImageProvider(iconRes),
                 contentDescription = contentDescription,
-                modifier           = GlanceModifier.size(30.dp)
+                modifier           = GlanceModifier.size(28.dp)
             )
         }
     }

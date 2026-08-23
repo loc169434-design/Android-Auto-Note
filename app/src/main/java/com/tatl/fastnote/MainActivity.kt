@@ -54,6 +54,12 @@ import com.tatl.fastnote.util.PinWidgetHelper
 import com.tatl.fastnote.util.ThemePreferences
 import com.tatl.fastnote.widget.TripleActionWidgetReceiver
 import kotlinx.coroutines.launch
+import android.content.res.Configuration
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.collectAsState
+import androidx.compose.ui.platform.LocalContext
+import com.tatl.fastnote.data.user.LanguageManager
+import java.util.Locale
 
 class MainActivity : ComponentActivity() {
 
@@ -144,9 +150,18 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             AndroidAutoNoteTheme {
+                // ── Locale-aware context: cap nhat ngay lap tuc khi doi ngon ngu ──
+                val currentLanguage by LanguageManager.currentLanguage.collectAsState()
+                val baseCtx = LocalContext.current
+                val localizedContext = remember(currentLanguage) {
+                    val config = Configuration(baseCtx.resources.configuration)
+                    config.setLocale(Locale(currentLanguage.code))
+                    baseCtx.createConfigurationContext(config)
+                }
+                CompositionLocalProvider(LocalContext provides localizedContext) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
-                    color = Color(0xFF000000)  // đen tuyệt đối, không ghi đè edge-to-edge
+                    color = Color(0xFF000000)  // den tuyet doi, khong ghi de edge-to-edge
                 ) {
                     val navController = rememberNavController()
                     var showPremiumDialog  by remember { mutableStateOf(false) }
@@ -269,7 +284,8 @@ class MainActivity : ComponentActivity() {
                             }
                         )
                     }
-                }
+                } // end Surface
+                } // end CompositionLocalProvider
             }
         }
     }

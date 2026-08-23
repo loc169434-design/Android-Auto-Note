@@ -174,6 +174,9 @@ class RecordingActivity : ComponentActivity() {
         if (hasSaved) return
         hasSaved = true
 
+        // Flush any in-progress partial text before getting the final text
+        voiceService?.flushPartialToBuffer()
+
         val text = voiceService?.getFullText() ?: ""
 
         // Mark service so emergency save in onDestroy is skipped

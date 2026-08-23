@@ -85,5 +85,33 @@
     <!-- Send PC Dialog -->
     <string name="str_send_pc_title">Enter a password and remember\nit to open the file on PC</string>
     <string name="str_send_pc_confirm">CONFIRM</string>
+    <!-- Home Screen Buttons -->
+    <string name="str_home_title">DAILY NOTES</string>
+    <string name="str_btn_send_pc">Send to PC</string>
+    <string name="str_btn_edit">EDIT</string>
+    <string name="str_btn_search">SEARCH</string>
+    <string name="str_btn_save_action">SAVE</string>
+    <string name="str_saving">Saving...</string>
+    <string name="str_no_notes_empty">No notes yet</string>
+    <string name="str_search_not_found">Not found</string>
+    <string name="str_protect_toast">Cannot delete timestamp lines</string>
+
+    <!-- SendPcDialog -->
+    <string name="str_send_pc_desc">Password used to encrypt the AES-256 compressed file sent to your computer</string>
+    <string name="str_send_pc_placeholder">Enter password (min. 6 characters)</string>
+    <string name="str_send_pc_err_short">Password must be at least 6 characters</string>
+    <string name="str_send_pc_err_chars">Only letters and digits (a-z, A-Z, 0-9)</string>
+
+    <!-- PremiumGateDialog -->
+    <string name="str_premium_title">PREMIUM BENEFITS</string>
+    <string name="str_premium_feat_send_pc">Send AES-256 encrypted compressed files securely to your personal computer (Send to PC).</string>
+    <string name="str_premium_feat_drive">Automatically back up and securely sync data to your personal Google Drive.</string>
+    <string name="str_premium_upgrade_btn">Upgrade Now - %s / Lifetime</string>
+    <string name="str_premium_product_err">Product unavailable. Please try again later.</string>
+    <string name="str_premium_no_purchase">No previous purchase found.</string>
+    <string name="str_premium_checking">Checking...</string>
+    <string name="str_premium_restore_hint">Previously purchased? Tap to restore</string>
+    <string name="str_premium_later">LATER</string>
+    <string name="str_btn_share">Share</string>
 
 </resources>

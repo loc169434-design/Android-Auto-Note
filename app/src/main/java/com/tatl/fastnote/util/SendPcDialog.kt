@@ -29,6 +29,7 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -37,6 +38,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -49,9 +51,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import android.content.res.Configuration
+import androidx.compose.runtime.CompositionLocalProvider
 import com.tatl.fastnote.R
+import com.tatl.fastnote.data.user.LanguageManager
 import com.tatl.fastnote.ui.theme.InterFontFamily
 import com.tatl.fastnote.ui.theme.NotoSansFontFamily
+import java.util.Locale
 
 // ── Bảng màu chuẩn Slate-Blue ────────────────────────────────────────────────
 private val DialogBgTop      = Color(0xFF1C2D3D)
@@ -77,12 +83,26 @@ fun SendPcDialog(
     var passwordVisible by remember { mutableStateOf(false) }
     var errorMsg        by remember { mutableStateOf("") }
 
+    // ── Locale-aware context: Dialog tạo window mới nên KHÔNG kế thừa CompositionLocalProvider ──
+    // Phải tự build localizedContext và wrap lại bên trong
+    val currentLanguage by LanguageManager.currentLanguage.collectAsState()
+    val baseCtx = LocalContext.current
+    val localizedCtx = remember(currentLanguage) {
+        val config = Configuration(baseCtx.resources.configuration)
+        config.setLocale(Locale(currentLanguage.code))
+        baseCtx.createConfigurationContext(config)
+    }
+
+    // Error strings: load từ localizedCtx.resources vì nằm ngoài CompositionLocalProvider
+    val errShort = localizedCtx.resources.getString(R.string.str_send_pc_err_short)
+    val errChars  = localizedCtx.resources.getString(R.string.str_send_pc_err_chars)
+
     fun submit() {
         when {
             password.length < 6 ->
-                errorMsg = "Mật khẩu tối thiểu 6 ký tự"
+                errorMsg = errShort
             !password.all { it.isLetterOrDigit() && it.code < 128 } ->
-                errorMsg = "Chỉ dùng chữ và số không dấu (a-z, A-Z, 0-9)"
+                errorMsg = errChars
             else -> onConfirm(password)
         }
     }
@@ -91,6 +111,7 @@ fun SendPcDialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
+        CompositionLocalProvider(LocalContext provides localizedCtx) {
         Surface(
             modifier = Modifier
                 .fillMaxWidth(0.9f),
@@ -142,7 +163,7 @@ fun SendPcDialog(
                 Spacer(Modifier.height(8.dp))
 
                 Text(
-                    text = "Mật khẩu dùng để mã hóa file nén AES-256 khi truyền sang máy tính",
+                    text = stringResource(R.string.str_send_pc_desc),
                     color = TextMuted,
                     fontSize = 13.sp,
                     fontFamily = NotoSansFontFamily,
@@ -197,7 +218,7 @@ fun SendPcDialog(
                     ),
                     placeholder = {
                         Text(
-                            text = "Nhập mật khẩu (tối thiểu 6 ký tự)",
+                            text = stringResource(R.string.str_send_pc_placeholder),
                             color = TextMuted.copy(alpha = 0.6f),
                             fontSize = 13.sp,
                             fontFamily = NotoSansFontFamily
@@ -237,7 +258,7 @@ fun SendPcDialog(
                         )
                     ) {
                         Text(
-                            text = "HỦY",
+                            text = stringResource(R.string.btn_cancel_upper),
                             fontFamily = InterFontFamily,
                             fontWeight = FontWeight.Medium,
                             fontSize = 14.sp
@@ -266,6 +287,7 @@ fun SendPcDialog(
                     }
                 }
             }
-        }
+        }  // end Surface
+        } // end CompositionLocalProvider
     }
 }

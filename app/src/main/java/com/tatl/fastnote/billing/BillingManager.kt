@@ -112,7 +112,14 @@ class BillingManager(context: Context) {
                     .build()
             ))
             .build()
-        billingClient.launchBillingFlow(activity, params)
+
+        Log.d(TAG, "launchBillingFlow: billingClient.isReady=${billingClient.isReady}")
+        val result = billingClient.launchBillingFlow(activity, params)
+        Log.d(TAG, "launchBillingFlow result: responseCode=${result.responseCode} debugMsg=${result.debugMessage}")
+        if (result.responseCode != com.android.billingclient.api.BillingClient.BillingResponseCode.OK) {
+            Log.e(TAG, "❌ launchBillingFlow FAILED: ${result.responseCode} — ${result.debugMessage}")
+            onFailed("Lỗi mở thanh toán: ${result.debugMessage} (${result.responseCode})")
+        }
     }
 
     // ── Handle purchase ───────────────────────────────────────────────────────

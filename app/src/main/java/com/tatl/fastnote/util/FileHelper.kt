@@ -190,13 +190,10 @@ object FileHelper {
         val origHeaders = origLines.filter(isDateLine).map(headerOnly)
         val editHeaders = editLines.filter(isDateLine).map(headerOnly)
 
+        // Chỉ bảo vệ dòng timestamp — không cho xóa/sửa header ngày tháng
+        // Content bình thường (kể cả xóa nhiều dòng) được phép tự do
         if (origHeaders.size != editHeaders.size || origHeaders.zip(editHeaders).any { (a, b) -> a != b }) {
             return "Không được xóa hoặc sửa dòng ngày tháng cố định"
-        }
-
-        val linesRemoved = origLines.size - editLines.size
-        if (linesRemoved >= 5) {
-            return "Không thể xóa $linesRemoved dòng cùng lúc (tối đa 4 dòng mỗi lần)"
         }
         return null
     }

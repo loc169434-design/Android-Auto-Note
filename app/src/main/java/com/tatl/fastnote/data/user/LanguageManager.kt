@@ -105,7 +105,10 @@ object LanguageManager {
         }
         prefs.edit().putString(KEY_SELECTED_LANGUAGE, language.code).apply()
         _currentLanguage.value = language
-        applyLocale(language)
+        // NOTE: applyLocale() (AppCompatDelegate) is intentionally NOT called here.
+        // In-app language switching is handled by CompositionLocalProvider(LocalContext)
+        // in each Compose screen — no Activity recreation needed.
+        // applyLocale() is called only in init() for correct locale on cold start.
     }
 
     private fun applyLocale(language: AppLanguage) {

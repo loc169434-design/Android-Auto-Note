@@ -79,5 +79,33 @@
 
     <string name="str_send_pc_title">パスワードを入力して\nPCでファイルを開いてください</string>
     <string name="str_send_pc_confirm">確認</string>
+    <!-- Home Screen Buttons -->
+    <string name="str_home_title">毎日ノート</string>
+    <string name="str_btn_send_pc">PCに送る</string>
+    <string name="str_btn_edit">編集</string>
+    <string name="str_btn_search">検索</string>
+    <string name="str_btn_save_action">保存</string>
+    <string name="str_saving">保存中...</string>
+    <string name="str_no_notes_empty">まだメモがありません</string>
+    <string name="str_search_not_found">見つかりませんでした</string>
+    <string name="str_protect_toast">タイムスタンプ行は削除できません</string>
+
+    <!-- SendPcDialog -->
+    <string name="str_send_pc_desc">PCへ転送するAES-256圧縮ファイルの暗号化パスワード</string>
+    <string name="str_send_pc_placeholder">パスワードを入力（6文字以上）</string>
+    <string name="str_send_pc_err_short">パスワードは6文字以上必要です</string>
+    <string name="str_send_pc_err_chars">英字数字のみ使用可能（a-z、A-Z、0-9）</string>
+
+    <!-- PremiumGateDialog -->
+    <string name="str_premium_title">PREMIUMの特典</string>
+    <string name="str_premium_feat_send_pc">AES-256暗号化ファイルをPCに安全に送信。</string>
+    <string name="str_premium_feat_drive">Google Driveへ自動バックアップ・同期。</string>
+    <string name="str_premium_upgrade_btn">今すぐアップグレード - %s / 一度きり</string>
+    <string name="str_premium_product_err">商品を読み込めませんでした。後で再試してください。</string>
+    <string name="str_premium_no_purchase">以前の購入が見つかりませんでした。</string>
+    <string name="str_premium_checking">確認中...</string>
+    <string name="str_premium_restore_hint">購入済みですか？タップして復元</string>
+    <string name="str_premium_later">後で</string>
+    <string name="str_btn_share">シェア</string>
 
 </resources>

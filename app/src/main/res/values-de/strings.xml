@@ -79,5 +79,33 @@
 
     <string name="str_send_pc_title">Passwort eingeben und merken,\num die Datei auf dem PC zu öffnen</string>
     <string name="str_send_pc_confirm">BESTÄTIGEN</string>
+    <!-- Home Screen Buttons -->
+    <string name="str_home_title">TAGESNOTIZEN</string>
+    <string name="str_btn_send_pc">An PC senden</string>
+    <string name="str_btn_edit">BEARBEITEN</string>
+    <string name="str_btn_search">SUCHEN</string>
+    <string name="str_btn_save_action">SPEICHERN</string>
+    <string name="str_saving">Wird gespeichert...</string>
+    <string name="str_no_notes_empty">Noch keine Notizen</string>
+    <string name="str_search_not_found">Nicht gefunden</string>
+    <string name="str_protect_toast">Zeitstempelzeilen können nicht gelöscht werden</string>
+
+    <!-- SendPcDialog -->
+    <string name="str_send_pc_desc">Passwort zur AES-256-Verschlüsselung der Datei für die Übertragung an den PC</string>
+    <string name="str_send_pc_placeholder">Passwort eingeben (mind. 6 Zeichen)</string>
+    <string name="str_send_pc_err_short">Passwort muss mindestens 6 Zeichen haben</string>
+    <string name="str_send_pc_err_chars">Nur Buchstaben und Ziffern (a-z, A-Z, 0-9)</string>
+
+    <!-- PremiumGateDialog -->
+    <string name="str_premium_title">PREMIUM-VORTEILE</string>
+    <string name="str_premium_feat_send_pc">AES-256-verschlüsselte Dateien sicher an den PC senden.</string>
+    <string name="str_premium_feat_drive">Daten automatisch in Google Drive sichern und synchronisieren.</string>
+    <string name="str_premium_upgrade_btn">Jetzt upgraden - %s / Lebenslang</string>
+    <string name="str_premium_product_err">Produkt nicht verfügbar. Später erneut versuchen.</string>
+    <string name="str_premium_no_purchase">Kein früherer Kauf gefunden.</string>
+    <string name="str_premium_checking">Wird geprüft...</string>
+    <string name="str_premium_restore_hint">Bereits gekauft? Tippen zum Wiederherstellen</string>
+    <string name="str_premium_later">SPÄTER</string>
+    <string name="str_btn_share">Teilen</string>
 
 </resources>

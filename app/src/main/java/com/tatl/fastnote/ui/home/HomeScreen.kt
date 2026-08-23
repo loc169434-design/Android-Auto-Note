@@ -38,6 +38,7 @@ import androidx.compose.material.icons.filled.KeyboardHide
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
@@ -162,6 +163,9 @@ fun HomeScreen(
     var showProtectToast by remember { mutableStateOf(false) }
     var autoSaveJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
 
+    // Bug 1.3 fix: LazyColumn scroll state — reset to top on resume
+    val listState = androidx.compose.foundation.lazy.rememberLazyListState()
+
     // ── Save Function ─────────────────────────────────────────────────────────
     fun doSave() {
         if (isSaving) return
@@ -215,6 +219,9 @@ fun HomeScreen(
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
                 refreshKey++
+                // Bug 1.4 fix: reset search box when returning to HomeScreen
+                searchActive = false
+                searchQuery = ""
                 widgetActiveNow = if (currentHasPinned) {
                     PinWidgetHelper.isWidgetActive(context, TripleActionWidgetReceiver::class.java)
                 } else false
@@ -233,6 +240,13 @@ fun HomeScreen(
     LaunchedEffect(refreshKey) {
         withContext(Dispatchers.IO) {
             fileEntries = FileHelper.parseEntries(context)
+        }
+    }
+
+    // Bug 1.3: cuộn về đầu mỗi khi fileEntries được reload
+    LaunchedEffect(fileEntries) {
+        if (fileEntries.isNotEmpty()) {
+            listState.scrollToItem(0)
         }
     }
 
@@ -341,11 +355,8 @@ fun HomeScreen(
                                     return@BasicTextField
                                 }
 
-                                // Rule: giới hạn xoá quá nhiều ký tự
-                                val charsRemoved = oldText.length - newText.length
-                                if (charsRemoved >= 100) {
-                                    return@BasicTextField
-                                }
+                                // Rule: chỉ block khi user xóa nhầm timestamp header
+                                // KHÔNG block xóa content thông thường dù nhiều dòng
 
                                 editTfv = newTfv
 
@@ -374,7 +385,7 @@ fun HomeScreen(
                             decorationBox = { innerTextField ->
                                 if (editTfv.text.isEmpty()) {
                                     Text(
-                                        text = "Chưa có ghi chú nào...",
+                                        text = stringResource(R.string.str_no_notes_yet),
                                         color = HomeTextMuted,
                                         fontFamily = NotoSansFontFamily,
                                         fontSize = 18.sp
@@ -443,12 +454,12 @@ fun HomeScreen(
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Save,
-                                    contentDescription = "Lưu",
+                                    contentDescription = stringResource(R.string.str_btn_save_action),
                                     tint = Color(0xFF60A5FA),
                                     modifier = Modifier.size(18.dp)
                                 )
                                 Text(
-                                    text = if (isSaving) "Đang lưu..." else "LƯU",
+                                    text = if (isSaving) stringResource(R.string.str_saving) else stringResource(R.string.str_btn_save_action),
                                     color = Color(0xFF93C5FD),
                                     fontFamily = InterFontFamily,
                                     fontWeight = FontWeight.Bold,
@@ -486,12 +497,18 @@ fun HomeScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Trái: Nút Gửi PC dạng Pill
+                    // Trái: Nút Gửi PC dạng Pill — cùng tông vàng gold khi premium
                     Surface(
                         onClick = onComputerClick,
                         shape = RoundedCornerShape(10.dp),
-                        color = TopPillBg,
-                        border = BorderStroke(1.dp, TopPillBorder)
+                        color = if (isPremium)
+                            Color(0xFF2B2200).copy(alpha = 0.85f)
+                        else
+                            TopPillBg,
+                        border = BorderStroke(
+                            1.dp,
+                            if (isPremium) Color(0xFFB8860B) else TopPillBorder
+                        )
                     ) {
                         Row(
                             modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp),
@@ -500,13 +517,13 @@ fun HomeScreen(
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Computer,
-                                contentDescription = "Gửi PC",
-                                tint = Color(0xFFBACFD9),
+                                contentDescription = stringResource(R.string.str_btn_send_pc),
+                                tint = if (isPremium) Color(0xFFFFD966) else Color(0xFFBACFD9),
                                 modifier = Modifier.size(19.dp)
                             )
                             Text(
-                                text = "Gửi PC",
-                                color = Color(0xFFBACFD9),
+                                text = stringResource(R.string.str_btn_send_pc),
+                                color = if (isPremium) Color(0xFFFFD966) else Color(0xFFBACFD9),
                                 fontFamily = InterFontFamily,
                                 fontWeight = FontWeight.SemiBold,
                                 fontSize = 14.5.sp
@@ -514,12 +531,19 @@ fun HomeScreen(
                         }
                     }
 
-                    // Phải: Nút Premium dạng Pill
+                    // Phải: Nút Premium — gold khi đã mua, TRẮNG/XÁM khi chưa mua
                     Surface(
-                        onClick = onPremiumClick,
+                        onClick = { if (!isPremium) onPremiumClick() },
                         shape = RoundedCornerShape(10.dp),
-                        color = Color(0xFF222B35).copy(alpha = 0.85f),
-                        border = BorderStroke(1.dp, Color(0xFF38434F))
+                        color = if (isPremium)
+                            Color(0xFF2B2200).copy(alpha = 0.85f)   // nền vàng tối khi đã mua
+                        else
+                            Color(0xFF1C2733).copy(alpha = 0.85f),  // nền tối slate khi chưa mua
+                        border = BorderStroke(
+                            1.dp,
+                            if (isPremium) Color(0xFFFFB800)        // viền vàng khi đã mua
+                            else Color(0xFF4A6080)                  // viền xanh xám khi chưa mua
+                        )
                     ) {
                         Row(
                             modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp),
@@ -528,13 +552,16 @@ fun HomeScreen(
                         ) {
                             Icon(
                                 painter = painterResource(R.drawable.ic_premium),
-                                contentDescription = "Premium",
-                                tint = Color(0xFFFFB800),
+                                contentDescription = stringResource(R.string.label_premium),
+                                tint = if (isPremium) Color(0xFFFFD700)   // icon vàng sáng khi đã mua
+                                       else Color(0xFFCBD5E1),             // icon trắng xám khi chưa mua
                                 modifier = Modifier.size(19.dp)
                             )
                             Text(
-                                text = "Premium",
-                                color = Color(0xFFEAD4AA),
+                                text = stringResource(R.string.label_premium),
+                                color = if (isPremium) Color(0xFFFFD700)  // chữ vàng sáng khi đã mua
+                                        else Color(0xFFCBD5E1),            // chữ trắng xám khi chưa mua
+
                                 fontFamily = InterFontFamily,
                                 fontWeight = FontWeight.SemiBold,
                                 fontSize = 14.5.sp
@@ -545,7 +572,7 @@ fun HomeScreen(
 
                 // ── Title: SỔ GHI CHÚ HÀNG NGÀY ──────────────────────────────
                 Text(
-                    text = "SỔ GHI CHÚ HÀNG NGÀY",
+                    text = stringResource(R.string.str_home_title),
                     fontFamily = InterFontFamily,
                     fontWeight = FontWeight.Bold,
                     fontSize = 21.sp,
@@ -623,7 +650,9 @@ fun HomeScreen(
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                text = if (searchQuery.isNotBlank()) "Không tìm thấy\n\"$searchQuery\"" else "Chưa có ghi chú nào",
+                                text = if (searchQuery.isNotBlank())
+                                    "${stringResource(R.string.str_search_not_found)}\n\"$searchQuery\""
+                                else stringResource(R.string.str_no_notes_empty),
                                 color = HomeTextMuted,
                                 fontFamily = NotoSansFontFamily,
                                 fontSize = 15.sp,
@@ -633,6 +662,7 @@ fun HomeScreen(
                         }
                     } else {
                         LazyColumn(
+                            state = listState,
                             modifier = Modifier
                                 .fillMaxSize()
                                 .padding(horizontal = 16.dp, vertical = 12.dp)
@@ -671,71 +701,119 @@ fun HomeScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // Nút SỬA bên trái -> Bật trực tiếp Edit Mode
-                        Row(
-                            modifier = Modifier
-                                .clickable(
-                                    interactionSource = remember { MutableInteractionSource() },
-                                    indication = null
-                                ) {
-                                    scope.launch {
-                                        val raw = withContext(Dispatchers.IO) {
-                                            FileHelper.readRawFile(context)
-                                        }
-                                        originalContent = raw
-                                        val reversed = reverseEntries(raw)
-                                        editTfv = TextFieldValue(reversed, selection = TextRange(0))
-                                        isEditMode = true
+                        // Nút SỬA bên trái (UI 2.3: nền nổi bật)
+                        Surface(
+                            onClick = {
+                                scope.launch {
+                                    val raw = withContext(Dispatchers.IO) {
+                                        FileHelper.readRawFile(context)
                                     }
+                                    originalContent = raw
+                                    val reversed = reverseEntries(raw)
+                                    editTfv = TextFieldValue(reversed, selection = TextRange(0))
+                                    isEditMode = true
                                 }
-                                .padding(vertical = 6.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            },
+                            shape = RoundedCornerShape(10.dp),
+                            color = Color(0xFF1A2C3D).copy(alpha = 0.85f),
+                            border = BorderStroke(1.dp, Color(0xFF2E4355))
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.Edit,
-                                contentDescription = "SỬA",
-                                tint = Color(0xFFBACFD9),
-                                modifier = Modifier.size(19.dp)
-                            )
-                            Text(
-                                text = "SỬA",
-                                color = Color(0xFFBACFD9),
-                                fontFamily = InterFontFamily,
-                                fontWeight = FontWeight.SemiBold,
-                                fontSize = 15.sp,
-                                letterSpacing = 0.5.sp
-                            )
+                            Row(
+                                modifier = Modifier.padding(horizontal = 18.dp, vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Edit,
+                                    contentDescription = stringResource(R.string.str_btn_edit),
+                                    tint = Color(0xFFBACFD9),
+                                    modifier = Modifier.size(19.dp)
+                                )
+                                Text(
+                                    text = stringResource(R.string.str_btn_edit),
+                                    color = Color(0xFFBACFD9),
+                                    fontFamily = InterFontFamily,
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 15.sp,
+                                    letterSpacing = 0.5.sp
+                                )
+                            }
                         }
 
-                        // Nút TÌM KIẾM bên phải
-                        Row(
-                            modifier = Modifier
-                                .clickable(
-                                    interactionSource = remember { MutableInteractionSource() },
-                                    indication = null
-                                ) {
+                        // Nút TÌM KIẾM / CHIA SẺ bên phải (Feature 3.2 + UI 2.3)
+                        val isShareMode = searchActive && searchQuery.isNotBlank()
+                        Surface(
+                            onClick = {
+                                if (isShareMode) {
+                                    // Feature 3.2: Share kết quả tìm kiếm
+                                    val rawShareText = filteredEntries.joinToString("\n---\n") {
+                                        "[${it.header}]\n${it.content}"
+                                    }
+                                    // Giới hạn 50KB để tránh TransactionTooLargeException
+                                    val shareText = if (rawShareText.length > 50_000)
+                                        rawShareText.take(50_000) + "\n...(truncated)"
+                                    else rawShareText
+
+                                    try {
+                                        val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                                            type = "text/plain"
+                                            putExtra(android.content.Intent.EXTRA_TEXT, shareText)
+                                            addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                                        }
+                                        val chooser = android.content.Intent.createChooser(intent, "Chia sẻ ghi chú")
+                                        chooser.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                                        context.startActivity(chooser)
+                                    } catch (e: Exception) {
+                                        android.util.Log.e("HomeScreen", "Share failed", e)
+                                    }
+                                } else {
                                     searchActive = !searchActive
                                     if (!searchActive) searchQuery = ""
                                 }
-                                .padding(vertical = 6.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            },
+                            shape = RoundedCornerShape(10.dp),
+                            color = when {
+                                isShareMode -> Color(0xFF1A3A20).copy(alpha = 0.85f)
+                                searchActive -> Color(0xFF1A2C3D).copy(alpha = 0.95f)
+                                else -> Color(0xFF1A2C3D).copy(alpha = 0.85f)
+                            },
+                            border = BorderStroke(
+                                1.dp,
+                                when {
+                                    isShareMode -> Color(0xFF38A350)
+                                    searchActive -> Color(0xFF4A7FA0)
+                                    else -> Color(0xFF2E4355)
+                                }
+                            )
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.Search,
-                                contentDescription = "TÌM KIẾM",
-                                tint = if (searchActive) Color.White else Color(0xFFBACFD9),
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Text(
-                                text = "TÌM KIẾM",
-                                color = if (searchActive) Color.White else Color(0xFFBACFD9),
-                                fontFamily = InterFontFamily,
-                                fontWeight = FontWeight.SemiBold,
-                                fontSize = 15.sp,
-                                letterSpacing = 0.5.sp
-                            )
+                            Row(
+                                modifier = Modifier.padding(horizontal = 18.dp, vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Icon(
+                                    imageVector = if (isShareMode) Icons.Filled.Share else Icons.Default.Search,
+                                    contentDescription = stringResource(if (isShareMode) R.string.str_btn_share else R.string.str_btn_search),
+                                    tint = when {
+                                        isShareMode -> Color(0xFF4ADE80)
+                                        searchActive -> Color.White
+                                        else -> Color(0xFFBACFD9)
+                                    },
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Text(
+                                    text = stringResource(if (isShareMode) R.string.str_btn_share else R.string.str_btn_search),
+                                    color = when {
+                                        isShareMode -> Color(0xFF4ADE80)
+                                        searchActive -> Color.White
+                                        else -> Color(0xFFBACFD9)
+                                    },
+                                    fontFamily = InterFontFamily,
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 15.sp,
+                                    letterSpacing = 0.5.sp
+                                )
+                            }
                         }
                     }
                 }
@@ -757,7 +835,7 @@ fun HomeScreen(
         // ── Toast cảnh báo bảo vệ ngày tháng ──────────────────────────────────
         AppToast(
             visible = showProtectToast,
-            message = "Không thể xóa dòng thời gian ghi chú",
+            message = stringResource(R.string.str_protect_toast),
             durationMs = 2000L,
             onDismiss = { showProtectToast = false }
         )

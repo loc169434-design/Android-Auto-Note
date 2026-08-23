@@ -79,5 +79,33 @@
 
     <string name="str_send_pc_title">Введите пароль и запомните его,\nчтобы открыть файл на ПК</string>
     <string name="str_send_pc_confirm">ПОДТВЕРДИТЬ</string>
+    <!-- Home Screen Buttons -->
+    <string name="str_home_title">ЕЖЕДНЕВНЫЕ ЗАМЕТКИ</string>
+    <string name="str_btn_send_pc">Отправить на ПК</string>
+    <string name="str_btn_edit">РЕДАКТИРОВАТЬ</string>
+    <string name="str_btn_search">ПОИСК</string>
+    <string name="str_btn_save_action">СОХРАНИТЬ</string>
+    <string name="str_saving">Сохранение...</string>
+    <string name="str_no_notes_empty">Заметок пока нет</string>
+    <string name="str_search_not_found">Не найдено</string>
+    <string name="str_protect_toast">Невозможно удалить строки временных меток</string>
+
+    <!-- SendPcDialog -->
+    <string name="str_send_pc_desc">Пароль для шифрования AES-256 сжатого файла при передаче на ПК</string>
+    <string name="str_send_pc_placeholder">Введите пароль (мин. 6 символов)</string>
+    <string name="str_send_pc_err_short">Пароль должен содержать минимум 6 символов</string>
+    <string name="str_send_pc_err_chars">Только буквы и цифры (a-z, A-Z, 0-9)</string>
+
+    <!-- PremiumGateDialog -->
+    <string name="str_premium_title">ПРЕИМУЩЕСТВА PREMIUM</string>
+    <string name="str_premium_feat_send_pc">Отправка зашифрованных AES-256 файлов на персональный ПК.</string>
+    <string name="str_premium_feat_drive">Автоматическое резервное копирование и синхронизация в Google Drive.</string>
+    <string name="str_premium_upgrade_btn">Обновить сейчас - %s / Пожизненно</string>
+    <string name="str_premium_product_err">Продукт недоступен. Попробуйте позже.</string>
+    <string name="str_premium_no_purchase">Предыдущая покупка не найдена.</string>
+    <string name="str_premium_checking">Проверка...</string>
+    <string name="str_premium_restore_hint">Уже купили? Нажмите для восстановления</string>
+    <string name="str_premium_later">ПОТОМ</string>
+    <string name="str_btn_share">Отправить</string>
 
 </resources>
