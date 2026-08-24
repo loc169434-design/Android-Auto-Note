@@ -32,12 +32,16 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MicOff
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MenuDefaults
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -72,6 +76,9 @@ import com.tatl.fastnote.ui.theme.InterFontFamily
 import com.tatl.fastnote.ui.theme.NotoSansFontFamily
 import java.util.Locale
 
+import androidx.compose.ui.tooling.preview.Preview
+import com.tatl.fastnote.ui.theme.AndroidAutoNoteTheme
+
 // Mau dung chung
 private val MicCircleBg  = Color(0xFFEEEEEE)
 private val MicIconColor = Color(0xFF111111)
@@ -88,13 +95,7 @@ private val CancelBorder = Color(0xFF444444)
  *  - Vong tron mic lon -- giua man hinh
  *  - Transcript cuon duoc, auto-scroll moi nhat len tren
  *  - Nut HUY -- duoi cung
- *
- * Locale strategy: CompositionLocalProvider overrides LocalContext with a
- * locale-aware context built from currentLanguage. This makes stringResource()
- * immediately return strings in the selected language WITHOUT recreating the
- * Activity. No activity restart = no "app exit" feel.
  */
-@SuppressLint("LocalContextConfigurationRead")
 @Composable
 fun RecordingScreen(
     service: VoiceRecordingService?,
@@ -113,6 +114,43 @@ fun RecordingScreen(
         ?: kotlinx.coroutines.flow.MutableStateFlow(false)).collectAsState()
 
     val currentLanguage by LanguageManager.currentLanguage.collectAsState()
+    val baseContext = LocalContext.current
+
+    RecordingScreenContent(
+        recognizedText = recognizedText,
+        partialText = partialText,
+        isListening = isListening,
+        isPaused = isPaused,
+        isBound = isBound,
+        showSavedToast = showSavedToast,
+        currentLanguage = currentLanguage,
+        onLanguageSelect = { lang ->
+            LanguageManager.setLanguage(baseContext, lang)
+            service?.updateLanguageAndRestart()
+        },
+        onCancel = onCancel,
+        onSaveAndExit = onSaveAndExit
+    )
+}
+
+/**
+ * Pure UI composable cho RecordingScreen — hoàn toàn độc lập với Service,
+ * giúp xem trước (Preview) và chỉnh sửa giao diện cực kỳ nhanh chóng trên Android Studio.
+ */
+@SuppressLint("LocalContextConfigurationRead")
+@Composable
+fun RecordingScreenContent(
+    recognizedText: String = "",
+    partialText: String = "",
+    isListening: Boolean = true,
+    isPaused: Boolean = false,
+    isBound: Boolean = true,
+    showSavedToast: Boolean = false,
+    currentLanguage: AppLanguage = AppLanguage.VIETNAMESE,
+    onLanguageSelect: (AppLanguage) -> Unit = {},
+    onCancel: () -> Unit = {},
+    onSaveAndExit: () -> Unit = {}
+) {
     val langLabel = currentLanguage.shortCode
 
     val displayText = buildString {
@@ -137,13 +175,11 @@ fun RecordingScreen(
     )
 
     // ── Tao locale context theo ngon ngu duoc chon ──────────────────────────
-    // createConfigurationContext() tao context moi voi locale chinh xac.
-    // CompositionLocalProvider(LocalContext provides ...) override context cho
-    // toan bo cay composable ben duoi, nen stringResource() tra ve dung ngon ngu
-    // MA KHONG CAN recreate() Activity.
     val localizedContext = remember(currentLanguage) {
         val config = Configuration(baseContext.resources.configuration)
-        config.setLocale(Locale(currentLanguage.code))
+        try {
+            config.setLocale(Locale(currentLanguage.code))
+        } catch (_: Exception) {}
         baseContext.createConfigurationContext(config)
     }
 
@@ -166,29 +202,27 @@ fun RecordingScreen(
         ) {
 
             // ── Nut Chon Ngon Ngu -- goc tren phai ──────────────────────────
-            // Pill button: toan bo vung pill la vung bam + ripple.
-            // clip() truoc clickable() de ripple bi cat gon trong pill.
             Box(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
-                    .padding(top = 44.dp, end = 16.dp)
+                    .windowInsetsPadding(WindowInsets.statusBars)
+                    .padding(top = 16.dp, end = 16.dp)
             ) {
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(24.dp))
-                        .background(Color(0xFF1C1C1C))
-                        .clickable { showLangMenu = true }
-                        .defaultMinSize(minWidth = 88.dp, minHeight = 48.dp)
-                        .padding(horizontal = 20.dp, vertical = 12.dp),
-                    contentAlignment = Alignment.Center
+                Surface(
+                    onClick = { showLangMenu = true },
+                    shape = RoundedCornerShape(24.dp),
+                    color = Color(0xFF1E293B),
+                    border = BorderStroke(1.dp, Color(0xFF334155)),
+                    modifier = Modifier.defaultMinSize(minWidth = 96.dp, minHeight = 48.dp)
                 ) {
                     Row(
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Text(
                             text = currentLanguage.flagEmoji,
-                            fontSize = 16.sp
+                            fontSize = 18.sp
                         )
                         Text(
                             text = langLabel,
@@ -196,13 +230,13 @@ fun RecordingScreen(
                             fontWeight = FontWeight.SemiBold,
                             fontSize = 14.sp,
                             letterSpacing = 0.8.sp,
-                            color = Color(0xFFCCCCCC)
+                            color = Color(0xFFF1F5F9)
                         )
                         Icon(
                             imageVector = Icons.Default.KeyboardArrowDown,
-                            contentDescription = null,
-                            tint = Color(0xFF888888),
-                            modifier = Modifier.size(15.dp)
+                            contentDescription = "Chọn ngôn ngữ",
+                            tint = Color(0xFF94A3B8),
+                            modifier = Modifier.size(18.dp)
                         )
                     }
                 }
@@ -242,14 +276,7 @@ fun RecordingScreen(
                                 )
                             }) else null,
                             onClick = {
-                                if (!isSelected) {
-                                    // Luu preference + cap nhat StateFlow
-                                    LanguageManager.setLanguage(baseContext, lang)
-                                    // Cap nhat ngon ngu nhan dang giong noi trong service
-                                    service?.updateLanguageAndRestart()
-                                    // Khong can recreate() — CompositionLocalProvider
-                                    // tu dong recompose voi locale moi ngay lap tuc
-                                }
+                                onLanguageSelect(lang)
                                 showLangMenu = false
                             },
                             colors = MenuDefaults.itemColors(
@@ -439,4 +466,112 @@ private fun MicCircle(isActive: Boolean, isPaused: Boolean) {
 @Composable
 fun RecordingIndicator(isListening: Boolean) {
     MicCircle(isActive = isListening, isPaused = false)
+}
+
+// ── PREVIEWS CHO ANDROID STUDIO COMPOSE ──────────────────────────────────────
+
+@Preview(
+    name = "1. Ghi âm - Sẵn sàng (Tiếng Việt)",
+    showBackground = true,
+    backgroundColor = 0xFF000000,
+    widthDp = 390,
+    heightDp = 844
+)
+@Composable
+fun RecordingScreenPreviewDefault() {
+    AndroidAutoNoteTheme {
+        RecordingScreenContent(
+            recognizedText = "",
+            partialText = "",
+            isListening = true,
+            isPaused = false,
+            isBound = true,
+            currentLanguage = AppLanguage.VIETNAMESE
+        )
+    }
+}
+
+@Preview(
+    name = "2. Ghi âm - Đang nhận diện văn bản",
+    showBackground = true,
+    backgroundColor = 0xFF000000,
+    widthDp = 390,
+    heightDp = 844
+)
+@Composable
+fun RecordingScreenPreviewWithText() {
+    AndroidAutoNoteTheme {
+        RecordingScreenContent(
+            recognizedText = "Hôm nay tôi đang kiểm tra tính năng ghi chú siêu tốc không ma sát,",
+            partialText = "nhận diện giọng nói tức thì...",
+            isListening = true,
+            isPaused = false,
+            isBound = true,
+            currentLanguage = AppLanguage.VIETNAMESE
+        )
+    }
+}
+
+@Preview(
+    name = "3. Ghi âm - Tiếng Anh (English)",
+    showBackground = true,
+    backgroundColor = 0xFF000000,
+    widthDp = 390,
+    heightDp = 844
+)
+@Composable
+fun RecordingScreenPreviewEnglish() {
+    AndroidAutoNoteTheme {
+        RecordingScreenContent(
+            recognizedText = "Zero-friction voice recording notes app is running smoothly.",
+            partialText = "",
+            isListening = true,
+            isPaused = false,
+            isBound = true,
+            currentLanguage = AppLanguage.ENGLISH
+        )
+    }
+}
+
+@Preview(
+    name = "4. Ghi âm - Tạm dừng (Paused)",
+    showBackground = true,
+    backgroundColor = 0xFF000000,
+    widthDp = 390,
+    heightDp = 844
+)
+@Composable
+fun RecordingScreenPreviewPaused() {
+    AndroidAutoNoteTheme {
+        RecordingScreenContent(
+            recognizedText = "Ghi chú đang tạm dừng",
+            partialText = "",
+            isListening = false,
+            isPaused = true,
+            isBound = true,
+            currentLanguage = AppLanguage.VIETNAMESE
+        )
+    }
+}
+
+@Preview(
+    name = "5. Ghi âm - Thông báo Đã lưu (Saved Toast)",
+    showBackground = true,
+    backgroundColor = 0xFF000000,
+    widthDp = 390,
+    heightDp = 844
+)
+@Composable
+fun RecordingScreenPreviewSavedToast() {
+    AndroidAutoNoteTheme {
+        RecordingScreenContent(
+            recognizedText = "",
+            partialText = "",
+            isListening = false,
+            isPaused = false,
+            isBound = true,
+            showSavedToast = true,
+            currentLanguage = AppLanguage.VIETNAMESE
+        )
+    }
 }
