@@ -258,7 +258,16 @@ fun PremiumGateDialog(
                                 }
                                 val pd = product
                                 if (pd == null) {
-                                    android.util.Log.e("PremiumDialog", "❌ product is NULL → showing error")
+                                    android.util.Log.e("PremiumDialog", "❌ product is NULL (Google Play not synced or not uploaded to Internal Testing)")
+                                    if (com.tatl.fastnote.BuildConfig.DEBUG) {
+                                        // ⚡ Chế độ Debug: Kích hoạt Premium giả lập ngay để test luồng app mà không phải chờ Google Play đồng bộ
+                                        scope.launch {
+                                            PremiumManager.setPremium("DEBUG_MOCK_TOKEN")
+                                            statusText = ""
+                                            onPremiumGranted()
+                                        }
+                                        return@Button
+                                    }
                                     statusText = strProductErr
                                     return@Button
                                 }

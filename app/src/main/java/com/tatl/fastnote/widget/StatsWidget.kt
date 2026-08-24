@@ -1,4 +1,4 @@
-﻿package com.tatl.fastnote.widget
+package com.tatl.fastnote.widget
 
 import android.content.Context
 import androidx.compose.runtime.Composable
@@ -56,7 +56,7 @@ class StatsWidget : GlanceAppWidget() {
             modifier = GlanceModifier
                 .fillMaxSize()
                 .cornerRadius(16.dp)
-                .background(ColorProvider(day = Color.White, night = Color(0xFF1E1E1E)))
+                .background(ColorProvider(day = Color(0xFFF1F5F9), night = Color(0xFF142433)))
                 .padding(16.dp)
         ) {
             Text(

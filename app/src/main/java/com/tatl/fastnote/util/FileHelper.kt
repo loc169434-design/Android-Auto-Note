@@ -230,8 +230,27 @@ object FileHelper {
     }
 
     /**
+     * Kiểm tra xem tất cả header gốc (origHeaders) có còn tồn tại đầy đủ theo đúng thứ tự
+     * trong danh sách header mới (newHeaders) hay không (cho phép chèn/thêm header mới).
+     */
+    fun isValidHeaderPreservation(origHeaders: List<String>, newHeaders: List<String>): Boolean {
+        if (origHeaders.isEmpty()) return true
+        if (newHeaders.size < origHeaders.size) return false
+
+        var origIdx = 0
+        for (newH in newHeaders) {
+            if (newH == origHeaders[origIdx]) {
+                origIdx++
+                if (origIdx == origHeaders.size) return true
+            }
+        }
+        return origIdx == origHeaders.size
+    }
+
+    /**
      * Validate edit constraints:
-     * - Date header lines (bắt bằng DATE_HEADER_REGEX) không được bị xóa hoặc sửa đổi nội dung bên trong tiền tố
+     * - Date header lines (bắt bằng DATE_HEADER_REGEX) không được bị xóa hoặc sửa đổi nội dung bên trong tiền tố cũ
+     * - Người dùng được phép tự gõ/chèn thêm header ngày tháng mới
      * - Chỉ phần tiền tố (trước và gồm dấu ':') được bảo vệ; nội dung sau dấu ':' được tự do xóa/sửa
      * - Nếu ban đầu chưa có header nào (file trống/note tự do) -> cho phép lưu tự do
      */
@@ -242,13 +261,7 @@ object FileHelper {
         val origHeaders = origLines.mapNotNull { extractDateHeader(it) }
         val editHeaders = editLines.mapNotNull { extractDateHeader(it) }
 
-        if (origHeaders.isEmpty()) {
-            return null
-        }
-
-        // Chỉ bảo vệ dòng timestamp — không cho xóa/sửa header ngày tháng
-        // Content bình thường (kể cả xóa hết sau dấu ':') được phép tự do
-        if (origHeaders.size != editHeaders.size || origHeaders.zip(editHeaders).any { (a, b) -> a != b }) {
+        if (!isValidHeaderPreservation(origHeaders, editHeaders)) {
             return "Không được xóa hoặc sửa dòng ngày tháng cố định"
         }
         return null

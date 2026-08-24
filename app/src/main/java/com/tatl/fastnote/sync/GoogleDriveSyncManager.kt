@@ -205,42 +205,41 @@ object GoogleDriveSyncManager {
         var currentHeader: String? = null
         val currentContent = StringBuilder()
 
+        fun flush() {
+            val h = currentHeader
+            val c = currentContent.toString().trim()
+            if (h != null || c.isNotEmpty()) {
+                val finalHeader = h ?: ""
+                val fullLine = if (finalHeader.isNotEmpty()) "- $finalHeader: $c" else c
+                entries.add(
+                    FileHelper.NoteEntry(
+                        header = finalHeader,
+                        content = c,
+                        fullLine = fullLine
+                    )
+                )
+            }
+            currentContent.clear()
+        }
+
         for (line in lines) {
             val trimmed = line.trim()
-            if (trimmed.startsWith("- Thứ") || trimmed.startsWith("- Chủ") || trimmed.startsWith("- ")) {
-                if (currentHeader != null) {
-                    entries.add(
-                        FileHelper.NoteEntry(
-                            header = currentHeader,
-                            content = currentContent.toString().trim(),
-                            fullLine = "- $currentHeader: ${currentContent.toString().trim()}"
-                        )
-                    )
-                    currentContent.clear()
-                }
+            val headerMatch = FileHelper.extractDateHeader(trimmed)
+            if (headerMatch != null) {
+                flush()
+                val cleanH = headerMatch.trimStart('-', '*').trim().removeSuffix(":").trim()
+                currentHeader = cleanH
                 val colonIdx = trimmed.indexOf(":")
-                if (colonIdx != -1) {
-                    currentHeader = trimmed.substring(2, colonIdx).trim()
+                if (colonIdx != -1 && colonIdx < trimmed.length - 1) {
                     currentContent.append(trimmed.substring(colonIdx + 1).trim())
-                } else {
-                    currentHeader = trimmed.removePrefix("-").trim()
                 }
-            } else if (trimmed.isNotEmpty() && currentHeader != null) {
+            } else if (trimmed.isNotEmpty()) {
                 if (currentContent.isNotEmpty()) currentContent.append("\n")
                 currentContent.append(trimmed)
             }
         }
 
-        if (currentHeader != null) {
-            entries.add(
-                FileHelper.NoteEntry(
-                    header = currentHeader,
-                    content = currentContent.toString().trim(),
-                    fullLine = "- $currentHeader: ${currentContent.toString().trim()}"
-                )
-            )
-        }
-
+        flush()
         return entries
     }
 

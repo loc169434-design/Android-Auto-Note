@@ -220,16 +220,12 @@ fun FileViewerScreen(
                             val oldLines = oldText.lines()
                             val newLines = newText.lines()
 
-                            // Rule: bảo vệ header ngày giờ cố định bằng Regex (nếu ban đầu có)
+                            // Rule: bảo vệ header ngày giờ cố định bằng Regex (cho phép gõ thêm header mới)
                             val oldHeaders = oldLines.mapNotNull { FileHelper.extractDateHeader(it) }
                             val newHeaders = newLines.mapNotNull { FileHelper.extractDateHeader(it) }
-                            if (oldHeaders.isNotEmpty()) {
-                                if (oldHeaders.size != newHeaders.size ||
-                                    oldHeaders.zip(newHeaders).any { (a, b) -> a != b }
-                                ) {
-                                    showProtectToast = true
-                                    return@BasicTextField
-                                }
+                            if (!FileHelper.isValidHeaderPreservation(oldHeaders, newHeaders)) {
+                                showProtectToast = true
+                                return@BasicTextField
                             }
 
                             val charsRemoved = oldText.length - newText.length

@@ -1,4 +1,4 @@
-﻿package com.tatl.fastnote.widget
+package com.tatl.fastnote.widget
 
 import android.content.Context
 import androidx.glance.appwidget.GlanceAppWidgetManager
@@ -33,6 +33,12 @@ object WidgetUpdater {
             val openNotesIds = manager.getGlanceIds(OpenNotesWidget::class.java)
             openNotesIds.forEach { id ->
                 OpenNotesWidget().update(context, id)
+            }
+
+            // Update Triple Action Widget
+            val tripleActionIds = manager.getGlanceIds(TripleActionWidget::class.java)
+            tripleActionIds.forEach { id ->
+                TripleActionWidget().update(context, id)
             }
         } catch (e: Exception) {
             // Widget might not be placed on home screen — safe to ignore

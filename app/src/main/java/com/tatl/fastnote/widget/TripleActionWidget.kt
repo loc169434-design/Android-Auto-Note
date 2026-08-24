@@ -118,8 +118,7 @@ class TripleActionWidget : GlanceAppWidget() {
     }
 
     /**
-     * Mỗi icon nằm trong "pill" mờ riêng → 3 nút trông độc lập nhau,
-     * nền widget tổng thể vẫn TRONG SUỐT.
+     * Nút icon trong suốt hoàn toàn (không nền), kích thước icon lớn 38dp
      */
     @Composable
     private fun PillIconButton(
@@ -129,21 +128,13 @@ class TripleActionWidget : GlanceAppWidget() {
     ) {
         Box(
             modifier = modifier
-                .cornerRadius(20.dp)
-                .background(
-                    ColorProvider(
-                        // Nền mờ tối — đủ nhìn thấy icon trên mọi wallpaper
-                        day   = Color(0xCC000000),   // 80% đen
-                        night = Color(0xCC000000)
-                    )
-                )
-                .padding(4.dp),
+                .fillMaxHeight(),
             contentAlignment = Alignment.Center
         ) {
             Image(
                 provider           = ImageProvider(iconRes),
                 contentDescription = contentDescription,
-                modifier           = GlanceModifier.size(28.dp)
+                modifier           = GlanceModifier.size(38.dp)
             )
         }
     }

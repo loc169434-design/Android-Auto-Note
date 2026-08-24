@@ -1,5 +1,6 @@
 package com.tatl.fastnote.ui.recording
 
+import android.annotation.SuppressLint
 import android.content.res.Configuration
 import androidx.compose.animation.core.EaseInOutSine
 import androidx.compose.animation.core.RepeatMode
@@ -93,6 +94,7 @@ private val CancelBorder = Color(0xFF444444)
  * immediately return strings in the selected language WITHOUT recreating the
  * Activity. No activity restart = no "app exit" feel.
  */
+@SuppressLint("LocalContextConfigurationRead")
 @Composable
 fun RecordingScreen(
     service: VoiceRecordingService?,
