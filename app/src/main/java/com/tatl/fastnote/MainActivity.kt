@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -167,6 +168,11 @@ class MainActivity : ComponentActivity() {
                     var showPremiumDialog  by remember { mutableStateOf(false) }
                     var isPremiumUser      by remember { mutableStateOf(false) }
                     var showSendPcDialog  by remember { mutableStateOf(false) }
+                    var pendingActionAfterPremium by remember { mutableStateOf<(() -> Unit)?>(null) }
+
+                    LaunchedEffect(Unit) {
+                        isPremiumUser = com.tatl.fastnote.billing.PremiumManager.isPremium(this@MainActivity)
+                    }
 
                     NavHost(
                         navController = navController,
@@ -209,11 +215,20 @@ class MainActivity : ComponentActivity() {
                                     }
                                 },
                                 onPremiumClick = {
+                                    pendingActionAfterPremium = null
                                     showPremiumDialog = true
                                 },
-                                // Nut Gui PC: moi lan gui la nhap mat khau lai luon
+                                // Nut Gui PC: Bat buoc phai la Premium (khong bo qua bang trial de test thanh toan)
                                 onComputerClick = {
-                                    showSendPcDialog = true
+                                    lifecycleScope.launch {
+                                        val isPrem = isPremiumUser || com.tatl.fastnote.billing.PremiumManager.isPremium(this@MainActivity)
+                                        if (isPrem) {
+                                            showSendPcDialog = true
+                                        } else {
+                                            pendingActionAfterPremium = { showSendPcDialog = true }
+                                            showPremiumDialog = true
+                                        }
+                                    }
                                 },
                                 isPremium = isPremiumUser
                             )
@@ -222,7 +237,10 @@ class MainActivity : ComponentActivity() {
                         composable("settings") {
                             SettingsScreen(
                                 isPremium = isPremiumUser,
-                                onUpgradeClick = { showPremiumDialog = true },
+                                onUpgradeClick = {
+                                    pendingActionAfterPremium = null
+                                    showPremiumDialog = true
+                                },
                                 onLoginClick = {
                                     startActivity(Intent(this@MainActivity, OnboardingActivity::class.java))
                                 },
@@ -243,15 +261,25 @@ class MainActivity : ComponentActivity() {
                         exit  = slideOutVertically(tween(240)) { it / 2 } + fadeOut(tween(200))
                     ) {
                         PremiumGateDialog(
-                            onDismiss = { showPremiumDialog = false },
+                            onDismiss = {
+                                showPremiumDialog = false
+                                pendingActionAfterPremium = null
+                            },
                             onPremiumGranted = {
                                 isPremiumUser = true
                                 showPremiumDialog = false
+                                lifecycleScope.launch {
+                                    com.tatl.fastnote.billing.PremiumManager.setPremium(context = this@MainActivity)
+                                    com.tatl.fastnote.sync.GoogleDriveSyncManager.sync(applicationContext)
+                                    com.tatl.fastnote.sync.CloudSyncManager.syncFromCloud(applicationContext)
+                                }
                                 Toast.makeText(
                                     this@MainActivity,
                                     "Cảm ơn bạn. Các đặc quyền Premium đã được mở thành công!",
                                     Toast.LENGTH_SHORT
                                 ).show()
+                                pendingActionAfterPremium?.invoke()
+                                pendingActionAfterPremium = null
                             }
                         )
                     }

@@ -1,5 +1,6 @@
 package com.tatl.fastnote.billing
 
+import android.content.Context
 import android.util.Log
 import com.google.firebase.firestore.SetOptions
 import com.google.firebase.firestore.ktx.firestore
@@ -8,34 +9,42 @@ import com.tatl.fastnote.auth.AuthManager
 import kotlinx.coroutines.tasks.await
 
 /**
- * Manages Premium status via Firebase Firestore.
+ * Manages Premium status via Firebase Firestore & local SharedPreferences cache.
  *
  * Firestore path: users/{uid}/premium/status
  *   isPremium: Boolean
  *   purchaseToken: String?
  *   purchasedAt: Timestamp?
- *
- * Source of truth is Firestore (server-side), not local SharedPreferences,
- * to prevent Lucky Patcher / APK tampering.
  */
 object PremiumManager {
 
     private const val TAG = "PremiumManager"
+    private const val PREFS_NAME = "premium_prefs"
+    private const val KEY_IS_PREMIUM = "is_premium_cached"
 
     // ── Read premium status ───────────────────────────────────────────────────
 
     /**
-     * Fetch premium status from Firestore.
-     * Returns false if user is not logged in or Firestore fails.
+     * Fetch premium status from local cache or Firestore.
      */
-    suspend fun isPremium(): Boolean {
+    suspend fun isPremium(context: Context? = null): Boolean {
+        if (context != null) {
+            val localCached = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                .getBoolean(KEY_IS_PREMIUM, false)
+            if (localCached) return true
+        }
         val uid = AuthManager.uid ?: return false
         return try {
             val doc = Firebase.firestore
                 .collection("users").document(uid)
                 .collection("premium").document("status")
                 .get().await()
-            doc.getBoolean("isPremium") == true
+            val isPrem = doc.getBoolean("isPremium") == true
+            if (isPrem && context != null) {
+                context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                    .edit().putBoolean(KEY_IS_PREMIUM, true).apply()
+            }
+            isPrem
         } catch (e: Exception) {
             Log.w(TAG, "isPremium check failed: ${e.message}")
             false
@@ -46,19 +55,21 @@ object PremiumManager {
      * Full gate check: user is premium OR trial hasn't expired.
      * This is the main check to use before showing locked features.
      */
-    suspend fun hasAccess(context: android.content.Context): Boolean {
+    suspend fun hasAccess(context: Context): Boolean {
         if (!TrialManager.isTrialExpired(context)) return true
-        return isPremium()
+        return isPremium(context)
     }
 
     // ── Write premium status (called after billing validation) ─────────────────
 
     /**
-     * Mark user as premium in Firestore.
-     * In production this should be done server-side via Cloud Functions.
-     * This client-side write is a fallback for development/testing.
+     * Mark user as premium in local cache and Firestore.
      */
-    suspend fun setPremium(purchaseToken: String? = null) {
+    suspend fun setPremium(purchaseToken: String? = null, context: Context? = null) {
+        if (context != null) {
+            context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                .edit().putBoolean(KEY_IS_PREMIUM, true).apply()
+        }
         val uid = AuthManager.uid ?: return
         try {
             val data = mutableMapOf<String, Any>(
