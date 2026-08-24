@@ -209,6 +209,18 @@ fun HomeScreen(
         }
     }
 
+    // ── Focus & Cursor lên dòng đầu tiên khi vào Edit Mode ───────────────────
+    LaunchedEffect(isEditMode) {
+        if (isEditMode) {
+            editTfv = editTfv.copy(selection = TextRange(0))
+            kotlinx.coroutines.delay(50L)
+            try {
+                focusRequester.requestFocus()
+                keyboardController?.show()
+            } catch (_: Exception) {}
+        }
+    }
+
     // ── Lifecycle ─────────────────────────────────────────────────────────────
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->

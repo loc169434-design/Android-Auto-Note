@@ -141,10 +141,14 @@ fun FileViewerScreen(
         }
     }
 
-    // ── Focus & bàn phím khi mở ───────────────────────────────────────────────
+    // ── Focus & bàn phím khi mở — đặt trỏ lên dòng đầu tiên ───────────────────
     LaunchedEffect(Unit) {
-        focusRequester.requestFocus()
-        keyboardController?.show()
+        kotlinx.coroutines.delay(80L)
+        tfv = tfv.copy(selection = TextRange(0))
+        try {
+            focusRequester.requestFocus()
+            keyboardController?.show()
+        } catch (_: Exception) {}
     }
 
     // ── Giao diện ─────────────────────────────────────────────────────────────
