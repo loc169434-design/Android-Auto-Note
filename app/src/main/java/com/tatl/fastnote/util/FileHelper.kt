@@ -40,6 +40,61 @@ object FileHelper {
     // Keywords that trigger the NEXT LINE to be masked with *** in display
     val SENSITIVE_KEYWORDS = listOf("mật khẩu", "password", "pass", "mk")
 
+    // ── Regex Header Tiền Tố Ngày Tháng ──────────────────────────────────────
+    val DATE_HEADER_REGEX = Regex(
+        """^-\s*(?:Thứ\s+[a-zA-Z\p{L}]+|Chủ\s+nhật|Ngày)(?:,\s*ngày|\s+ngày)?\s*\d{1,2}[-/]\d{1,2}[-/]\d{4}\s*lúc\s*\d{1,2}[\.:]\d{2}\s*:""",
+        RegexOption.IGNORE_CASE
+    )
+
+    /**
+     * Trích xuất chính xác tiền tố ngày tháng từ đầu dòng (bao gồm dấu ':').
+     * Trả về null nếu dòng không phải là dòng bắt đầu ngày tháng.
+     */
+    fun extractDateHeader(line: String): String? {
+        val trimmed = line.trimStart()
+        val match = DATE_HEADER_REGEX.find(trimmed)
+        return match?.value?.trim()
+    }
+
+    // ── Sample Data cho môi trường không tiện ghi âm ───────────────────────────
+    fun ensureSampleData(context: Context) {
+        val rawFile = getRawFile(context)
+        val guidiFile = getGuidiFile(context)
+        if (!rawFile.exists() || rawFile.length() == 0L || !guidiFile.exists() || guidiFile.length() == 0L) {
+            val sampleText = buildSampleNotes()
+            try {
+                rawFile.writeText(sampleText, Charsets.UTF_8)
+                guidiFile.writeText(sampleText, Charsets.UTF_8)
+                Log.d(TAG, "Initialized sample notes data")
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to initialize sample notes", e)
+            }
+        }
+    }
+
+    private fun buildSampleNotes(): String {
+        val cal = Calendar.getInstance()
+        fun formatDate(c: Calendar, hour: Int, minute: Int): String {
+            val dayName = DAY_NAMES[c.get(Calendar.DAY_OF_WEEK)] ?: "Ngày"
+            val day = String.format(Locale.getDefault(), "%02d", c.get(Calendar.DAY_OF_MONTH))
+            val month = String.format(Locale.getDefault(), "%02d", c.get(Calendar.MONTH) + 1)
+            val year = c.get(Calendar.YEAR)
+            val h = String.format(Locale.getDefault(), "%02d", hour)
+            val m = String.format(Locale.getDefault(), "%02d", minute)
+            return "- $dayName, ngày $day-$month-$year lúc $h.$m:"
+        }
+
+        val header1 = formatDate(cal, 8, 30)
+        val header2 = formatDate(cal, 10, 15)
+
+        val calPrev = (cal.clone() as Calendar).apply { add(Calendar.DAY_OF_MONTH, -1) }
+        val header3 = formatDate(calPrev, 16, 45)
+
+        return "$header1 Họp giao ban đầu tuần, thảo luận về kế hoạch triển khai tính năng AI và đồng bộ đám mây.\n\n" +
+                "$header2 **Ý TƯỞNG PHÁT TRIỂN:** Tối ưu hóa bộ nhận diện Regex cho ghi chú, hỗ trợ xóa nội dung linh hoạt và tự động bảo vệ tiền tố ngày tháng.\n\n" +
+                "$header3 Mua sách và chuẩn bị tài liệu nghiên cứu Jetpack Compose Canvas."
+    }
+
     // ── Directory ─────────────────────────────────────────────────────────────
 
     fun getNotesDir(context: Context): File {
@@ -97,6 +152,7 @@ object FileHelper {
      * Supports single-line and multi-line notes.
      */
     fun parseEntries(context: Context): List<NoteEntry> {
+        ensureSampleData(context)
         val file = getGuidiFile(context)
         if (!file.exists()) return emptyList()
 
@@ -108,9 +164,11 @@ object FileHelper {
             val currentFull = StringBuilder()
 
             fun flush() {
-                val h = currentHeader
-                if (h != null) {
-                    entries.add(NoteEntry(h, currentContent.toString().trim(), currentFull.toString().trim()))
+                val h = currentHeader ?: ""
+                val c = currentContent.toString().trim()
+                val f = currentFull.toString().trim()
+                if (h.isNotEmpty() || c.isNotEmpty() || f.isNotEmpty()) {
+                    entries.add(NoteEntry(h, c, f))
                 }
                 currentHeader = null
                 currentContent.clear()
@@ -119,19 +177,18 @@ object FileHelper {
 
             for (line in lines) {
                 val trimmed = line.trim()
-                if (trimmed.startsWith("- Thứ") || trimmed.startsWith("- Chủ") || trimmed.startsWith("- Ngày")) {
+                val match = DATE_HEADER_REGEX.find(trimmed)
+                if (match != null) {
                     flush()
-                    val colonIdx = line.indexOf(": ")
-                    if (colonIdx != -1) {
-                        val dashIdx = line.indexOf("- ")
-                        val headerStart = if (dashIdx != -1) dashIdx + 2 else 0
-                        currentHeader = line.substring(headerStart, colonIdx).trim()
-                        currentContent.append(line.substring(colonIdx + 2))
-                        currentFull.append(line)
-                    } else {
-                        currentFull.append(line)
+                    val matchEnd = match.range.last + 1
+                    val rawHeader = match.value.trimStart('-', ' ').trimEnd(':').trim()
+                    currentHeader = rawHeader
+                    val contentAfter = trimmed.substring(matchEnd).trimStart()
+                    if (contentAfter.isNotEmpty()) {
+                        currentContent.append(contentAfter)
                     }
-                } else if (currentHeader != null) {
+                    currentFull.append(line)
+                } else {
                     if (trimmed.isNotEmpty()) {
                         if (currentContent.isNotEmpty()) currentContent.append("\n")
                         currentContent.append(line)
@@ -151,6 +208,7 @@ object FileHelper {
     // ── Raw file edit ─────────────────────────────────────────────────────────
 
     fun readRawFile(context: Context): String {
+        ensureSampleData(context)
         val f = getRawFile(context)
         return if (f.exists()) f.readText(Charsets.UTF_8) else ""
     }
@@ -173,25 +231,23 @@ object FileHelper {
 
     /**
      * Validate edit constraints:
-     * - Date header lines (starting with "- Thứ" / "- Chủ") must not be removed or modified
-     * - Only the TIMESTAMP part (before ": ") is protected; content after ": " can be edited freely
-     * - No more than 4 lines removed in one edit session
+     * - Date header lines (bắt bằng DATE_HEADER_REGEX) không được bị xóa hoặc sửa đổi nội dung bên trong tiền tố
+     * - Chỉ phần tiền tố (trước và gồm dấu ':') được bảo vệ; nội dung sau dấu ':' được tự do xóa/sửa
+     * - Nếu ban đầu chưa có header nào (file trống/note tự do) -> cho phép lưu tự do
      */
     private fun validateEdit(original: String, edited: String): String? {
         val origLines = original.lines()
         val editLines = edited.lines()
 
-        val isDateLine = { l: String -> l.trimStart().startsWith("- Thứ") || l.trimStart().startsWith("- Chủ") }
-        // Chi lay phan truoc ": " de so sanh — cho phep sua content sau dau hai cham
-        val headerOnly = { l: String ->
-            val idx = l.indexOf(": ")
-            if (idx != -1) l.substring(0, idx) else l
+        val origHeaders = origLines.mapNotNull { extractDateHeader(it) }
+        val editHeaders = editLines.mapNotNull { extractDateHeader(it) }
+
+        if (origHeaders.isEmpty()) {
+            return null
         }
-        val origHeaders = origLines.filter(isDateLine).map(headerOnly)
-        val editHeaders = editLines.filter(isDateLine).map(headerOnly)
 
         // Chỉ bảo vệ dòng timestamp — không cho xóa/sửa header ngày tháng
-        // Content bình thường (kể cả xóa nhiều dòng) được phép tự do
+        // Content bình thường (kể cả xóa hết sau dấu ':') được phép tự do
         if (origHeaders.size != editHeaders.size || origHeaders.zip(editHeaders).any { (a, b) -> a != b }) {
             return "Không được xóa hoặc sửa dòng ngày tháng cố định"
         }

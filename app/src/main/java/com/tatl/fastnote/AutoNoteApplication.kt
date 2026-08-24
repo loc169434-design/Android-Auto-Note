@@ -23,5 +23,6 @@ class AutoNoteApplication : Application() {
         ThemePreferences.init(this)
         UserManager.init(this)
         LanguageManager.init(this)
+        com.tatl.fastnote.util.FileHelper.ensureSampleData(this)
     }
 }

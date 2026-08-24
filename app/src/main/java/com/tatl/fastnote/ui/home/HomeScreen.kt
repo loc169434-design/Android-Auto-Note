@@ -121,11 +121,6 @@ private val HomeSearchActive  = Color(0xFFFFFFFF)
 private val RedHighlight      = Color(0xFFFF5252)
 private val RedBg             = Color(0x33FF5252)
 
-// Rule: dòng ngày tháng cố định
-private val IS_DATE_LINE: (String) -> Boolean = { line ->
-    val t = line.trimStart()
-    t.startsWith("- Thứ") || t.startsWith("- Chủ") || t.startsWith("- Ngày")
-}
 
 @Composable
 fun HomeScreen(
@@ -341,18 +336,16 @@ fun HomeScreen(
                                 val oldLines = oldText.lines()
                                 val newLines = newText.lines()
 
-                                // Rule: bảo vệ header ngày giờ cố định
-                                fun headerOnly(line: String): String {
-                                    val idx = line.indexOf(": ")
-                                    return if (idx != -1) line.substring(0, idx) else line
-                                }
-                                val oldHeaders = oldLines.filter(IS_DATE_LINE).map { headerOnly(it) }
-                                val newHeaders = newLines.filter(IS_DATE_LINE).map { headerOnly(it) }
-                                if (oldHeaders.size != newHeaders.size ||
-                                    oldHeaders.zip(newHeaders).any { (a, b) -> a != b }
-                                ) {
-                                    showProtectToast = true
-                                    return@BasicTextField
+                                // Rule: bảo vệ header ngày giờ cố định bằng Regex (nếu ban đầu có)
+                                val oldHeaders = oldLines.mapNotNull { FileHelper.extractDateHeader(it) }
+                                val newHeaders = newLines.mapNotNull { FileHelper.extractDateHeader(it) }
+                                if (oldHeaders.isNotEmpty()) {
+                                    if (oldHeaders.size != newHeaders.size ||
+                                        oldHeaders.zip(newHeaders).any { (a, b) -> a != b }
+                                    ) {
+                                        showProtectToast = true
+                                        return@BasicTextField
+                                    }
                                 }
 
                                 // Rule: chỉ block khi user xóa nhầm timestamp header
@@ -884,21 +877,23 @@ private fun buildFormattedNoteEntry(
     query: String
 ): AnnotatedString {
     return buildAnnotatedString {
-        // 1. Nhãn ngày giờ: *Thứ..., ngày... lúc HH.MM: (nghiêng, màu xám xanh)
+        // 1. Nhãn ngày giờ: *Thứ..., ngày... lúc HH.MM: (nghiêng, màu xám xanh nếu có)
         val cleanHeader = header.trim().trimStart('-', '*').trim()
-        val headerPrefix = "*$cleanHeader: "
-        val startHeader = length
-        append(headerPrefix)
-        val endHeader = length
-        addStyle(
-            SpanStyle(
-                color = HomeHeaderItalic,
-                fontStyle = FontStyle.Italic,
-                fontWeight = FontWeight.Normal
-            ),
-            startHeader,
-            endHeader
-        )
+        if (cleanHeader.isNotEmpty()) {
+            val headerPrefix = "*$cleanHeader: "
+            val startHeader = length
+            append(headerPrefix)
+            val endHeader = length
+            addStyle(
+                SpanStyle(
+                    color = HomeHeaderItalic,
+                    fontStyle = FontStyle.Italic,
+                    fontWeight = FontWeight.Normal
+                ),
+                startHeader,
+                endHeader
+            )
+        }
 
         // 2. Nội dung text (hỗ trợ **bold** markdown)
         parseMarkdownContent(content)
@@ -989,19 +984,14 @@ private class NoteEditorVisualTransformation : VisualTransformation {
             for (i in lines.indices) {
                 val line = lines[i]
                 val trimmed = line.trimStart()
-                val isDate = trimmed.startsWith("- Thứ") ||
-                             trimmed.startsWith("- Chủ") ||
-                             trimmed.startsWith("- Ngày") ||
-                             trimmed.startsWith("*Thứ") ||
-                             trimmed.startsWith("*Chủ") ||
-                             trimmed.startsWith("*Ngày")
+                val match = FileHelper.DATE_HEADER_REGEX.find(trimmed)
                 val start = length
                 append(line)
                 val end = length
 
-                if (isDate) {
-                    val colonIdx = line.indexOf(": ")
-                    val headerEnd = if (colonIdx != -1) start + colonIdx + 2 else end
+                if (match != null) {
+                    val colonIdx = line.indexOf(':')
+                    val headerEnd = if (colonIdx != -1) start + colonIdx + 1 else end
                     addStyle(
                         SpanStyle(
                             color = HomeHeaderItalic,

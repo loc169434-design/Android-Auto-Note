@@ -89,11 +89,6 @@ private val FvTextPrimary   = Color(0xFFF1F5F9)
 private val FvTextMuted     = Color(0xFF888888)
 private val FvHeaderItalic  = Color(0xFF8EA4B8)
 
-// Rule: dòng ngày tháng cố định
-private val IS_DATE_LINE: (String) -> Boolean = { line ->
-    val t = line.trimStart()
-    t.startsWith("- Thứ") || t.startsWith("- Chủ") || t.startsWith("- Ngày")
-}
 
 @Composable
 fun FileViewerScreen(
@@ -225,18 +220,16 @@ fun FileViewerScreen(
                             val oldLines = oldText.lines()
                             val newLines = newText.lines()
 
-                            // Rule: không được sửa/xóa dòng ngày giờ cố định
-                            fun headerOnly(line: String): String {
-                                val idx = line.indexOf(": ")
-                                return if (idx != -1) line.substring(0, idx) else line
-                            }
-                            val oldHeaders = oldLines.filter(IS_DATE_LINE).map { headerOnly(it) }
-                            val newHeaders = newLines.filter(IS_DATE_LINE).map { headerOnly(it) }
-                            if (oldHeaders.size != newHeaders.size ||
-                                oldHeaders.zip(newHeaders).any { (a, b) -> a != b }
-                            ) {
-                                showProtectToast = true
-                                return@BasicTextField
+                            // Rule: bảo vệ header ngày giờ cố định bằng Regex (nếu ban đầu có)
+                            val oldHeaders = oldLines.mapNotNull { FileHelper.extractDateHeader(it) }
+                            val newHeaders = newLines.mapNotNull { FileHelper.extractDateHeader(it) }
+                            if (oldHeaders.isNotEmpty()) {
+                                if (oldHeaders.size != newHeaders.size ||
+                                    oldHeaders.zip(newHeaders).any { (a, b) -> a != b }
+                                ) {
+                                    showProtectToast = true
+                                    return@BasicTextField
+                                }
                             }
 
                             val charsRemoved = oldText.length - newText.length
@@ -398,19 +391,14 @@ private class NoteEditorVisualTransformation : VisualTransformation {
             for (i in lines.indices) {
                 val line = lines[i]
                 val trimmed = line.trimStart()
-                val isDate = trimmed.startsWith("- Thứ") ||
-                             trimmed.startsWith("- Chủ") ||
-                             trimmed.startsWith("- Ngày") ||
-                             trimmed.startsWith("*Thứ") ||
-                             trimmed.startsWith("*Chủ") ||
-                             trimmed.startsWith("*Ngày")
+                val match = FileHelper.DATE_HEADER_REGEX.find(trimmed)
                 val start = length
                 append(line)
                 val end = length
 
-                if (isDate) {
-                    val colonIdx = line.indexOf(": ")
-                    val headerEnd = if (colonIdx != -1) start + colonIdx + 2 else end
+                if (match != null) {
+                    val colonIdx = line.indexOf(':')
+                    val headerEnd = if (colonIdx != -1) start + colonIdx + 1 else end
                     addStyle(
                         SpanStyle(
                             color = FvHeaderItalic,
