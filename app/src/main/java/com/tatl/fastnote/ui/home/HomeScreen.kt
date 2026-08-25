@@ -30,21 +30,29 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Computer
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Keyboard
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardHide
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MenuDefaults
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.ui.draw.clip
+import com.tatl.fastnote.data.user.AppLanguage
+import com.tatl.fastnote.data.user.LanguageManager
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -141,6 +149,18 @@ fun HomeScreen(
     val searchFocusRequester = remember { FocusRequester() }
 
     // ── State ─────────────────────────────────────────────────────────────────
+    val currentLanguage by LanguageManager.currentLanguage.collectAsState()
+    var showLangMenu by remember { mutableStateOf(false) }
+    val languages = remember {
+        listOf(
+            AppLanguage.VIETNAMESE,
+            AppLanguage.ENGLISH,
+            AppLanguage.JAPANESE,
+            AppLanguage.GERMAN,
+            AppLanguage.RUSSIAN
+        )
+    }
+
     val hasPinnedWidget by ThemePreferences.hasPinnedWidget.collectAsState()
     val currentHasPinned by rememberUpdatedState(hasPinnedWidget)
     var showManualPinPrompt by remember { mutableStateOf(false) }
@@ -480,6 +500,7 @@ fun HomeScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
+                    .imePadding()
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null
@@ -489,12 +510,12 @@ fun HomeScreen(
                     }
             ) {
 
-                // ── Top Bar: [ 💻 Gửi PC ] & [ 👑 Premium ] ───────────────────
+                // ── Top Bar: [ 💻 Gửi PC ] [ 🇻🇳 VI ▾ ] [ 👑 Premium ] ──────────
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .windowInsetsPadding(WindowInsets.statusBars)
-                        .padding(horizontal = 20.dp, vertical = 12.dp),
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -512,23 +533,106 @@ fun HomeScreen(
                         )
                     ) {
                         Row(
-                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp),
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Computer,
                                 contentDescription = stringResource(R.string.str_btn_send_pc),
                                 tint = if (isPremium) Color(0xFFFFD966) else Color(0xFFBACFD9),
-                                modifier = Modifier.size(19.dp)
+                                modifier = Modifier.size(18.dp)
                             )
                             Text(
                                 text = stringResource(R.string.str_btn_send_pc),
                                 color = if (isPremium) Color(0xFFFFD966) else Color(0xFFBACFD9),
                                 fontFamily = InterFontFamily,
                                 fontWeight = FontWeight.SemiBold,
-                                fontSize = 14.5.sp
+                                fontSize = 13.5.sp
                             )
+                        }
+                    }
+
+                    // Giữa: Nút Chọn Ngôn Ngữ dạng Pill (5 ngôn ngữ chuẩn)
+                    Box {
+                        Surface(
+                            onClick = { showLangMenu = true },
+                            shape = RoundedCornerShape(10.dp),
+                            color = TopPillBg,
+                            border = BorderStroke(1.dp, TopPillBorder)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 7.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(5.dp)
+                            ) {
+                                Text(
+                                    text = currentLanguage.flagEmoji,
+                                    fontSize = 16.sp
+                                )
+                                Text(
+                                    text = currentLanguage.shortCode,
+                                    fontFamily = InterFontFamily,
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 13.sp,
+                                    color = Color(0xFFBACFD9)
+                                )
+                                Icon(
+                                    imageVector = Icons.Default.KeyboardArrowDown,
+                                    contentDescription = "Chọn ngôn ngữ",
+                                    tint = Color(0xFFBACFD9),
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                        }
+
+                        // Dropdown menu 5 ngôn ngữ
+                        DropdownMenu(
+                            expanded = showLangMenu,
+                            onDismissRequest = { showLangMenu = false },
+                            modifier = Modifier
+                                .background(Color(0xFF1A1A1A))
+                                .clip(RoundedCornerShape(12.dp))
+                        ) {
+                            languages.forEach { lang ->
+                                val isSelected = lang == currentLanguage
+                                DropdownMenuItem(
+                                    text = {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                        ) {
+                                            Text(text = lang.flagEmoji, fontSize = 16.sp)
+                                            Text(
+                                                text = "${lang.shortCode} — ${lang.displayName}",
+                                                fontFamily = InterFontFamily,
+                                                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                                                fontSize = 14.sp,
+                                                color = if (isSelected) Color.White else Color(0xFF94A3B8)
+                                            )
+                                        }
+                                    },
+                                    trailingIcon = if (isSelected) ({
+                                        Icon(
+                                            Icons.Default.Check,
+                                            contentDescription = null,
+                                            tint = Color(0xFF7CFC7C),
+                                            modifier = Modifier.size(14.dp)
+                                        )
+                                    }) else null,
+                                    onClick = {
+                                        LanguageManager.setLanguage(context, lang)
+                                        showLangMenu = false
+                                    },
+                                    colors = MenuDefaults.itemColors(
+                                        textColor = Color(0xFF94A3B8),
+                                        trailingIconColor = Color.White
+                                    ),
+                                    modifier = Modifier.background(
+                                        if (isSelected) Color(0xFF252525) else Color.Transparent
+                                    )
+                                )
+                            }
                         }
                     }
 
@@ -547,16 +651,16 @@ fun HomeScreen(
                         )
                     ) {
                         Row(
-                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp),
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
                             Icon(
                                 painter = painterResource(R.drawable.ic_premium),
                                 contentDescription = stringResource(R.string.label_premium),
                                 tint = if (isPremium) Color(0xFFFFD700)   // icon vàng sáng khi đã mua
                                        else Color(0xFFCBD5E1),             // icon trắng xám khi chưa mua
-                                modifier = Modifier.size(19.dp)
+                                modifier = Modifier.size(18.dp)
                             )
                             Text(
                                 text = stringResource(R.string.label_premium),
@@ -565,7 +669,7 @@ fun HomeScreen(
 
                                 fontFamily = InterFontFamily,
                                 fontWeight = FontWeight.SemiBold,
-                                fontSize = 14.5.sp
+                                fontSize = 13.5.sp
                             )
                         }
                     }
@@ -688,7 +792,9 @@ fun HomeScreen(
                     }
                 }
 
-                // ── Bottom Bar: [ ✏️ SỬA ] và [ 🔍 TÌM KIẾM ] ─────────────────
+                // ── Bottom Bar: [ ✏️ SỬA ] và [ 🔍 TÌM KIẾM / CHIA SẺ ] ─────────
+                @OptIn(ExperimentalLayoutApi::class)
+                val isKeyboardUp = WindowInsets.isImeVisible
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
                     color = BottomBarBg,
@@ -697,8 +803,14 @@ fun HomeScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .windowInsetsPadding(WindowInsets.navigationBars)
-                            .padding(horizontal = 48.dp, vertical = 14.dp),
+                            .then(
+                                if (!isKeyboardUp) Modifier.windowInsetsPadding(WindowInsets.navigationBars)
+                                else Modifier
+                            )
+                            .padding(
+                                horizontal = 32.dp,
+                                vertical = if (isKeyboardUp) 8.dp else 14.dp
+                            ),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {

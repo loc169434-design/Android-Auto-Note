@@ -170,6 +170,22 @@ class MainActivity : ComponentActivity() {
                     var showSendPcDialog  by remember { mutableStateOf(false) }
                     var pendingActionAfterPremium by remember { mutableStateOf<(() -> Unit)?>(null) }
 
+                    // ── Tự động đóng dialog khi app xuống background / chuyển tab ────────
+                    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+                    androidx.compose.runtime.DisposableEffect(lifecycleOwner) {
+                        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+                            if (event == androidx.lifecycle.Lifecycle.Event.ON_STOP) {
+                                showPremiumDialog = false
+                                showSendPcDialog = false
+                                pendingActionAfterPremium = null
+                            }
+                        }
+                        lifecycleOwner.lifecycle.addObserver(observer)
+                        onDispose {
+                            lifecycleOwner.lifecycle.removeObserver(observer)
+                        }
+                    }
+
                     LaunchedEffect(Unit) {
                         isPremiumUser = com.tatl.fastnote.billing.PremiumManager.isPremium(this@MainActivity)
                     }

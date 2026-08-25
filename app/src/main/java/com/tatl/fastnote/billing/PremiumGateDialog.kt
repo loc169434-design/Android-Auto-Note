@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -291,7 +293,8 @@ fun PremiumGateDialog(
                             },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(50.dp),
+                                .defaultMinSize(minHeight = 52.dp),
+                            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = Color(0xFF2563EB)
                             ),
@@ -301,9 +304,11 @@ fun PremiumGateDialog(
                             Text(
                                 text = stringResource(R.string.str_premium_upgrade_btn, priceLabel),
                                 color = Color.White,
-                                fontSize = 15.sp,
+                                fontSize = 14.5.sp,
                                 fontFamily = InterFontFamily,
-                                fontWeight = FontWeight.Bold
+                                fontWeight = FontWeight.Bold,
+                                textAlign = TextAlign.Center,
+                                lineHeight = 19.sp
                             )
                         }
                     }

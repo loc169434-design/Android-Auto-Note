@@ -267,53 +267,93 @@ object FileHelper {
         return null
     }
 
-    // ── Sensitive data masking (display only) ─────────────────────────────────
+    // ── Sensitive data masking (Regex Guard) ──────────────────────────────────
+
+    // 1. Mật khẩu & Từ khóa xác thực (mk, pass, password, mat khau, mật khẩu...) với :, =, là, -, khoảng trắng
+    private val PASSWORD_REGEX = Regex(
+        """(?i)(mk|pass(?:word)?|m[aậ]t\s*kh[aẩ]u)\s*[:=l\u00e0\s\-]+\s*([^\s,;]+)"""
+    )
+
+    // 2. Mã OTP / PIN (4 - 6 số) đi sau từ khóa otp, mã pin, mã xác nhận, pin...
+    private val OTP_PIN_REGEX = Regex(
+        """(?i)(otp|m[aã]\s*(?:pin|x[aá]c\s*nh[aậ]n|otp)|pin)\s*[:=l\u00e0\s\-]+\s*(\d{4,6})"""
+    )
+
+    // 3. API Key / Hash / Token / Secret Key (chuỗi hỗn hợp hoa, thường, số >= 20 ký tự)
+    private val SECRET_TOKEN_REGEX = Regex(
+        """(?<![a-zA-Z0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z0-9_\-]{20,}(?![a-zA-Z0-9])"""
+    )
+
+    // 4. Địa chỉ Email
+    private val EMAIL_REGEX = Regex(
+        """[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}"""
+    )
+
+    // 5. Thẻ ngân hàng / Số tài khoản / CCCD dài (12 - 19 chữ số, có thể có khoảng trắng hoặc dấu gạch)
+    private val BANK_CARD_LONG_NUM_REGEX = Regex(
+        """(?<!\d)\d(?:[\s\-]*\d){11,18}(?!\d)"""
+    )
+
+    // 6. Số điện thoại / CMND 9 - 11 chữ số (có thể có khoảng trắng hoặc dấu gạch)
+    private val PHONE_SHORT_NUM_REGEX = Regex(
+        """(?<!\d)\d(?:[\s\-]*\d){8,10}(?!\d)"""
+    )
 
     /**
      * Mask sensitive data in a list of lines (display only, file never changed).
-     *
-     * Rules:
-     *  1. CCCD/CMND: 12 or 9 consecutive digits → ***
-     *  2. Password keywords (mk:, pass:, password:, mat khau:, ma pin:) → mask value after ':'
-     *  3. Bank account (STK:, tai khoan:) 8-16 digits → ***
-     *  4. Visa/Master card pattern (4 groups of 4 digits) → ***
-     *  5. VN phone number (10 digits starting 0[3-9]) → ***
-     *  6. Email addresses → ***
      */
     fun maskSensitive(lines: List<String>): List<String> {
         return lines.map { line -> maskLine(line) }
     }
 
     private fun maskLine(line: String): String {
-        var result = line
+        val trimmed = line.trim()
+        val match = DATE_HEADER_REGEX.find(trimmed)
+        return if (match != null) {
+            val headerEnd = match.range.last + 1
+            val headerPart = trimmed.substring(0, headerEnd)
+            val contentPart = trimmed.substring(headerEnd)
+            val maskedContent = maskContent(contentPart)
+            val leadingWs = line.takeWhile { it.isWhitespace() }
+            "$leadingWs$headerPart$maskedContent"
+        } else {
+            maskContent(line)
+        }
+    }
 
-        // Rule 1: CCCD (12 digits) hoac CMND (9 digits) — standalone
-        result = result.replace(Regex("""\b(\d{12}|\d{9})\b"""), "***")
+    /**
+     * Áp dụng toàn bộ bộ lọc Regex Guard lên nội dung text thuần túy
+     */
+    fun maskContent(text: String): String {
+        var result = text
 
-        // Rule 2: Sau keyword mat khau / pass / mk / ma pin → che gia tri
-        result = result.replace(
-            Regex("""(?i)(mk|pass(?:word)?|m[aậ]t\s*kh[aẩ]u|m[aã]\s*pin)\s*:\s*\S+""")
-        ) { mr -> "${mr.groupValues[1]}: ***" }
+        // Rule 1: Mật khẩu & Từ khóa xác thực -> giữ từ khóa và dấu nối, che giá trị thành ***
+        result = result.replace(PASSWORD_REGEX) { mr ->
+            val fullMatch = mr.value
+            val valToMask = mr.groupValues[2]
+            val prefix = fullMatch.substringBeforeLast(valToMask)
+            "${prefix}***"
+        }
 
-        // Rule 3: STK / tai khoan kem theo 8-16 so
-        result = result.replace(
-            Regex("""(?i)(stk|t[aà]i\s*kho[aả]n)\s*:\s*(\d{8,16})""")
-        ) { mr -> "${mr.groupValues[1]}: ***" }
+        // Rule 2: Mã OTP / PIN -> giữ từ khóa và dấu nối, che số thành ***
+        result = result.replace(OTP_PIN_REGEX) { mr ->
+            val fullMatch = mr.value
+            val valToMask = mr.groupValues[2]
+            val prefix = fullMatch.substringBeforeLast(valToMask)
+            "${prefix}***"
+        }
 
-        // Rule 4: So the Visa/Master (dddd dddd dddd dddd hoac lien tuc 16 chu so)
-        result = result.replace(
-            Regex("""\b(\d{4}[\s\-]?\d{4}[\s\-]?\d{4}[\s\-]?\d{4})\b"""), "***"
-        )
+        // Rule 3: API Key / Hash / Token / Secret Key -> ***
+        result = result.replace(SECRET_TOKEN_REGEX, "***")
 
-        // Rule 5: SĐT Việt Nam (10 chu so bat dau bang 0[3-9])
-        result = result.replace(
-            Regex("""\b(0[3-9]\d{8})\b"""), "***"
-        )
+        // Rule 4: Email -> ***
+        result = result.replace(EMAIL_REGEX, "***")
 
-        // Rule 6: Email
-        result = result.replace(
-            Regex("""[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}"""), "***"
-        )
+        // Rule 5: Thẻ ngân hàng / Số tài khoản / CCCD (12 - 19 chữ số) -> ***
+        result = result.replace(BANK_CARD_LONG_NUM_REGEX, "***")
+
+        // Rule 6: Số điện thoại / CMND (9 - 11 chữ số) -> ***
+        result = result.replace(PHONE_SHORT_NUM_REGEX, "***")
 
         return result
     }
