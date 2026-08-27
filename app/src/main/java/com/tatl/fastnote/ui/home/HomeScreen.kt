@@ -460,32 +460,20 @@ fun HomeScreen(
                             }
                         }
 
-                        // Nút LƯU bên phải
+                        // Nút LƯU dạng Icon bên phải
                         Surface(
                             onClick = { doSave() },
                             shape = RoundedCornerShape(8.dp),
                             color = Color(0xFF1E3A8A).copy(alpha = 0.6f),
                             border = BorderStroke(1.dp, Color(0xFF3B82F6)),
-                            modifier = Modifier.height(44.dp)
+                            modifier = Modifier.size(44.dp)
                         ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 28.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
+                            Box(contentAlignment = Alignment.Center) {
                                 Icon(
                                     imageVector = Icons.Default.Save,
                                     contentDescription = stringResource(R.string.str_btn_save_action),
                                     tint = Color(0xFF60A5FA),
-                                    modifier = Modifier.size(18.dp)
-                                )
-                                Text(
-                                    text = if (isSaving) stringResource(R.string.str_saving) else stringResource(R.string.str_btn_save_action),
-                                    color = Color(0xFF93C5FD),
-                                    fontFamily = InterFontFamily,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 15.sp,
-                                    letterSpacing = 1.sp
+                                    modifier = Modifier.size(20.dp)
                                 )
                             }
                         }
@@ -519,7 +507,7 @@ fun HomeScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Trái: Nút Gửi PC dạng Pill — cùng tông vàng gold khi premium
+                    // Trái: Nút Gửi PC dạng Icon Pill — cùng tông vàng gold khi premium
                     Surface(
                         onClick = onComputerClick,
                         shape = RoundedCornerShape(10.dp),
@@ -532,23 +520,15 @@ fun HomeScreen(
                             if (isPremium) Color(0xFFB8860B) else TopPillBorder
                         )
                     ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        Box(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                            contentAlignment = Alignment.Center
                         ) {
                             Icon(
-                                imageVector = Icons.Default.Computer,
+                                painter = painterResource(R.drawable.ic_pc),
                                 contentDescription = stringResource(R.string.str_btn_send_pc),
                                 tint = if (isPremium) Color(0xFFFFD966) else Color(0xFFBACFD9),
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Text(
-                                text = stringResource(R.string.str_btn_send_pc),
-                                color = if (isPremium) Color(0xFFFFD966) else Color(0xFFBACFD9),
-                                fontFamily = InterFontFamily,
-                                fontWeight = FontWeight.SemiBold,
-                                fontSize = 13.5.sp
+                                modifier = Modifier.size(20.dp)
                             )
                         }
                     }
@@ -636,7 +616,7 @@ fun HomeScreen(
                         }
                     }
 
-                    // Phải: Nút Premium — gold khi đã mua, TRẮNG/XÁM khi chưa mua
+                    // Phải: Nút Premium dạng Icon Pill — gold khi đã mua, TRẮNG/XÁM khi chưa mua
                     Surface(
                         onClick = { if (!isPremium) onPremiumClick() },
                         shape = RoundedCornerShape(10.dp),
@@ -650,26 +630,16 @@ fun HomeScreen(
                             else Color(0xFF4A6080)                  // viền xanh xám khi chưa mua
                         )
                     ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        Box(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                            contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 painter = painterResource(R.drawable.ic_premium),
                                 contentDescription = stringResource(R.string.label_premium),
                                 tint = if (isPremium) Color(0xFFFFD700)   // icon vàng sáng khi đã mua
                                        else Color(0xFFCBD5E1),             // icon trắng xám khi chưa mua
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Text(
-                                text = stringResource(R.string.label_premium),
-                                color = if (isPremium) Color(0xFFFFD700)  // chữ vàng sáng khi đã mua
-                                        else Color(0xFFCBD5E1),            // chữ trắng xám khi chưa mua
-
-                                fontFamily = InterFontFamily,
-                                fontWeight = FontWeight.SemiBold,
-                                fontSize = 13.5.sp
+                                modifier = Modifier.size(20.dp)
                             )
                         }
                     }
@@ -814,7 +784,7 @@ fun HomeScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // Nút SỬA bên trái (UI 2.3: nền nổi bật)
+                        // Nút SỬA dạng Icon bên trái (UI 2.3: nền nổi bật)
                         Surface(
                             onClick = {
                                 scope.launch {
@@ -829,31 +799,20 @@ fun HomeScreen(
                             },
                             shape = RoundedCornerShape(10.dp),
                             color = Color(0xFF1A2C3D).copy(alpha = 0.85f),
-                            border = BorderStroke(1.dp, Color(0xFF2E4355))
+                            border = BorderStroke(1.dp, Color(0xFF2E4355)),
+                            modifier = Modifier.size(44.dp)
                         ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 18.dp, vertical = 8.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
+                            Box(contentAlignment = Alignment.Center) {
                                 Icon(
                                     imageVector = Icons.Default.Edit,
                                     contentDescription = stringResource(R.string.str_btn_edit),
                                     tint = Color(0xFFBACFD9),
-                                    modifier = Modifier.size(19.dp)
-                                )
-                                Text(
-                                    text = stringResource(R.string.str_btn_edit),
-                                    color = Color(0xFFBACFD9),
-                                    fontFamily = InterFontFamily,
-                                    fontWeight = FontWeight.SemiBold,
-                                    fontSize = 15.sp,
-                                    letterSpacing = 0.5.sp
+                                    modifier = Modifier.size(20.dp)
                                 )
                             }
                         }
 
-                        // Nút TÌM KIẾM / CHIA SẺ bên phải (Feature 3.2 + UI 2.3)
+                        // Nút TÌM KIẾM / CHIA SẺ dạng Icon bên phải (Feature 3.2 + UI 2.3)
                         val isShareMode = searchActive && searchQuery.isNotBlank()
                         Surface(
                             onClick = {
@@ -897,13 +856,10 @@ fun HomeScreen(
                                     searchActive -> Color(0xFF4A7FA0)
                                     else -> Color(0xFF2E4355)
                                 }
-                            )
+                            ),
+                            modifier = Modifier.size(44.dp)
                         ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 18.dp, vertical = 8.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
+                            Box(contentAlignment = Alignment.Center) {
                                 Icon(
                                     imageVector = if (isShareMode) Icons.Filled.Share else Icons.Default.Search,
                                     contentDescription = stringResource(if (isShareMode) R.string.str_btn_share else R.string.str_btn_search),
@@ -913,18 +869,6 @@ fun HomeScreen(
                                         else -> Color(0xFFBACFD9)
                                     },
                                     modifier = Modifier.size(20.dp)
-                                )
-                                Text(
-                                    text = stringResource(if (isShareMode) R.string.str_btn_share else R.string.str_btn_search),
-                                    color = when {
-                                        isShareMode -> Color(0xFF4ADE80)
-                                        searchActive -> Color.White
-                                        else -> Color(0xFFBACFD9)
-                                    },
-                                    fontFamily = InterFontFamily,
-                                    fontWeight = FontWeight.SemiBold,
-                                    fontSize = 15.sp,
-                                    letterSpacing = 0.5.sp
                                 )
                             }
                         }
@@ -1181,23 +1125,15 @@ fun HomeScreenPreview() {
                         color = TopPillBg,
                         border = BorderStroke(1.dp, TopPillBorder)
                     ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        Box(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                            contentAlignment = Alignment.Center
                         ) {
                             Icon(
-                                imageVector = Icons.Default.Computer,
+                                painter = painterResource(R.drawable.ic_pc),
                                 contentDescription = "Gửi PC",
                                 tint = Color(0xFFBACFD9),
-                                modifier = Modifier.size(19.dp)
-                            )
-                            Text(
-                                text = "Gửi PC",
-                                color = Color(0xFFBACFD9),
-                                fontFamily = InterFontFamily,
-                                fontWeight = FontWeight.SemiBold,
-                                fontSize = 18.sp
+                                modifier = Modifier.size(20.dp)
                             )
                         }
                     }
@@ -1208,23 +1144,15 @@ fun HomeScreenPreview() {
                         color = Color(0xFF222B35).copy(alpha = 0.85f),
                         border = BorderStroke(1.dp, Color(0xFF38434F))
                     ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        Box(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                            contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 painter = painterResource(R.drawable.ic_premium),
                                 contentDescription = "Premium",
                                 tint = Color(0xFFFFB800),
-                                modifier = Modifier.size(19.dp)
-                            )
-                            Text(
-                                text = "Premium",
-                                color = Color(0xFFEAD4AA),
-                                fontFamily = InterFontFamily,
-                                fontWeight = FontWeight.SemiBold,
-                                fontSize = 18.sp
+                                modifier = Modifier.size(20.dp)
                             )
                         }
                     }
@@ -1296,48 +1224,42 @@ fun HomeScreenPreview() {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 48.dp, vertical = 14.dp),
+                            .padding(horizontal = 32.dp, vertical = 14.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        Surface(
+                            onClick = {},
+                            shape = RoundedCornerShape(10.dp),
+                            color = Color(0xFF1A2C3D).copy(alpha = 0.85f),
+                            border = BorderStroke(1.dp, Color(0xFF2E4355)),
+                            modifier = Modifier.size(44.dp)
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.Edit,
-                                contentDescription = "SỬA",
-                                tint = Color(0xFFBACFD9),
-                                modifier = Modifier.size(19.dp)
-                            )
-                            Text(
-                                text = "SỬA",
-                                color = Color(0xFFBACFD9),
-                                fontFamily = InterFontFamily,
-                                fontWeight = FontWeight.SemiBold,
-                                fontSize = 18.sp,
-                                letterSpacing = 0.5.sp
-                            )
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.Default.Edit,
+                                    contentDescription = "SỬA",
+                                    tint = Color(0xFFBACFD9),
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
                         }
 
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        Surface(
+                            onClick = {},
+                            shape = RoundedCornerShape(10.dp),
+                            color = Color(0xFF1A2C3D).copy(alpha = 0.85f),
+                            border = BorderStroke(1.dp, Color(0xFF2E4355)),
+                            modifier = Modifier.size(44.dp)
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.Search,
-                                contentDescription = "TÌM KIẾM",
-                                tint = Color(0xFFBACFD9),
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Text(
-                                text = "TÌM KIẾM",
-                                color = Color(0xFFBACFD9),
-                                fontFamily = InterFontFamily,
-                                fontWeight = FontWeight.SemiBold,
-                                fontSize = 18.sp,
-                                letterSpacing = 0.5.sp
-                            )
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.Default.Search,
+                                    contentDescription = "TÌM KIẾM",
+                                    tint = Color(0xFFBACFD9),
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
                         }
                     }
                 }
@@ -1443,26 +1365,14 @@ fun HomeEditModePreview() {
                             shape = RoundedCornerShape(8.dp),
                             color = Color(0xFF1E3A8A).copy(alpha = 0.6f),
                             border = BorderStroke(1.dp, Color(0xFF3B82F6)),
-                            modifier = Modifier.height(44.dp)
+                            modifier = Modifier.size(44.dp)
                         ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 28.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
+                            Box(contentAlignment = Alignment.Center) {
                                 Icon(
                                     imageVector = Icons.Default.Save,
                                     contentDescription = "Lưu",
                                     tint = Color(0xFF60A5FA),
-                                    modifier = Modifier.size(18.dp)
-                                )
-                                Text(
-                                    text = "LƯU",
-                                    color = Color(0xFF93C5FD),
-                                    fontFamily = InterFontFamily,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 15.sp,
-                                    letterSpacing = 1.sp
+                                    modifier = Modifier.size(20.dp)
                                 )
                             }
                         }

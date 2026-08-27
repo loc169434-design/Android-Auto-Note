@@ -178,7 +178,7 @@ fun RecordingScreenContent(
     val localizedContext = remember(currentLanguage) {
         val config = Configuration(baseContext.resources.configuration)
         try {
-            config.setLocale(Locale(currentLanguage.code))
+            config.setLocale(Locale.forLanguageTag(currentLanguage.code))
         } catch (_: Exception) {}
         baseContext.createConfigurationContext(config)
     }

@@ -93,10 +93,26 @@ object LanguageManager {
 
     fun init(context: Context) {
         prefs = context.applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        val savedCode = prefs.getString(KEY_SELECTED_LANGUAGE, AppLanguage.ENGLISH.code) ?: AppLanguage.ENGLISH.code
-        val appLanguage = AppLanguage.fromCode(savedCode)
-        _currentLanguage.value = appLanguage
-        applyLocale(appLanguage)
+        if (!prefs.contains(KEY_SELECTED_LANGUAGE)) {
+            // Lần đầu vào app: Kiểm tra ngôn ngữ hệ thống của máy
+            val systemLocale = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
+                context.resources.configuration.locales.get(0) ?: Locale.getDefault()
+            } else {
+                @Suppress("DEPRECATION")
+                context.resources.configuration.locale ?: Locale.getDefault()
+            }
+            val sysLangCode = systemLocale.language.lowercase(Locale.ROOT)
+            val matchedLang = AppLanguage.entries.find { it.code.equals(sysLangCode, ignoreCase = true) }
+            val initialLang = matchedLang ?: AppLanguage.ENGLISH
+            prefs.edit().putString(KEY_SELECTED_LANGUAGE, initialLang.code).apply()
+            _currentLanguage.value = initialLang
+            applyLocale(initialLang)
+        } else {
+            val savedCode = prefs.getString(KEY_SELECTED_LANGUAGE, AppLanguage.ENGLISH.code) ?: AppLanguage.ENGLISH.code
+            val appLanguage = AppLanguage.fromCode(savedCode)
+            _currentLanguage.value = appLanguage
+            applyLocale(appLanguage)
+        }
     }
 
     fun setLanguage(context: Context, language: AppLanguage) {
@@ -105,15 +121,14 @@ object LanguageManager {
         }
         prefs.edit().putString(KEY_SELECTED_LANGUAGE, language.code).apply()
         _currentLanguage.value = language
-        // NOTE: applyLocale() (AppCompatDelegate) is intentionally NOT called here.
-        // In-app language switching is handled by CompositionLocalProvider(LocalContext)
-        // in each Compose screen — no Activity recreation needed.
-        // applyLocale() is called only in init() for correct locale on cold start.
+        applyLocale(language)
     }
 
     private fun applyLocale(language: AppLanguage) {
-        val localeList = LocaleListCompat.forLanguageTags(language.code)
-        AppCompatDelegate.setApplicationLocales(localeList)
+        try {
+            val localeList = LocaleListCompat.forLanguageTags(language.code)
+            AppCompatDelegate.setApplicationLocales(localeList)
+        } catch (_: Exception) {}
     }
 
     fun getSpeechLanguageTag(): String {

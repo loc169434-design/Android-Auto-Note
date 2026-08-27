@@ -84,7 +84,7 @@ fun PremiumGateDialog(
     val currentLanguage by LanguageManager.currentLanguage.collectAsState()
     val localizedCtx = remember(currentLanguage) {
         val config = android.content.res.Configuration(baseCtx.resources.configuration)
-        config.setLocale(Locale(currentLanguage.code))
+        config.setLocale(Locale.forLanguageTag(currentLanguage.code))
         baseCtx.createConfigurationContext(config)
     }
 

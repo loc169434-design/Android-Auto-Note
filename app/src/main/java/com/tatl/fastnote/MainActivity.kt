@@ -156,7 +156,7 @@ class MainActivity : ComponentActivity() {
                 val baseCtx = LocalContext.current
                 val localizedContext = remember(currentLanguage) {
                     val config = Configuration(baseCtx.resources.configuration)
-                    config.setLocale(Locale(currentLanguage.code))
+                    config.setLocale(Locale.forLanguageTag(currentLanguage.code))
                     baseCtx.createConfigurationContext(config)
                 }
                 CompositionLocalProvider(LocalContext provides localizedContext) {
