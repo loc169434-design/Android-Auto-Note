@@ -10,7 +10,7 @@
     <string name="widget_ai_title">AI要約</string>
     <string name="widget_ai_desc">AIで今日のメモを要約</string>
     <string name="widget_triple_action_title">トリプルアクション</string>
-    <string name="widget_triple_action_desc">録音マイク、Gemini、ファイル表示ウィジェット</string>
+    <string name="widget_triple_action_desc">録音マイク、メモ、Geminiウィジェット</string>
 
     <string name="recording_notification_title">録音中</string>
     <string name="recording_notification_text">Zero-Friction Notesが音声を録音しています</string>
@@ -107,5 +107,11 @@
     <string name="str_premium_restore_hint">購入済みですか？タップして復元</string>
     <string name="str_premium_later">後で</string>
     <string name="str_btn_share">シェア</string>
+
+    <!-- PinWidgetBottomSheet -->
+    <string name="str_tap_to_create_widget">(タップしてホーム画面にウィジェットを追加)</string>
+    <string name="btn_later">あとで</string>
+    <string name="widget_triple_action_name">トリプルアクション</string>
+    <string name="str_widget_icon_desc">ウィジェット作成</string>
 
 </resources>

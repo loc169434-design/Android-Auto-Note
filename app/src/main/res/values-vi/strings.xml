@@ -10,7 +10,7 @@
     <string name="widget_ai_title">AI Tóm tắt</string>
     <string name="widget_ai_desc">Tóm tắt ghi chú hôm nay qua AI</string>
     <string name="widget_triple_action_title">Bộ 3 tính năng</string>
-    <string name="widget_triple_action_desc">Micro ghi âm, mở Gemini và xem file trong một widget</string>
+    <string name="widget_triple_action_desc">Micro ghi âm, Sổ ghi chú và Gemini trong một widget</string>
 
     <string name="recording_notification_title">Đang ghi âm</string>
     <string name="recording_notification_text">Đang thu âm tốc ký...</string>
@@ -112,5 +112,11 @@
     <string name="str_premium_restore_hint">Đã mua trước đó? Chạm để khôi phục</string>
     <string name="str_premium_later">ĐỂ SAU</string>
     <string name="str_btn_share">Chia sẻ</string>
+
+    <!-- PinWidgetBottomSheet -->
+    <string name="str_tap_to_create_widget">(Chạm vào đây để tạo widget ra màn hình chính)</string>
+    <string name="btn_later">ĐỂ SAU</string>
+    <string name="widget_triple_action_name">Bộ 3 tính năng</string>
+    <string name="str_widget_icon_desc">Tạo Widget</string>
 
 </resources>

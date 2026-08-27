@@ -10,7 +10,7 @@
     <string name="widget_ai_title">KI-Zusammenfassung</string>
     <string name="widget_ai_desc">Heutige Notizen mit KI zusammenfassen</string>
     <string name="widget_triple_action_title">Dreifach-Funktion</string>
-    <string name="widget_triple_action_desc">Sprachaufnahme, Gemini &amp; Dateibetrachter Widget</string>
+    <string name="widget_triple_action_desc">Sprachaufnahme, Notizen &amp; Gemini Widget</string>
 
     <string name="recording_notification_title">Aufnahme läuft</string>
     <string name="recording_notification_text">Zero-Friction Notes nimmt Sprache auf</string>
@@ -107,5 +107,11 @@
     <string name="str_premium_restore_hint">Bereits gekauft? Tippen zum Wiederherstellen</string>
     <string name="str_premium_later">SPÄTER</string>
     <string name="str_btn_share">Teilen</string>
+
+    <!-- PinWidgetBottomSheet -->
+    <string name="str_tap_to_create_widget">(Hier tippen, um Widget zum Startbildschirm hinzuzufügen)</string>
+    <string name="btn_later">SPÄTER</string>
+    <string name="widget_triple_action_name">Dreifach-Aktion</string>
+    <string name="str_widget_icon_desc">Widget erstellen</string>
 
 </resources>

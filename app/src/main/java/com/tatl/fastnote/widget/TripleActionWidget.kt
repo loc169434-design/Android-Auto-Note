@@ -70,7 +70,7 @@ class TripleActionWidget : GlanceAppWidget() {
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalAlignment   = Alignment.CenterVertically
             ) {
-                // ── Mic — nút pill riêng biệt ────────────────────────────────
+                // ── 1. Mic — nút pill bên trái ──────────────────────────────
                 PillIconButton(
                     iconRes            = R.drawable.ic_mic,
                     contentDescription = "Ghi âm",
@@ -87,7 +87,19 @@ class TripleActionWidget : GlanceAppWidget() {
 
                 Spacer(modifier = GlanceModifier.width(6.dp))
 
-                // ── AI — nút pill riêng biệt ──────────────────────────────────
+                // ── 2. Sổ (Note) — nút pill ở giữa ──────────────────────────
+                PillIconButton(
+                    iconRes            = R.drawable.ic_note,
+                    contentDescription = "Ghi chú",
+                    modifier           = GlanceModifier
+                        .defaultWeight()
+                        .fillMaxHeight()
+                        .clickable(actionRunCallback<OpenNoteViewCallback>())
+                )
+
+                Spacer(modifier = GlanceModifier.width(6.dp))
+
+                // ── 3. Não (AI) — nút pill bên phải ──────────────────────────
                 PillIconButton(
                     iconRes            = R.drawable.ic_ai,
                     contentDescription = "AI",
@@ -100,18 +112,6 @@ class TripleActionWidget : GlanceAppWidget() {
                             else
                                 actionStartActivity<GeminiLaunchActivity>()
                         )
-                )
-
-                Spacer(modifier = GlanceModifier.width(6.dp))
-
-                // ── Note — nút pill riêng biệt ────────────────────────────────
-                PillIconButton(
-                    iconRes            = R.drawable.ic_note,
-                    contentDescription = "Ghi chú",
-                    modifier           = GlanceModifier
-                        .defaultWeight()
-                        .fillMaxHeight()
-                        .clickable(actionRunCallback<OpenNoteViewCallback>())
                 )
             }
         }
