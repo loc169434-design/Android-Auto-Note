@@ -23,7 +23,8 @@ enum class AppLanguage(
     val displayName: String,
     val flagEmoji: String,
     val speechTag: String,
-    val promptText: String
+    val promptText: String,
+    val aiJournalPrompt: String
 ) {
     VIETNAMESE(
         code = "vi",
@@ -31,7 +32,8 @@ enum class AppLanguage(
         displayName = "Tiếng Việt",
         flagEmoji = "🇻🇳",
         speechTag = "vi-VN",
-        promptText = "HÃY NÓI ĐIỀU BẠN MUỐN GHI CHÚ"
+        promptText = "HÃY NÓI ĐIỀU BẠN MUỐN GHI CHÚ",
+        aiJournalPrompt = "Đây là sổ nhật ký của tôi. Bạn hãy đọc, nắm rõ dữ liệu và chờ yêu cầu tiếp theo."
     ),
     ENGLISH(
         code = "en",
@@ -39,7 +41,8 @@ enum class AppLanguage(
         displayName = "English",
         flagEmoji = "🇬🇧",
         speechTag = "en-US",
-        promptText = "PLEASE SAY WHAT YOU WANT TO NOTE"
+        promptText = "PLEASE SAY WHAT YOU WANT TO NOTE",
+        aiJournalPrompt = "This is my journal. Please read, understand the data, and wait for my next request."
     ),
     JAPANESE(
         code = "ja",
@@ -47,7 +50,8 @@ enum class AppLanguage(
         displayName = "日本語",
         flagEmoji = "🇯🇵",
         speechTag = "ja-JP",
-        promptText = "メモしたい内容を話してください"
+        promptText = "メモしたい内容を話してください",
+        aiJournalPrompt = "これは私の日記です。データをよく読み、理解した上で次の指示をお待ちください。"
     ),
     GERMAN(
         code = "de",
@@ -55,7 +59,8 @@ enum class AppLanguage(
         displayName = "Deutsch",
         flagEmoji = "🇩🇪",
         speechTag = "de-DE",
-        promptText = "BITTE SPRECHEN SIE, WAS SIE NOTIEREN MÖCHTEN"
+        promptText = "BITTE SPRECHEN SIE, WAS SIE NOTIEREN MÖCHTEN",
+        aiJournalPrompt = "Dies ist mein Tagebuch. Bitte lesen und verstehen Sie die Daten und warten Sie auf meine nächste Anfrage."
     ),
     RUSSIAN(
         code = "ru",
@@ -63,7 +68,8 @@ enum class AppLanguage(
         displayName = "Русский",
         flagEmoji = "🇷🇺",
         speechTag = "ru-RU",
-        promptText = "ПОЖАЛУЙСТА, СКАЖИТЕ, ЧТО ВЫ ХОТИТЕ ЗАПИСАТЬ"
+        promptText = "ПОЖАЛУЙСТA, СКАЖИТЕ, ЧТО ВЫ ХОТИТЕ ЗАПИСАТЬ",
+        aiJournalPrompt = "Это мой дневник. Пожалуйста, прочитайте, усвойте данные и ожидайте следующего запроса."
     );
 
     companion object {
@@ -158,5 +164,12 @@ object LanguageManager {
         } else {
             "Shared File (Privacy Protected).txt"
         }
+    }
+
+    /**
+     * Lấy prompt chỉ định cho Gemini khi chia sẻ file sổ nhật ký theo ngôn ngữ app.
+     */
+    fun getGeminiJournalPrompt(): String {
+        return _currentLanguage.value.aiJournalPrompt
     }
 }

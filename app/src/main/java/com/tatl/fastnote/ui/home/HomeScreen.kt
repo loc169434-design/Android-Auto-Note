@@ -180,6 +180,7 @@ fun HomeScreen(
 
     // Bug 1.3 fix: LazyColumn scroll state — reset to top on resume
     val listState = androidx.compose.foundation.lazy.rememberLazyListState()
+    val editScrollState = rememberScrollState()
 
     // ── Save Function ─────────────────────────────────────────────────────────
     fun doSave() {
@@ -229,15 +230,19 @@ fun HomeScreen(
         }
     }
 
-    // ── Focus & Cursor lên dòng đầu tiên khi vào Edit Mode ───────────────────
+    // ── Focus, Cursor & Scroll lên đầu khi vào Edit Mode ─────────────────────
     LaunchedEffect(isEditMode) {
         if (isEditMode) {
-            editTfv = editTfv.copy(selection = TextRange(0))
+            editTfv = adjustSelectionOutOfHeaders(editTfv.copy(selection = TextRange(0)))
+            editScrollState.scrollTo(0)
             kotlinx.coroutines.delay(50L)
             try {
                 focusRequester.requestFocus()
                 keyboardController?.show()
             } catch (_: Exception) {}
+            editScrollState.scrollTo(0)
+        } else {
+            listState.scrollToItem(0)
         }
     }
 
@@ -249,6 +254,14 @@ fun HomeScreen(
                 // Bug 1.4 fix: reset search box when returning to HomeScreen
                 searchActive = false
                 searchQuery = ""
+                scope.launch {
+                    if (isEditMode) {
+                        editScrollState.scrollTo(0)
+                        editTfv = adjustSelectionOutOfHeaders(editTfv.copy(selection = TextRange(0)))
+                    } else {
+                        listState.scrollToItem(0)
+                    }
+                }
                 widgetActiveNow = if (currentHasPinned) {
                     PinWidgetHelper.isWidgetActive(context, TripleActionWidgetReceiver::class.java)
                 } else false
@@ -327,7 +340,7 @@ fun HomeScreen(
                     color = NoteCardBg,
                     border = BorderStroke(0.8.dp, NoteCardBorder)
                 ) {
-                    val scrollState = rememberScrollState()
+                    val scrollState = editScrollState
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
@@ -361,7 +374,7 @@ fun HomeScreen(
                                 val newText = newTfv.text
 
                                 if (newText == oldText) {
-                                    editTfv = newTfv
+                                    editTfv = adjustSelectionOutOfHeaders(newTfv)
                                     return@BasicTextField
                                 }
 
@@ -379,7 +392,7 @@ fun HomeScreen(
                                 // Rule: chỉ block khi user xóa nhầm timestamp header
                                 // KHÔNG block xóa content thông thường dù nhiều dòng
 
-                                editTfv = newTfv
+                                editTfv = adjustSelectionOutOfHeaders(newTfv)
 
                                 // ── Tự động lưu theo thời gian thực (Cứ sửa tới đâu lưu tới đó) ──
                                 autoSaveJob?.cancel()
@@ -431,8 +444,8 @@ fun HomeScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .windowInsetsPadding(WindowInsets.navigationBars)
-                            .padding(horizontal = 20.dp, vertical = 10.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
+                            .padding(horizontal = 16.dp, vertical = 10.dp),
+                        horizontalArrangement = Arrangement.spacedBy(90.dp, Alignment.CenterHorizontally),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         // Nút nhỏ góc trái: Bật/Tắt ẩn hiện bàn phím
@@ -504,7 +517,7 @@ fun HomeScreen(
                         .fillMaxWidth()
                         .windowInsetsPadding(WindowInsets.statusBars)
                         .padding(horizontal = 16.dp, vertical = 12.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
+                    horizontalArrangement = Arrangement.spacedBy(14.dp, Alignment.CenterHorizontally),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     // Trái: Nút Gửi PC dạng Icon Pill — cùng tông vàng gold khi premium
@@ -712,9 +725,10 @@ fun HomeScreen(
                     border = BorderStroke(0.8.dp, NoteCardBorder)
                 ) {
                     if (filteredEntries.isEmpty()) {
-                        Box(
+                        Column(
                             modifier = Modifier
                                 .fillMaxSize()
+                                .padding(horizontal = 16.dp, vertical = 12.dp)
                                 .clickable(
                                     interactionSource = remember { MutableInteractionSource() },
                                     indication = null
@@ -722,18 +736,42 @@ fun HomeScreen(
                                     focusManager.clearFocus()
                                     keyboardController?.hide()
                                 },
-                            contentAlignment = Alignment.Center
+                            horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            Text(
-                                text = if (searchQuery.isNotBlank())
-                                    "${stringResource(R.string.str_search_not_found)}\n\"$searchQuery\""
-                                else stringResource(R.string.str_no_notes_empty),
-                                color = HomeTextMuted,
-                                fontFamily = NotoSansFontFamily,
-                                fontSize = 15.sp,
-                                lineHeight = 24.sp,
-                                textAlign = TextAlign.Center
-                            )
+                            // Tip hướng dẫn zz luôn hiển thị ở trên cùng khi số lượng ghi chú < 4
+                            if (fileEntries.size < 4 && searchQuery.isBlank()) {
+                                Text(
+                                    text = stringResource(R.string.str_sensitive_tip_zz),
+                                    style = TextStyle(
+                                        fontFamily = NotoSansFontFamily,
+                                        fontSize = 15.sp,
+                                        lineHeight = 22.sp,
+                                        color = Color(0xFF94A3B8),
+                                        fontStyle = FontStyle.Italic,
+                                        letterSpacing = 0.1.sp
+                                    ),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(bottom = 12.dp)
+                                )
+                            }
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxWidth(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = if (searchQuery.isNotBlank())
+                                        "${stringResource(R.string.str_search_not_found)}\n\"$searchQuery\""
+                                    else stringResource(R.string.str_no_notes_empty),
+                                    color = HomeTextMuted,
+                                    fontFamily = NotoSansFontFamily,
+                                    fontSize = 15.sp,
+                                    lineHeight = 24.sp,
+                                    textAlign = TextAlign.Center
+                                )
+                            }
                         }
                     } else {
                         LazyColumn(
@@ -750,6 +788,27 @@ fun HomeScreen(
                                 }
                         ) {
                             item { Spacer(Modifier.height(4.dp)) }
+
+                            // Tip hướng dẫn zz luôn hiển thị ở trên cùng danh sách khi số lượng ghi chú < 4
+                            if (fileEntries.size < 4 && searchQuery.isBlank()) {
+                                item {
+                                    Text(
+                                        text = stringResource(R.string.str_sensitive_tip_zz),
+                                        style = TextStyle(
+                                            fontFamily = NotoSansFontFamily,
+                                            fontSize = 15.sp,
+                                            lineHeight = 22.sp,
+                                            color = Color(0xFF94A3B8),
+                                            fontStyle = FontStyle.Italic,
+                                            letterSpacing = 0.1.sp
+                                        ),
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(bottom = 14.dp)
+                                    )
+                                }
+                            }
+
                             items(filteredEntries) { entry ->
                                 NoteEntryItem(
                                     entry = entry,
@@ -778,10 +837,10 @@ fun HomeScreen(
                                 else Modifier
                             )
                             .padding(
-                                horizontal = 32.dp,
+                                horizontal = 16.dp,
                                 vertical = if (isKeyboardUp) 8.dp else 14.dp
                             ),
-                        horizontalArrangement = Arrangement.SpaceBetween,
+                        horizontalArrangement = Arrangement.spacedBy(90.dp, Alignment.CenterHorizontally),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         // Nút SỬA dạng Icon bên trái (UI 2.3: nền nổi bật)
@@ -793,8 +852,9 @@ fun HomeScreen(
                                     }
                                     originalContent = raw
                                     val reversed = reverseEntries(raw)
-                                    editTfv = TextFieldValue(reversed, selection = TextRange(0))
+                                    editTfv = adjustSelectionOutOfHeaders(TextFieldValue(reversed, selection = TextRange(0)))
                                     isEditMode = true
+                                    editScrollState.scrollTo(0)
                                 }
                             },
                             shape = RoundedCornerShape(10.dp),
@@ -908,17 +968,78 @@ private fun reverseEntries(raw: String): String {
     return blocks.reversed().joinToString("\n\n")
 }
 
+/**
+ * Tìm tất cả các dải chỉ số (IntRange) của tiêu đề ngày giờ bất biến (bắt đầu bằng "- Thứ..., ngày...:" hoặc tương đương)
+ */
+private fun getProtectedHeaderRanges(text: String): List<IntRange> {
+    val ranges = mutableListOf<IntRange>()
+    var currentOffset = 0
+    val lines = text.split("\n")
+    for (line in lines) {
+        val trimmed = line.trimStart()
+        val match = FileHelper.DATE_HEADER_REGEX.find(trimmed)
+        if (match != null) {
+            val colonIdx = line.indexOf(':')
+            val headerEnd = if (colonIdx != -1) {
+                if (colonIdx + 1 < line.length && line[colonIdx + 1] == ' ') colonIdx + 2 else colonIdx + 1
+            } else {
+                val leadingSpaces = line.length - trimmed.length
+                leadingSpaces + match.range.last + 1
+            }
+            val rangeStart = currentOffset
+            val rangeEnd = (currentOffset + headerEnd).coerceAtMost(text.length)
+            if (rangeStart < rangeEnd) {
+                ranges.add(rangeStart until rangeEnd)
+            }
+        }
+        currentOffset += line.length + 1 // +1 cho ký tự '\n'
+    }
+    return ranges
+}
+
+/**
+ * Điều chỉnh vị trí con trỏ / vùng chọn để KHÔNG BAO GIỜ chạm hay đứng trong khu vực tiêu đề ngày giờ.
+ * Nếu con trỏ rơi vào tiêu đề ngày giờ, tự động đẩy ra vị trí bắt đầu nội dung ghi chú (sau dấu ':').
+ */
+private fun adjustSelectionOutOfHeaders(tfv: TextFieldValue): TextFieldValue {
+    val text = tfv.text
+    if (text.isEmpty()) return tfv
+    val ranges = getProtectedHeaderRanges(text)
+    if (ranges.isEmpty()) return tfv
+
+    var start = tfv.selection.start
+    var end = tfv.selection.end
+
+    // Đẩy start nếu nằm trong range
+    for (range in ranges) {
+        if (start in range) {
+            start = (range.last + 1).coerceAtMost(text.length)
+        }
+    }
+
+    // Đẩy end nếu nằm trong range
+    for (range in ranges) {
+        if (end in range) {
+            end = (range.last + 1).coerceAtMost(text.length)
+        }
+    }
+
+    start = start.coerceIn(0, text.length)
+    end = end.coerceIn(0, text.length)
+
+    return if (start != tfv.selection.start || end != tfv.selection.end) {
+        tfv.copy(selection = TextRange(start, end))
+    } else {
+        tfv
+    }
+}
+
 // ── Note entry item ───────────────────────────────────────────────────────────
 
 @Composable
 private fun NoteEntryItem(entry: FileHelper.NoteEntry, searchQuery: String) {
-    val maskedContent = remember(entry.content) {
-        val lines = entry.content.lines()
-        FileHelper.maskSensitive(lines).joinToString("\n")
-    }
-
-    val annotatedString = remember(entry.header, maskedContent, searchQuery) {
-        buildFormattedNoteEntry(entry.header, maskedContent, searchQuery)
+    val annotatedString = remember(entry.header, entry.content, searchQuery) {
+        buildFormattedNoteEntry(entry.header, entry.content, searchQuery)
     }
 
     Text(
@@ -1116,7 +1237,7 @@ fun HomeScreenPreview() {
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 20.dp, vertical = 12.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
+                    horizontalArrangement = Arrangement.spacedBy(14.dp, Alignment.CenterHorizontally),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Surface(
@@ -1224,8 +1345,8 @@ fun HomeScreenPreview() {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 32.dp, vertical = 14.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
+                            .padding(horizontal = 16.dp, vertical = 14.dp),
+                        horizontalArrangement = Arrangement.spacedBy(90.dp, Alignment.CenterHorizontally),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Surface(
@@ -1339,8 +1460,8 @@ fun HomeEditModePreview() {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 20.dp, vertical = 10.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
+                            .padding(horizontal = 16.dp, vertical = 10.dp),
+                        horizontalArrangement = Arrangement.spacedBy(90.dp, Alignment.CenterHorizontally),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Surface(

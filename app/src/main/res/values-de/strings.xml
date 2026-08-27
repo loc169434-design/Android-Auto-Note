@@ -114,4 +114,10 @@
     <string name="widget_triple_action_name">Dreifach-Aktion</string>
     <string name="str_widget_icon_desc">Widget erstellen</string>
 
+    <!-- Sensitive ZZ Tip -->
+    <string name="str_sensitive_tip_zz">[Fügen Sie am Anfang und Ende sensibler Notizen zz ein, um sich zu schützen]</string>
+
+    <!-- Gemini Journal Prompt -->
+    <string name="str_gemini_journal_prompt">Dies ist mein Tagebuch. Bitte lesen und verstehen Sie die Daten und warten Sie auf meine nächste Anfrage.</string>
+
 </resources>

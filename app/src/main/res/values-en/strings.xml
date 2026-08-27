@@ -113,11 +113,16 @@
     <string name="str_premium_restore_hint">Previously purchased? Tap to restore</string>
     <string name="str_premium_later">LATER</string>
     <string name="str_btn_share">Share</string>
-
     <!-- PinWidgetBottomSheet -->
     <string name="str_tap_to_create_widget">(Tap here to add widget to Home screen)</string>
     <string name="btn_later">LATER</string>
     <string name="widget_triple_action_name">Triple Action</string>
     <string name="str_widget_icon_desc">Create Widget</string>
+
+    <!-- Sensitive ZZ Tip -->
+    <string name="str_sensitive_tip_zz">[Add zz at the beginning and end of sensitive notes to protect yourself]</string>
+
+    <!-- Gemini Journal Prompt -->
+    <string name="str_gemini_journal_prompt">This is my journal. Please read, understand the data, and wait for my next request.</string>
 
 </resources>

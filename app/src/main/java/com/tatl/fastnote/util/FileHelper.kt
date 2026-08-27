@@ -56,45 +56,6 @@ object FileHelper {
         return match?.value?.trim()
     }
 
-    // ── Sample Data cho môi trường không tiện ghi âm ───────────────────────────
-    fun ensureSampleData(context: Context) {
-        val rawFile = getRawFile(context)
-        val guidiFile = getGuidiFile(context)
-        if (!rawFile.exists() || rawFile.length() == 0L || !guidiFile.exists() || guidiFile.length() == 0L) {
-            val sampleText = buildSampleNotes()
-            try {
-                rawFile.writeText(sampleText, Charsets.UTF_8)
-                guidiFile.writeText(sampleText, Charsets.UTF_8)
-                Log.d(TAG, "Initialized sample notes data")
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to initialize sample notes", e)
-            }
-        }
-    }
-
-    private fun buildSampleNotes(): String {
-        val cal = Calendar.getInstance()
-        fun formatDate(c: Calendar, hour: Int, minute: Int): String {
-            val dayName = DAY_NAMES[c.get(Calendar.DAY_OF_WEEK)] ?: "Ngày"
-            val day = String.format(Locale.getDefault(), "%02d", c.get(Calendar.DAY_OF_MONTH))
-            val month = String.format(Locale.getDefault(), "%02d", c.get(Calendar.MONTH) + 1)
-            val year = c.get(Calendar.YEAR)
-            val h = String.format(Locale.getDefault(), "%02d", hour)
-            val m = String.format(Locale.getDefault(), "%02d", minute)
-            return "- $dayName, ngày $day-$month-$year lúc $h.$m:"
-        }
-
-        val header1 = formatDate(cal, 8, 30)
-        val header2 = formatDate(cal, 10, 15)
-
-        val calPrev = (cal.clone() as Calendar).apply { add(Calendar.DAY_OF_MONTH, -1) }
-        val header3 = formatDate(calPrev, 16, 45)
-
-        return "$header1 Họp giao ban đầu tuần, thảo luận về kế hoạch triển khai tính năng AI và đồng bộ đám mây.\n\n" +
-                "$header2 **Ý TƯỞNG PHÁT TRIỂN:** Tối ưu hóa bộ nhận diện Regex cho ghi chú, hỗ trợ xóa nội dung linh hoạt và tự động bảo vệ tiền tố ngày tháng.\n\n" +
-                "$header3 Mua sách và chuẩn bị tài liệu nghiên cứu Jetpack Compose Canvas."
-    }
-
     // ── Directory ─────────────────────────────────────────────────────────────
 
     fun getNotesDir(context: Context): File {
@@ -152,7 +113,6 @@ object FileHelper {
      * Supports single-line and multi-line notes.
      */
     fun parseEntries(context: Context): List<NoteEntry> {
-        ensureSampleData(context)
         val file = getGuidiFile(context)
         if (!file.exists()) return emptyList()
 
@@ -208,7 +168,6 @@ object FileHelper {
     // ── Raw file edit ─────────────────────────────────────────────────────────
 
     fun readRawFile(context: Context): String {
-        ensureSampleData(context)
         val f = getRawFile(context)
         return if (f.exists()) f.readText(Charsets.UTF_8) else ""
     }
@@ -269,6 +228,11 @@ object FileHelper {
 
     // ── Sensitive data masking (Regex Guard) ──────────────────────────────────
 
+    // 0. Cặp đánh dấu người dùng tự bảo vệ: zz...zz (case-insensitive, có thể chứa khoảng trắng, xuống dòng)
+    private val ZZ_SENSITIVE_REGEX = Regex(
+        """(?i)zz[\s\S]*?zz"""
+    )
+
     // 1. Mật khẩu & Từ khóa xác thực (mk, pass, password, mat khau, mật khẩu...) với :, =, là, -, khoảng trắng
     private val PASSWORD_REGEX = Regex(
         """(?i)(mk|pass(?:word)?|m[aậ]t\s*kh[aẩ]u)\s*[:=l\u00e0\s\-]+\s*([^\s,;]+)"""
@@ -326,6 +290,9 @@ object FileHelper {
      */
     fun maskContent(text: String): String {
         var result = text
+
+        // Rule 0: Che toàn bộ nội dung nằm giữa cặp 'zz' do người dùng chủ động đánh dấu
+        result = result.replace(ZZ_SENSITIVE_REGEX, "***")
 
         // Rule 1: Mật khẩu & Từ khóa xác thực -> giữ từ khóa và dấu nối, che giá trị thành ***
         result = result.replace(PASSWORD_REGEX) { mr ->

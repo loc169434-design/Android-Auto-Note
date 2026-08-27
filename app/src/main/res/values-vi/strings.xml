@@ -119,4 +119,10 @@
     <string name="widget_triple_action_name">Bộ 3 tính năng</string>
     <string name="str_widget_icon_desc">Tạo Widget</string>
 
+    <!-- Sensitive ZZ Tip -->
+    <string name="str_sensitive_tip_zz">[Hãy thêm zz vào đầu và cuối đoạn ghi chú nhạy cảm để bảo vệ chính bạn]</string>
+
+    <!-- Gemini Journal Prompt -->
+    <string name="str_gemini_journal_prompt">Đây là sổ nhật ký của tôi. Bạn hãy đọc, nắm rõ dữ liệu và chờ yêu cầu tiếp theo.</string>
+
 </resources>

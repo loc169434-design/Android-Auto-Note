@@ -114,4 +114,10 @@
     <string name="widget_triple_action_name">トリプルアクション</string>
     <string name="str_widget_icon_desc">ウィジェット作成</string>
 
+    <!-- Sensitive ZZ Tip -->
+    <string name="str_sensitive_tip_zz">[機密なメモの前後にzzを追加してプライバシーを保護してください]</string>
+
+    <!-- Gemini Journal Prompt -->
+    <string name="str_gemini_journal_prompt">これは私の日記です。データをよく読み、理解した上で次の指示をお待ちください。</string>
+
 </resources>

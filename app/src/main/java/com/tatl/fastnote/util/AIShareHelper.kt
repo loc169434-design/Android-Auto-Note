@@ -1,4 +1,4 @@
-﻿package com.tatl.fastnote.util
+package com.tatl.fastnote.util
 
 import android.content.Context
 import android.content.Intent
@@ -50,8 +50,9 @@ object AIShareHelper {
         context: Context,
         todayNotesText: String
     ): Intent {
+        val journalPrompt = com.tatl.fastnote.data.user.LanguageManager.getGeminiJournalPrompt()
         val prompt = buildString {
-            appendLine("Hãy tóm tắt những ghi chú trong ngày hôm nay của tôi một cách ngắn gọn và rõ ràng:")
+            appendLine(journalPrompt)
             appendLine()
             append(todayNotesText)
         }
@@ -61,7 +62,7 @@ object AIShareHelper {
         val shareIntent = Intent(Intent.ACTION_SEND).apply {
             type = "text/plain"
             putExtra(Intent.EXTRA_TEXT, prompt)
-            putExtra(Intent.EXTRA_SUBJECT, "Tóm tắt ghi chú hôm nay")
+            putExtra(Intent.EXTRA_SUBJECT, journalPrompt)
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
 
@@ -81,15 +82,22 @@ object AIShareHelper {
         todayNotesText: String
     ) {
         if (todayNotesText.isBlank()) {
+            val msg = if (com.tatl.fastnote.data.user.LanguageManager.currentLanguage.value == com.tatl.fastnote.data.user.AppLanguage.VIETNAMESE) {
+                "Chưa có ghi chú nào. Hãy ghi âm trước!"
+            } else {
+                "No notes yet. Please record first!"
+            }
             android.widget.Toast.makeText(
                 context,
-                "Chưa có ghi chú nào hôm nay để tóm tắt",
+                msg,
                 android.widget.Toast.LENGTH_SHORT
             ).show()
             return
         }
 
         val installedApps = getInstalledAIApps(context)
+        val journalPrompt = com.tatl.fastnote.data.user.LanguageManager.getGeminiJournalPrompt()
+        val promptTitle = com.tatl.fastnote.data.user.LanguageManager.getSharedFileTitle()
 
         try {
             if (installedApps.isNotEmpty()) {
@@ -101,14 +109,14 @@ object AIShareHelper {
                 val genericIntent = Intent(Intent.ACTION_SEND).apply {
                     type = "text/plain"
                     putExtra(Intent.EXTRA_TEXT, buildString {
-                        appendLine("Hãy tóm tắt những ghi chú trong ngày hôm nay của tôi một cách ngắn gọn và rõ ràng:")
+                        appendLine(journalPrompt)
                         appendLine()
                         append(todayNotesText)
                     })
-                    putExtra(Intent.EXTRA_SUBJECT, "Tóm tắt ghi chú hôm nay")
+                    putExtra(Intent.EXTRA_SUBJECT, journalPrompt)
                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 }
-                val chooser = Intent.createChooser(genericIntent, "Gửi tới AI để tóm tắt")
+                val chooser = Intent.createChooser(genericIntent, promptTitle)
                 chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 context.startActivity(chooser)
             }
@@ -118,13 +126,14 @@ object AIShareHelper {
                 val fallbackIntent = Intent(Intent.ACTION_SEND).apply {
                     type = "text/plain"
                     putExtra(Intent.EXTRA_TEXT, buildString {
-                        appendLine("Hãy tóm tắt những ghi chú trong ngày hôm nay của tôi:")
+                        appendLine(journalPrompt)
                         appendLine()
                         append(todayNotesText)
                     })
+                    putExtra(Intent.EXTRA_SUBJECT, journalPrompt)
                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 }
-                val chooser = Intent.createChooser(fallbackIntent, "Gửi tới AI để tóm tắt")
+                val chooser = Intent.createChooser(fallbackIntent, promptTitle)
                 chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 context.startActivity(chooser)
             } catch (e2: Exception) {

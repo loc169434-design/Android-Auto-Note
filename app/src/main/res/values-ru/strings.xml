@@ -114,4 +114,10 @@
     <string name="widget_triple_action_name">Тройное действие</string>
     <string name="str_widget_icon_desc">Создать виджет</string>
 
+    <!-- Sensitive ZZ Tip -->
+    <string name="str_sensitive_tip_zz">[Добавьте zz в начале и в конце конфиденциальных заметок для вашей защиты]</string>
+
+    <!-- Gemini Journal Prompt -->
+    <string name="str_gemini_journal_prompt">Это мой дневник. Пожалуйста, прочитайте, усвойте данные и ожидайте следующего запроса.</string>
+
 </resources>
