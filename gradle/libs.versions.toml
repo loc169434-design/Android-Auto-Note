@@ -13,7 +13,7 @@ room = "2.7.1"
 glance = "1.1.1"
 navigationCompose = "2.9.0"
 coroutines = "1.10.2"
-billing = "7.1.1"
+billing = "8.0.0"
 fragmentKtx = "1.8.5"
 lifecycleViewmodelCompose = "2.10.0"
 # Firebase

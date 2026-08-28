@@ -84,10 +84,10 @@ class BillingManager(context: Context) {
             .build()
 
         suspendCancellableCoroutine { cont ->
-            billingClient.queryProductDetailsAsync(params) { result, details ->
+            billingClient.queryProductDetailsAsync(params) { result, productDetailsResult ->
                 cont.resume(
                     if (result.responseCode == BillingClient.BillingResponseCode.OK)
-                        details.firstOrNull()
+                        productDetailsResult.productDetailsList?.firstOrNull()
                     else null
                 )
             }
