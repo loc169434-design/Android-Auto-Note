@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "364981991189-mu8e5of6442qka29uu4cokje0polc8q3.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.tatl.fastnote",
+            "certificate_hash": "928fefcae93c0a05385540560cdda97c0fc7f2ef"
+          }
+        },
+        {
           "client_id": "364981991189-sr6avbjjd6nh9nuk6dod38kpsndqa2s3.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {

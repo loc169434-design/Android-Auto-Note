@@ -327,6 +327,19 @@ fun HomeScreen(
                 )
             )
     ) {
+        // ── Hiển thị phiên bản & Version Code nhỏ ở góc trên ──────────────────
+        Text(
+            text = "v${com.tatl.fastnote.BuildConfig.VERSION_NAME} (${com.tatl.fastnote.BuildConfig.VERSION_CODE})",
+            fontSize = 9.5.sp,
+            fontFamily = InterFontFamily,
+            fontWeight = FontWeight.Medium,
+            color = Color(0x66BACFD9),
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .windowInsetsPadding(WindowInsets.statusBars)
+                .padding(end = 10.dp, top = 2.dp)
+        )
+
         if (isEditMode) {
             // ═════════════════════════════════════════════════════════════════
             //  GIAO DIỆN CHỈNH SỬA TRƠN (EDIT MODE)

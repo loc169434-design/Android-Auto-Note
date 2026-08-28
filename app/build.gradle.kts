@@ -16,7 +16,7 @@ android {
         applicationId = "com.tatl.fastnote"
         minSdk = 26
         targetSdk = 36
-        versionCode = 7
+        versionCode = 11
         versionName = "1.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -35,6 +35,8 @@ android {
             storePassword = keystoreProperties.getProperty("KEYSTORE_PASSWORD") ?: "12345678"
             keyAlias = keystoreProperties.getProperty("KEY_ALIAS") ?: "key0"
             keyPassword = keystoreProperties.getProperty("KEY_PASSWORD") ?: "12345678"
+            enableV1Signing = true
+            enableV2Signing = true
         }
     }
 
