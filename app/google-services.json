@@ -30,6 +30,14 @@
           }
         },
         {
+          "client_id": "364981991189-u05mojm91h9o2cbbblpjnd3f9fe7g28o.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.tatl.fastnote",
+            "certificate_hash": "2713a3e6fab0371fbbb1c096861d851825d834f3"
+          }
+        },
+        {
           "client_id": "364981991189-vf79qsdjd922hvcf3lk1a93ms8m2kjaq.apps.googleusercontent.com",
           "client_type": 3
         }

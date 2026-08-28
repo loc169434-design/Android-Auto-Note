@@ -98,7 +98,8 @@ class MainActivity : ComponentActivity() {
             }
         } catch (e: Exception) {
             Log.e(TAG, "Google sign-in failed", e)
-            Toast.makeText(this@MainActivity, "Đăng nhập Google chưa hoàn tất", Toast.LENGTH_SHORT).show()
+            val code = if (e is ApiException) " (Mã: ${e.statusCode})" else if (e.cause is ApiException) " (Mã: ${(e.cause as ApiException).statusCode})" else ""
+            Toast.makeText(this@MainActivity, "Đăng nhập Google chưa hoàn tất$code", Toast.LENGTH_LONG).show()
             pendingActionAfterPremium = null
         }
     }
