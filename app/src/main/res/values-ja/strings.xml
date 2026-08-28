@@ -120,4 +120,21 @@
     <!-- Gemini Journal Prompt -->
     <string name="str_gemini_journal_prompt">これは私の日記です。データをよく読み、理解した上で次の指示をお待ちください。</string>
 
+    <!-- Google Drive Sync & Progress Bar -->
+    <string name="str_sync_connecting">Google ドライブに接続中...</string>
+    <string name="str_sync_syncing">クラウドとデータを同期中...</string>
+    <string name="str_sync_success">Google ドライブにバックアップ完了！</string>
+    <string name="str_sync_up_to_date">データは最新の状態です</string>
+    <string name="str_sync_restored">ドライブから %1$d 件のメモを復元しました！</string>
+    <string name="str_sync_failed">クラウド同期に失敗しました</string>
+    <string name="str_drive_connected_title">☁️ Google ドライブ接続済み</string>
+    <string name="str_drive_unlinked_title">⚠️ ドライブバックアップ未有効</string>
+    <string name="str_drive_backup_title">☁️ Google ドライブバックアップ</string>
+    <string name="str_drive_desc_connected">メモは Google ドライブと安全に自動双方向同期されます。</string>
+    <string name="str_drive_desc_premium_unlinked">Premiumをご利用中です！メモを保護して自動バックアップするためにGoogleアカウントを接続してください。</string>
+    <string name="str_drive_desc_free">すべてのメモをご自身の Google ドライブ クラウドで安全に保護・同期します。</string>
+    <string name="str_btn_sync_now">🔄 今すぐ同期</string>
+    <string name="str_btn_login_drive_backup">バックアップ用にGoogleログイン</string>
+    <string name="str_btn_enable_backup_premium">Premiumでバックアップを有効化</string>
+
 </resources>

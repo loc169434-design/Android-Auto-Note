@@ -7,7 +7,13 @@ import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.common.api.Scope
 import com.tatl.fastnote.AutoNoteApplication
 import com.tatl.fastnote.util.FileHelper
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MultipartBody
@@ -35,6 +41,16 @@ object GoogleDriveSyncManager {
     const val DRIVE_APPDATA_SCOPE_URI = "https://www.googleapis.com/auth/drive.appdata"
     val DRIVE_APPDATA_SCOPE = Scope(DRIVE_APPDATA_SCOPE_URI)
     private const val OAUTH_SCOPE_STRING = "oauth2:$DRIVE_APPDATA_SCOPE_URI"
+
+    sealed interface SyncStatus {
+        object Idle : SyncStatus
+        data class Syncing(val messageResId: Int = com.tatl.fastnote.R.string.str_sync_syncing) : SyncStatus
+        data class Success(val messageResId: Int = com.tatl.fastnote.R.string.str_sync_success, val count: Int = 0, val timestamp: Long = System.currentTimeMillis()) : SyncStatus
+        data class Error(val messageResId: Int = com.tatl.fastnote.R.string.str_sync_failed, val rawMessage: String? = null) : SyncStatus
+    }
+
+    private val _syncStatus = MutableStateFlow<SyncStatus>(SyncStatus.Idle)
+    val syncStatus: StateFlow<SyncStatus> = _syncStatus.asStateFlow()
 
     private const val DRIVE_FILE_NAME = "ghichu.txt"
     private const val DRIVE_API_FILES_URL = "https://www.googleapis.com/drive/v3/files"
@@ -75,11 +91,12 @@ object GoogleDriveSyncManager {
                 .build()
 
             httpClient.newCall(request).execute().use { response ->
+                val body = response.body?.string()
                 if (!response.isSuccessful) {
-                    Log.w(TAG, "findAppDataFileId error: ${response.code} ${response.message}")
+                    Log.w(TAG, "findAppDataFileId error: ${response.code} ${response.message} - body: $body")
                     return@withContext null
                 }
-                val body = response.body?.string() ?: return@withContext null
+                if (body == null) return@withContext null
                 val json = JSONObject(body)
                 val files = json.optJSONArray("files") ?: return@withContext null
                 if (files.length() > 0) {
@@ -150,14 +167,15 @@ object GoogleDriveSyncManager {
                 .build()
 
             httpClient.newCall(request).execute().use { response ->
+                val resBody = response.body?.string()
                 if (response.isSuccessful) {
-                    val resBody = response.body?.string() ?: return@withContext null
+                    if (resBody == null) return@withContext null
                     val json = JSONObject(resBody)
                     val newId = json.optString("id")
                     Log.d(TAG, "Created new ghichu.txt on Drive with id: $newId")
                     return@withContext newId
                 } else {
-                    Log.w(TAG, "createDriveFile failed: ${response.code}")
+                    Log.w(TAG, "createDriveFile failed: ${response.code} ${response.message} - body: $resBody")
                     null
                 }
             }
@@ -184,13 +202,39 @@ object GoogleDriveSyncManager {
                 if (ok) {
                     Log.d(TAG, "Updated ghichu.txt on Drive successfully")
                 } else {
-                    Log.w(TAG, "updateDriveFile failed: ${response.code}")
+                    val resBody = response.body?.string()
+                    Log.w(TAG, "updateDriveFile failed: ${response.code} ${response.message} - body: $resBody")
                 }
                 ok
             }
         } catch (e: Exception) {
             Log.e(TAG, "updateDriveFile exception", e)
             false
+        }
+    }
+
+    private val DATE_PARSER_REGEX = Regex("""(\d{1,2})[-/](\d{1,2})[-/](\d{4}).*?(\d{1,2})[\.:](\d{2})""")
+
+    /**
+     * Trích xuất timestamp (ms) từ header ngày tháng để sắp xếp theo thời gian chính xác.
+     */
+    fun parseTimestampFromHeader(header: String): Long {
+        return try {
+            val match = DATE_PARSER_REGEX.find(header) ?: return 0L
+            val (dStr, mStr, yStr, hStr, minStr) = match.destructured
+            val cal = java.util.Calendar.getInstance()
+            cal.set(
+                yStr.toInt(),
+                mStr.toInt() - 1,
+                dStr.toInt(),
+                hStr.toInt(),
+                minStr.toInt(),
+                0
+            )
+            cal.set(java.util.Calendar.MILLISECOND, 0)
+            cal.timeInMillis
+        } catch (e: Exception) {
+            0L
         }
     }
 
@@ -206,36 +250,36 @@ object GoogleDriveSyncManager {
         val currentContent = StringBuilder()
 
         fun flush() {
-            val h = currentHeader
+            val h = currentHeader ?: ""
             val c = currentContent.toString().trim()
-            if (h != null || c.isNotEmpty()) {
-                val finalHeader = h ?: ""
-                val fullLine = if (finalHeader.isNotEmpty()) "- $finalHeader: $c" else c
+            if (h.isNotEmpty() || c.isNotEmpty()) {
                 entries.add(
                     FileHelper.NoteEntry(
-                        header = finalHeader,
+                        header = h,
                         content = c,
-                        fullLine = fullLine
+                        fullLine = if (h.isNotEmpty()) "- $h: $c" else c
                     )
                 )
             }
+            currentHeader = null
             currentContent.clear()
         }
 
         for (line in lines) {
             val trimmed = line.trim()
-            val headerMatch = FileHelper.extractDateHeader(trimmed)
-            if (headerMatch != null) {
+            val match = FileHelper.DATE_HEADER_REGEX.find(trimmed)
+            if (match != null) {
                 flush()
-                val cleanH = headerMatch.trimStart('-', '*').trim().removeSuffix(":").trim()
-                currentHeader = cleanH
-                val colonIdx = trimmed.indexOf(":")
-                if (colonIdx != -1 && colonIdx < trimmed.length - 1) {
-                    currentContent.append(trimmed.substring(colonIdx + 1).trim())
+                val matchEnd = match.range.last + 1
+                val rawHeader = match.value.trimStart('-', ' ').trimEnd(':').trim()
+                currentHeader = rawHeader
+                val contentAfter = trimmed.substring(matchEnd).trimStart()
+                if (contentAfter.isNotEmpty()) {
+                    currentContent.append(contentAfter)
                 }
             } else if (trimmed.isNotEmpty()) {
                 if (currentContent.isNotEmpty()) currentContent.append("\n")
-                currentContent.append(trimmed)
+                currentContent.append(line)
             }
         }
 
@@ -252,15 +296,19 @@ object GoogleDriveSyncManager {
      *  3. Đối chiếu các nhãn thời gian:
      *     - Nhãn nào trên Drive có mà dưới máy chưa có: Append vào máy & Room DB
      *     - Nhãn nào dưới máy có mà trên Drive chưa có: Append lên Drive
-     *  4. Cập nhật lại cả 2 phía đồng nhất
+     *  4. Cập nhật lại cả 2 phía đồng nhất theo thứ tự thời gian chuẩn xác
      */
     suspend fun sync(context: Context): Boolean = withContext(Dispatchers.IO) {
+        _syncStatus.value = SyncStatus.Syncing(com.tatl.fastnote.R.string.str_sync_connecting)
         try {
             val token = getAccessToken(context)
             if (token == null) {
                 Log.d(TAG, "No Google access token (user not logged in with Google)")
+                _syncStatus.value = SyncStatus.Idle
                 return@withContext false
             }
+
+            _syncStatus.value = SyncStatus.Syncing(com.tatl.fastnote.R.string.str_sync_syncing)
 
             // 1. Đọc dữ liệu local (ưu tiên raw.txt, fallback ghichu_clean.txt)
             val localRaw = FileHelper.readRawFile(context).ifBlank { FileHelper.readGuidiFile(context) ?: "" }
@@ -276,6 +324,8 @@ object GoogleDriveSyncManager {
                     createDriveFile(token, localRaw)
                     Log.d(TAG, "Uploaded initial local notes to Drive appDataFolder")
                 }
+                _syncStatus.value = SyncStatus.Success(com.tatl.fastnote.R.string.str_sync_success, 0, System.currentTimeMillis())
+                scheduleResetSyncStatus()
                 return@withContext true
             }
 
@@ -290,24 +340,39 @@ object GoogleDriveSyncManager {
 
             if (missingOnLocal.isEmpty() && missingOnDrive.isEmpty()) {
                 Log.d(TAG, "Sync complete: Both local and Drive are already up-to-date")
+                _syncStatus.value = SyncStatus.Success(com.tatl.fastnote.R.string.str_sync_up_to_date, 0, System.currentTimeMillis())
+                scheduleResetSyncStatus()
                 return@withContext true
             }
 
             // 5. Hợp nhất danh sách tất cả các ghi chú (Loại bỏ trùng lặp theo header)
-            val mergedEntries = mutableListOf<FileHelper.NoteEntry>()
-            val seenHeaders = mutableSetOf<String>()
+            val mergedMap = LinkedHashMap<String, FileHelper.NoteEntry>()
 
-            // Ưu tiên thứ tự mới nhất (local trước, rồi drive)
-            for (entry in localEntries + driveEntries) {
-                if (entry.header !in seenHeaders) {
-                    seenHeaders.add(entry.header)
-                    mergedEntries.add(entry)
+            // Đưa bản ghi từ Drive vào trước
+            for (entry in driveEntries) {
+                val key = entry.header.ifBlank { entry.content }
+                if (key.isNotBlank()) {
+                    mergedMap[key] = entry
                 }
             }
 
-            // Xây dựng lại văn bản phẳng chuẩn
-            val mergedText = mergedEntries.joinToString("\n\n") { entry ->
-                "- ${entry.header}: ${entry.content}"
+            // Đưa bản ghi từ Local vào (sẽ ghi đè bản ghi Drive nếu trùng key để ưu tiên nội dung máy)
+            for (entry in localEntries) {
+                val key = entry.header.ifBlank { entry.content }
+                if (key.isNotBlank()) {
+                    mergedMap[key] = entry
+                }
+            }
+
+            // Sắp xếp các ghi chú theo thứ tự thời gian TĂNG DẦN (Cũ nhất ở trên cùng file, Mới nhất ở dưới cùng file)
+            // Khi FileHelper.parseEntries đọc và reverse(), ghi chú mới nhất trên máy sẽ hiển thị ở ĐẦU danh sách UI, ghi chú cũ trên đám mây sẽ nằm ở DƯỚI.
+            val sortedEntries = mergedMap.values.sortedWith(
+                compareBy { parseTimestampFromHeader(it.header) }
+            )
+
+            // Xây dựng lại văn bản phẳng chuẩn (theo thứ tự thời gian tăng dần)
+            val mergedText = sortedEntries.joinToString("\n\n") { entry ->
+                if (entry.header.isNotBlank()) "- ${entry.header}: ${entry.content}" else entry.content
             }
 
             // 6. Ghi đè file local nếu có bản ghi mới từ Drive (đồng bộ cả raw.txt và ghichu_clean.txt)
@@ -333,10 +398,24 @@ object GoogleDriveSyncManager {
                 Log.d(TAG, "Uploaded merged notes to Drive appDataFolder")
             }
 
+            val successResId = if (missingOnLocal.isNotEmpty()) com.tatl.fastnote.R.string.str_sync_restored else com.tatl.fastnote.R.string.str_sync_success
+            _syncStatus.value = SyncStatus.Success(successResId, missingOnLocal.size, System.currentTimeMillis())
+            scheduleResetSyncStatus()
             true
         } catch (e: Exception) {
             Log.e(TAG, "sync error", e)
+            _syncStatus.value = SyncStatus.Error(com.tatl.fastnote.R.string.str_sync_failed, e.message)
+            scheduleResetSyncStatus()
             false
+        }
+    }
+
+    private fun scheduleResetSyncStatus() {
+        CoroutineScope(Dispatchers.Main).launch {
+            delay(3500L)
+            if (_syncStatus.value !is SyncStatus.Syncing) {
+                _syncStatus.value = SyncStatus.Idle
+            }
         }
     }
 }

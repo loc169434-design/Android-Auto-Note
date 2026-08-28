@@ -133,4 +133,21 @@
     <!-- Gemini Journal Prompt -->
     <string name="str_gemini_journal_prompt">Đây là sổ nhật ký của tôi. Bạn hãy đọc, nắm rõ dữ liệu và chờ yêu cầu tiếp theo.</string>
 
+    <!-- Google Drive Sync & Progress Bar -->
+    <string name="str_sync_connecting">Đang kết nối Google Drive...</string>
+    <string name="str_sync_syncing">Đang đồng bộ dữ liệu với đám mây...</string>
+    <string name="str_sync_success">Đã sao lưu lên Google Drive!</string>
+    <string name="str_sync_up_to_date">Dữ liệu đã được cập nhật mới nhất</string>
+    <string name="str_sync_restored">Đã khôi phục %1$d ghi chú từ Drive!</string>
+    <string name="str_sync_failed">Đồng bộ đám mây thất bại</string>
+    <string name="str_drive_connected_title">☁️ Google Drive đã kết nối</string>
+    <string name="str_drive_unlinked_title">⚠️ Chưa kích hoạt Sao lưu Drive</string>
+    <string name="str_drive_backup_title">☁️ Sao lưu Google Drive</string>
+    <string name="str_drive_desc_connected">Ghi chú của bạn được tự động sao lưu 2 chiều lên Google Drive an toàn.</string>
+    <string name="str_drive_desc_premium_unlinked">Bạn đã có bản quyền Premium! Hãy kết nối tài khoản Google để bảo vệ và tự động sao lưu ghi chú.</string>
+    <string name="str_drive_desc_free">Bảo vệ và đồng bộ toàn bộ ghi chú của bạn an toàn trên đám mây Google Drive của riêng bạn.</string>
+    <string name="str_btn_sync_now">🔄 Đồng bộ ngay</string>
+    <string name="str_btn_login_drive_backup">Đăng nhập Google để sao lưu</string>
+    <string name="str_btn_enable_backup_premium">Kích hoạt Sao lưu với Premium</string>
+
 </resources>

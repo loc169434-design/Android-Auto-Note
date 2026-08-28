@@ -51,6 +51,9 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.layout.width
+import androidx.compose.material.icons.filled.CheckCircle
+import com.tatl.fastnote.sync.GoogleDriveSyncManager
 import com.tatl.fastnote.data.user.AppLanguage
 import com.tatl.fastnote.data.user.LanguageManager
 import androidx.compose.runtime.Composable
@@ -277,9 +280,19 @@ fun HomeScreen(
         } else false
     }
 
+    val syncStatus by com.tatl.fastnote.sync.GoogleDriveSyncManager.syncStatus.collectAsState()
+
     LaunchedEffect(refreshKey) {
         withContext(Dispatchers.IO) {
             fileEntries = FileHelper.parseEntries(context)
+        }
+    }
+
+    LaunchedEffect(syncStatus) {
+        if (syncStatus is com.tatl.fastnote.sync.GoogleDriveSyncManager.SyncStatus.Success) {
+            withContext(Dispatchers.IO) {
+                fileEntries = FileHelper.parseEntries(context)
+            }
         }
     }
 
@@ -653,6 +666,67 @@ fun HomeScreen(
                                 tint = if (isPremium) Color(0xFFFFD700)   // icon vàng sáng khi đã mua
                                        else Color(0xFFCBD5E1),             // icon trắng xám khi chưa mua
                                 modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
+                }
+
+                // ── Thanh thông báo / Progress Bar Đồng bộ Google Drive ───────
+                androidx.compose.animation.AnimatedVisibility(
+                    visible = syncStatus is GoogleDriveSyncManager.SyncStatus.Syncing || syncStatus is GoogleDriveSyncManager.SyncStatus.Success,
+                    enter = androidx.compose.animation.expandVertically() + androidx.compose.animation.fadeIn(),
+                    exit = androidx.compose.animation.shrinkVertically() + androidx.compose.animation.fadeOut()
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 24.dp, vertical = 2.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            if (syncStatus is GoogleDriveSyncManager.SyncStatus.Syncing) {
+                                val s = syncStatus as GoogleDriveSyncManager.SyncStatus.Syncing
+                                androidx.compose.material3.CircularProgressIndicator(
+                                    modifier = Modifier.size(13.dp),
+                                    strokeWidth = 2.dp,
+                                    color = Color(0xFF60A5FA)
+                                )
+                                Spacer(Modifier.width(8.dp))
+                                Text(
+                                    text = stringResource(s.messageResId),
+                                    fontSize = 12.sp,
+                                    fontFamily = InterFontFamily,
+                                    color = Color(0xFF93C5FD)
+                                )
+                            } else if (syncStatus is GoogleDriveSyncManager.SyncStatus.Success) {
+                                val s = syncStatus as GoogleDriveSyncManager.SyncStatus.Success
+                                Icon(
+                                    Icons.Default.CheckCircle,
+                                    contentDescription = null,
+                                    tint = Color(0xFF4ADE80),
+                                    modifier = Modifier.size(13.dp)
+                                )
+                                Spacer(Modifier.width(8.dp))
+                                Text(
+                                    text = if (s.count > 0) stringResource(s.messageResId, s.count) else stringResource(s.messageResId),
+                                    fontSize = 12.sp,
+                                    fontFamily = InterFontFamily,
+                                    color = Color(0xFF86EFAC)
+                                )
+                            }
+                        }
+                        if (syncStatus is GoogleDriveSyncManager.SyncStatus.Syncing) {
+                            Spacer(Modifier.height(4.dp))
+                            androidx.compose.material3.LinearProgressIndicator(
+                                modifier = Modifier
+                                    .fillMaxWidth(0.6f)
+                                    .height(2.dp)
+                                    .clip(RoundedCornerShape(1.dp)),
+                                color = Color(0xFF3B82F6),
+                                trackColor = Color(0xFF1E293B)
                             )
                         }
                     }

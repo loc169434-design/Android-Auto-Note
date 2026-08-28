@@ -125,4 +125,21 @@
     <!-- Gemini Journal Prompt -->
     <string name="str_gemini_journal_prompt">This is my journal. Please read, understand the data, and wait for my next request.</string>
 
+    <!-- Google Drive Sync & Progress Bar -->
+    <string name="str_sync_connecting">Connecting to Google Drive...</string>
+    <string name="str_sync_syncing">Syncing data with cloud...</string>
+    <string name="str_sync_success">Backed up to Google Drive!</string>
+    <string name="str_sync_up_to_date">Data is already up to date</string>
+    <string name="str_sync_restored">Restored %1$d notes from Drive!</string>
+    <string name="str_sync_failed">Cloud sync failed</string>
+    <string name="str_drive_connected_title">☁️ Google Drive Connected</string>
+    <string name="str_drive_unlinked_title">⚠️ Drive Backup Not Activated</string>
+    <string name="str_drive_backup_title">☁️ Google Drive Backup</string>
+    <string name="str_drive_desc_connected">Your notes are safely and automatically synced 2-way with Google Drive.</string>
+    <string name="str_drive_desc_premium_unlinked">You have Premium! Connect your Google account to protect and automatically back up your notes.</string>
+    <string name="str_drive_desc_free">Protect and sync all your notes safely on your own Google Drive cloud.</string>
+    <string name="str_btn_sync_now">🔄 Sync Now</string>
+    <string name="str_btn_login_drive_backup">Sign in with Google to Back Up</string>
+    <string name="str_btn_enable_backup_premium">Activate Backup with Premium</string>
+
 </resources>

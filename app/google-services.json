@@ -14,11 +14,19 @@
       },
       "oauth_client": [
         {
-          "client_id": "364981991189-vf79qsdjd922hvcf3lk1a93ms8m2kjaq.apps.googleusercontent.com",
+          "client_id": "364981991189-sr6avbjjd6nh9nuk6dod38kpsndqa2s3.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
             "package_name": "com.tatl.fastnote",
-            "certificate_hash": "50e03cead0f11815175264138d8dfb2204cb0ed5"
+            "certificate_hash": "cb614a457630e249906b9c3a4e37948af06566c7"
+          }
+        },
+        {
+          "client_id": "364981991189-tb6u80m9ctaf2tpvl352n81pudbn4l9m.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.tatl.fastnote",
+            "certificate_hash": "3bca18200fc9761e0834846ffe0fe19649d562f8"
           }
         },
         {

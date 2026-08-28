@@ -120,4 +120,21 @@
     <!-- Gemini Journal Prompt -->
     <string name="str_gemini_journal_prompt">Это мой дневник. Пожалуйста, прочитайте, усвойте данные и ожидайте следующего запроса.</string>
 
+    <!-- Google Drive Sync & Progress Bar -->
+    <string name="str_sync_connecting">Подключение к Google Диску...</string>
+    <string name="str_sync_syncing">Синхронизация данных с облаком...</string>
+    <string name="str_sync_success">Резервная копия сохранена на Google Диск!</string>
+    <string name="str_sync_up_to_date">Все данные актуальны</string>
+    <string name="str_sync_restored">Восстановлено заметок из Диска: %1$d!</string>
+    <string name="str_sync_failed">Ошибка синхронизации с облаком</string>
+    <string name="str_drive_connected_title">☁️ Google Диск подключен</string>
+    <string name="str_drive_unlinked_title">⚠️ Резервное копирование на Диск не включено</string>
+    <string name="str_drive_backup_title">☁️ Резервное копирование на Google Диск</string>
+    <string name="str_drive_desc_connected">Ваши заметки безопасно и автоматически синхронизируются с Google Диском.</string>
+    <string name="str_drive_desc_premium_unlinked">У вас есть Premium! Подключите аккаунт Google для автоматического сохранения заметок.</string>
+    <string name="str_drive_desc_free">Сохраняйте и синхронизируйте все свои заметки на собственном Google Диске.</string>
+    <string name="str_btn_sync_now">🔄 Синхронизировать сейчас</string>
+    <string name="str_btn_login_drive_backup">Войти через Google для копирования</string>
+    <string name="str_btn_enable_backup_premium">Включить резервное копирование с Premium</string>
+
 </resources>

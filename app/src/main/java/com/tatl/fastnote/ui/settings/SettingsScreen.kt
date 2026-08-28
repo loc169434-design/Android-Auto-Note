@@ -1,5 +1,6 @@
 package com.tatl.fastnote.ui.settings
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -86,12 +87,14 @@ fun SettingsScreen(
     onRestoreClick: () -> Unit = {},
     onLoginClick: () -> Unit = {},
     onLogoutClick: () -> Unit = {},
+    onSyncClick: () -> Unit = {},
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
     val currentTheme by ThemePreferences.currentTheme.collectAsState()
     val userProfile by UserManager.userProfile.collectAsState()
     val currentLanguage by LanguageManager.currentLanguage.collectAsState()
+    val syncStatus by com.tatl.fastnote.sync.GoogleDriveSyncManager.syncStatus.collectAsState()
 
     var showLanguageDialog by remember { mutableStateOf(false) }
 
@@ -121,12 +124,24 @@ fun SettingsScreen(
                 .padding(16.dp)
                 .verticalScroll(rememberScrollState())
         ) {
-            // === 1. User Profile Card ===
+            // === 1. Google Drive Cloud Sync Card ===
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                    containerColor = if (isPremium && userProfile.accountType == AccountType.GOOGLE) {
+                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
+                    } else if (isPremium) {
+                        Color(0xFF2B2200).copy(alpha = 0.6f)
+                    } else {
+                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                    }
+                ),
+                border = BorderStroke(
+                    1.dp,
+                    if (isPremium && userProfile.accountType == AccountType.GOOGLE) Color(0xFF3B82F6).copy(alpha = 0.5f)
+                    else if (isPremium) Color(0xFFFFB800).copy(alpha = 0.6f)
+                    else Color(0xFF334155).copy(alpha = 0.4f)
                 )
             ) {
                 Column(modifier = Modifier.padding(20.dp)) {
@@ -135,16 +150,20 @@ fun SettingsScreen(
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         Icon(
-                            Icons.Default.AccountCircle,
+                            imageVector = if (userProfile.accountType == AccountType.GOOGLE) Icons.Default.Check else Icons.Default.AccountCircle,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(48.dp)
+                            tint = if (isPremium) Color(0xFFFFD700) else MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(36.dp)
                         )
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = userProfile.userName,
+                                text = if (userProfile.accountType == AccountType.GOOGLE) stringResource(R.string.str_drive_connected_title)
+                                       else if (isPremium) stringResource(R.string.str_drive_unlinked_title)
+                                       else stringResource(R.string.str_drive_backup_title),
                                 style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold
+                                fontWeight = FontWeight.Bold,
+                                color = if (isPremium && userProfile.accountType != AccountType.GOOGLE) Color(0xFFFFD966)
+                                        else MaterialTheme.colorScheme.onSurface
                             )
                             if (userProfile.email.isNotEmpty()) {
                                 Text(
@@ -153,41 +172,94 @@ fun SettingsScreen(
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    Text(
+                        text = if (userProfile.accountType == AccountType.GOOGLE) {
+                            stringResource(R.string.str_drive_desc_connected)
+                        } else if (isPremium) {
+                            stringResource(R.string.str_drive_desc_premium_unlinked)
+                        } else {
+                            stringResource(R.string.str_drive_desc_free)
+                        },
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    // Sync status progress bar
+                    if (syncStatus is com.tatl.fastnote.sync.GoogleDriveSyncManager.SyncStatus.Syncing) {
+                        val s = syncStatus as com.tatl.fastnote.sync.GoogleDriveSyncManager.SyncStatus.Syncing
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            androidx.compose.material3.CircularProgressIndicator(
+                                modifier = Modifier.size(14.dp),
+                                strokeWidth = 2.dp,
+                                color = Color(0xFF60A5FA)
+                            )
                             Text(
-                                text = "ID: ${userProfile.userId}",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.primary
+                                text = stringResource(s.messageResId),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color(0xFF93C5FD)
                             )
                         }
-                        // Account badge
-                        val badgeText = if (userProfile.accountType == AccountType.GOOGLE) {
-                            stringResource(R.string.account_google)
-                        } else {
-                            stringResource(R.string.account_guest)
-                        }
+                        Spacer(modifier = Modifier.height(6.dp))
+                        androidx.compose.material3.LinearProgressIndicator(
+                            modifier = Modifier.fillMaxWidth().height(2.dp),
+                            color = Color(0xFF3B82F6)
+                        )
+                    } else if (syncStatus is com.tatl.fastnote.sync.GoogleDriveSyncManager.SyncStatus.Success) {
+                        val s = syncStatus as com.tatl.fastnote.sync.GoogleDriveSyncManager.SyncStatus.Success
+                        val msg = if (s.count > 0) stringResource(s.messageResId, s.count) else stringResource(s.messageResId)
+                        Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = badgeText,
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.secondary
+                            text = "✅ $msg",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color(0xFF4ADE80)
                         )
                     }
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    if (userProfile.isLoggedIn) {
-                        OutlinedButton(
-                            onClick = onLogoutClick,
-                            modifier = Modifier.fillMaxWidth()
+                    if (userProfile.accountType == AccountType.GOOGLE) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
-                            Text(stringResource(R.string.btn_logout))
+                            Button(
+                                onClick = onSyncClick,
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text(stringResource(R.string.str_btn_sync_now))
+                            }
+                            OutlinedButton(
+                                onClick = onLogoutClick,
+                                modifier = Modifier.weight(0.8f)
+                            ) {
+                                Text(stringResource(R.string.btn_logout))
+                            }
+                        }
+                    } else if (isPremium) {
+                        Button(
+                            onClick = onLoginClick,
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                                containerColor = Color(0xFFF59E0B)
+                            )
+                        ) {
+                            Text(stringResource(R.string.str_btn_login_drive_backup), color = Color.Black, fontWeight = FontWeight.Bold)
                         }
                     } else {
                         Button(
-                            onClick = onLoginClick,
+                            onClick = onUpgradeClick,
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text(stringResource(R.string.btn_login_google))
+                            Text(stringResource(R.string.str_btn_enable_backup_premium))
                         }
                     }
                 }

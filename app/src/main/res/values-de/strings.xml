@@ -120,4 +120,21 @@
     <!-- Gemini Journal Prompt -->
     <string name="str_gemini_journal_prompt">Dies ist mein Tagebuch. Bitte lesen und verstehen Sie die Daten und warten Sie auf meine nächste Anfrage.</string>
 
+    <!-- Google Drive Sync & Progress Bar -->
+    <string name="str_sync_connecting">Verbindung mit Google Drive wird hergestellt...</string>
+    <string name="str_sync_syncing">Daten werden mit der Cloud synchronisiert...</string>
+    <string name="str_sync_success">Auf Google Drive gesichert!</string>
+    <string name="str_sync_up_to_date">Daten sind bereits auf dem neuesten Stand</string>
+    <string name="str_sync_restored">%1$d Notizen von Drive wiederhergestellt!</string>
+    <string name="str_sync_failed">Cloud-Synchronisierung fehlgeschlagen</string>
+    <string name="str_drive_connected_title">☁️ Google Drive verbunden</string>
+    <string name="str_drive_unlinked_title">⚠️ Drive-Sicherung nicht aktiviert</string>
+    <string name="str_drive_backup_title">☁️ Google Drive-Sicherung</string>
+    <string name="str_drive_desc_connected">Ihre Notizen werden sicher und automatisch bidirektional mit Google Drive synchronisiert.</string>
+    <string name="str_drive_desc_premium_unlinked">Sie haben Premium! Verbinden Sie Ihr Google-Konto, um Ihre Notizen automatisch zu sichern.</string>
+    <string name="str_drive_desc_free">Sichern und synchronisieren Sie alle Ihre Notizen sicher auf Ihrem Google Drive.</string>
+    <string name="str_btn_sync_now">🔄 Jetzt synchronisieren</string>
+    <string name="str_btn_login_drive_backup">Mit Google anmelden zum Sichern</string>
+    <string name="str_btn_enable_backup_premium">Sicherung mit Premium aktivieren</string>
+
 </resources>

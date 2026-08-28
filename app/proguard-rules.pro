@@ -1,21 +1,62 @@
-# Add project specific ProGuard rules here.
-# You can control the set of applied configuration files using the
-# proguardFiles setting in build.gradle.
-#
-# For more details, see
-#   http://developer.android.com/guide/developing/tools/proguard.html
+# ProGuard / R8 rules for Fast Note (Android Auto Note)
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+# ── 1. Retain debugging attributes for Crash logs & Stack traces ──
+-keepattributes SourceFile,LineNumberTable
+-keepattributes *Annotation*
+-keepattributes Signature
+-keepattributes InnerClasses,EnclosingMethod
 
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
+# ── 2. Data Models, Enums & Serialization ──
+-keep class com.tatl.fastnote.data.** { *; }
+-keep class com.tatl.fastnote.billing.** { *; }
+-keep class com.tatl.fastnote.sync.** { *; }
 
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
+-keepclassmembers enum * {
+    public static **[] values();
+    public static ** valueOf(java.lang.String);
+}
+
+# ── 3. Room Database ──
+-keep class androidx.room.RoomDatabase { *; }
+-keep class * extends androidx.room.RoomDatabase { *; }
+-dontwarn androidx.room.paging.**
+-keep class * extends androidx.room.migration.Migration { *; }
+
+# ── 4. Kotlin Coroutines ──
+-keepnames class kotlinx.coroutines.internal.MainDispatcherFactory {}
+-keepnames class kotlinx.coroutines.CoroutineExceptionHandler {}
+-keepclassmembers class kotlinx.coroutines.** {
+    volatile <fields>;
+}
+-dontwarn kotlinx.coroutines.**
+
+# ── 5. OkHttp & Okio ──
+-dontwarn okhttp3.**
+-dontwarn okio.**
+-keep class okhttp3.** { *; }
+-keep interface okhttp3.** { *; }
+-dontwarn javax.annotation.**
+-dontwarn org.conscrypt.**
+
+# ── 6. Google Play Billing ──
+-keep class com.android.billingclient.api.** { *; }
+-dontwarn com.android.billingclient.api.**
+
+# ── 7. Google Play Services & Google Sign-In ──
+-keep class com.google.android.gms.auth.api.signin.** { *; }
+-keep class com.google.android.gms.common.api.** { *; }
+-keep class com.google.android.gms.auth.** { *; }
+-keep class com.google.android.gms.tasks.** { *; }
+-dontwarn com.google.android.gms.**
+
+# ── 8. Firebase Auth & Firestore ──
+-keep class com.google.firebase.** { *; }
+-dontwarn com.google.firebase.**
+
+# ── 9. Zip4j (AES encryption for Send PC) ──
+-keep class net.lingala.zip4j.** { *; }
+-dontwarn net.lingala.zip4j.**
+
+# ── 10. Glance App Widgets ──
+-keep class androidx.glance.** { *; }
+-keep class com.tatl.fastnote.widget.** { *; }
