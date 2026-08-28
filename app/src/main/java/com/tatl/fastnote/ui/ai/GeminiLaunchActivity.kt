@@ -63,6 +63,17 @@ class GeminiLaunchActivity : ComponentActivity() {
 
             val journalPrompt = com.tatl.fastnote.data.user.LanguageManager.getGeminiJournalPrompt()
 
+            // 1. Sao chép câu lệnh Prompt vào khay nhớ tạm để người dùng có thể Dán trực tiếp vào ô chat Gemini nếu cần
+            try {
+                val clipboard = getSystemService(android.content.Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
+                if (clipboard != null) {
+                    val clip = android.content.ClipData.newPlainText("Gemini Prompt", journalPrompt)
+                    clipboard.setPrimaryClip(clip)
+                }
+            } catch (e: Exception) {
+                // Ignore clipboard error
+            }
+
             // Build ACTION_SEND intent with the .txt file as attachment and localized journal prompt
             val fileIntent = Intent(Intent.ACTION_SEND).apply {
                 type = "text/plain"

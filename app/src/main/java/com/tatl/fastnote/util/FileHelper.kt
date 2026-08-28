@@ -343,10 +343,17 @@ object FileHelper {
         val fileName = com.tatl.fastnote.data.user.LanguageManager.getSharedFileName()
         val cleanFile = File(getNotesDir(context), fileName)
         val rawText = readRawFile(context).ifBlank { readGuidiFile(context) ?: "" }
+        val journalPrompt = com.tatl.fastnote.data.user.LanguageManager.getGeminiJournalPrompt()
         if (rawText.isNotBlank()) {
             val lines = rawText.lines()
             val maskedLines = maskSensitive(lines)
-            cleanFile.writeText(maskedLines.joinToString("\n"), Charsets.UTF_8)
+            val fullContent = buildString {
+                appendLine("[AI INSTRUCTION / YÊU CẦU CHO AI]: $journalPrompt")
+                appendLine("==================================================")
+                appendLine()
+                append(maskedLines.joinToString("\n"))
+            }
+            cleanFile.writeText(fullContent, Charsets.UTF_8)
         }
         return cleanFile
     }
