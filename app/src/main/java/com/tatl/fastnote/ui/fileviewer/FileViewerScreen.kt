@@ -1,6 +1,8 @@
 package com.tatl.fastnote.ui.fileviewer
 
 import android.content.Intent
+import androidx.compose.ui.res.stringResource
+import com.tatl.fastnote.R
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -262,7 +264,7 @@ fun FileViewerScreen(
                         decorationBox = { innerTextField ->
                             if (tfv.text.isEmpty()) {
                                 Text(
-                                    text = "Chưa có ghi chú nào...",
+                                    text = stringResource(R.string.str_no_notes_yet),
                                     color = FvTextMuted,
                                     fontFamily = NotoSansFontFamily,
                                     fontSize = 18.sp
@@ -336,7 +338,7 @@ fun FileViewerScreen(
                                 modifier = Modifier.size(18.dp)
                             )
                             Text(
-                                text = if (isSaving) "Đang lưu..." else "LƯU",
+                                text = if (isSaving) stringResource(R.string.str_saving) else stringResource(R.string.str_btn_save_action),
                                 color = Color(0xFF93C5FD),
                                 fontFamily = InterFontFamily,
                                 fontWeight = FontWeight.Bold,
@@ -352,7 +354,7 @@ fun FileViewerScreen(
         // -- AppToast: cảnh báo khi có gắng xóa dòng thời gian --
         AppToast(
             visible = showProtectToast,
-            message = "Không thể xóa dòng thời gian ghi chú",
+            message = stringResource(R.string.str_protect_toast),
             durationMs = 2000L,
             onDismiss = { showProtectToast = false }
         )

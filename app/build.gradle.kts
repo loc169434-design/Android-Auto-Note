@@ -118,12 +118,14 @@ dependencies {
     implementation(libs.credentials.play.services)
     implementation(libs.google.id)
     implementation(libs.okhttp)
+    implementation(libs.androidx.work.runtime.ktx)
+
 
     // Zip4j — AES-256 encrypted zip cho tính năng Gửi PC
-    implementation("net.lingala.zip4j:zip4j:2.11.5")
+    implementation(libs.zip4j)
 
     // Splash Screen API (Android 12+)
-    implementation("androidx.core:core-splashscreen:1.0.1")
+    implementation(libs.androidx.core.splashscreen)
 
     // Test
     testImplementation(libs.junit)
