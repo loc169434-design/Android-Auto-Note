@@ -204,9 +204,6 @@ class RecordingActivity : ComponentActivity() {
 
             WidgetUpdater.updateAllWidgets(this@RecordingActivity)
 
-            // Sync to Google Drive appDataFolder in background
-            com.tatl.fastnote.sync.GoogleDriveSyncManager.sync(applicationContext)
-
             stopRecordingService()
             finishAndRemoveTask()
         }

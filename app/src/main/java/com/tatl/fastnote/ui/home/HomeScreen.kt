@@ -200,7 +200,6 @@ fun HomeScreen(
                 keyboardController?.hide()
                 withContext(Dispatchers.IO) {
                     fileEntries = FileHelper.parseEntries(context)
-                    com.tatl.fastnote.sync.GoogleDriveSyncManager.sync(context)
                 }
                 isEditMode = false
             } else {
@@ -280,21 +279,17 @@ fun HomeScreen(
         } else false
     }
 
-    val syncStatus by com.tatl.fastnote.sync.GoogleDriveSyncManager.syncStatus.collectAsState()
-
     LaunchedEffect(refreshKey) {
         withContext(Dispatchers.IO) {
             fileEntries = FileHelper.parseEntries(context)
-        }
-    }
-
-    LaunchedEffect(syncStatus) {
-        if (syncStatus is com.tatl.fastnote.sync.GoogleDriveSyncManager.SyncStatus.Success) {
-            withContext(Dispatchers.IO) {
+            // Tự động đồng bộ ngầm khi mở cuốn sổ (chỉ chạy nếu đã mua Premium)
+            val didSync = com.tatl.fastnote.sync.GoogleDriveSyncManager.sync(context)
+            if (didSync) {
                 fileEntries = FileHelper.parseEntries(context)
             }
         }
     }
+
 
     // Bug 1.3: cuộn về đầu mỗi khi fileEntries được reload
     LaunchedEffect(fileEntries) {
@@ -684,66 +679,6 @@ fun HomeScreen(
                     }
                 }
 
-                // ── Thanh thông báo / Progress Bar Đồng bộ Google Drive ───────
-                androidx.compose.animation.AnimatedVisibility(
-                    visible = syncStatus is GoogleDriveSyncManager.SyncStatus.Syncing || syncStatus is GoogleDriveSyncManager.SyncStatus.Success,
-                    enter = androidx.compose.animation.expandVertically() + androidx.compose.animation.fadeIn(),
-                    exit = androidx.compose.animation.shrinkVertically() + androidx.compose.animation.fadeOut()
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 24.dp, vertical = 2.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center
-                        ) {
-                            if (syncStatus is GoogleDriveSyncManager.SyncStatus.Syncing) {
-                                val s = syncStatus as GoogleDriveSyncManager.SyncStatus.Syncing
-                                androidx.compose.material3.CircularProgressIndicator(
-                                    modifier = Modifier.size(13.dp),
-                                    strokeWidth = 2.dp,
-                                    color = Color(0xFF60A5FA)
-                                )
-                                Spacer(Modifier.width(8.dp))
-                                Text(
-                                    text = stringResource(s.messageResId),
-                                    fontSize = 12.sp,
-                                    fontFamily = InterFontFamily,
-                                    color = Color(0xFF93C5FD)
-                                )
-                            } else if (syncStatus is GoogleDriveSyncManager.SyncStatus.Success) {
-                                val s = syncStatus as GoogleDriveSyncManager.SyncStatus.Success
-                                Icon(
-                                    Icons.Default.CheckCircle,
-                                    contentDescription = null,
-                                    tint = Color(0xFF4ADE80),
-                                    modifier = Modifier.size(13.dp)
-                                )
-                                Spacer(Modifier.width(8.dp))
-                                Text(
-                                    text = if (s.count > 0) stringResource(s.messageResId, s.count) else stringResource(s.messageResId),
-                                    fontSize = 12.sp,
-                                    fontFamily = InterFontFamily,
-                                    color = Color(0xFF86EFAC)
-                                )
-                            }
-                        }
-                        if (syncStatus is GoogleDriveSyncManager.SyncStatus.Syncing) {
-                            Spacer(Modifier.height(4.dp))
-                            androidx.compose.material3.LinearProgressIndicator(
-                                modifier = Modifier
-                                    .fillMaxWidth(0.6f)
-                                    .height(2.dp)
-                                    .clip(RoundedCornerShape(1.dp)),
-                                color = Color(0xFF3B82F6),
-                                trackColor = Color(0xFF1E293B)
-                            )
-                        }
-                    }
-                }
 
                 // ── Title: SỔ GHI CHÚ HÀNG NGÀY ──────────────────────────────
                 Text(

@@ -299,6 +299,14 @@ object GoogleDriveSyncManager {
      *  4. Cập nhật lại cả 2 phía đồng nhất theo thứ tự thời gian chuẩn xác
      */
     suspend fun sync(context: Context): Boolean = withContext(Dispatchers.IO) {
+        // Chỉ người dùng ĐÃ MUA Premium mới được đồng bộ đám mây (V38 Phần 7 & 9)
+        val isPrem = com.tatl.fastnote.billing.PremiumManager.isPremium(context)
+        if (!isPrem) {
+            Log.d(TAG, "Sync skipped: User is not Premium (Cloud Sync is a Premium privilege).")
+            _syncStatus.value = SyncStatus.Idle
+            return@withContext false
+        }
+
         _syncStatus.value = SyncStatus.Syncing(com.tatl.fastnote.R.string.str_sync_connecting)
         try {
             val token = getAccessToken(context)

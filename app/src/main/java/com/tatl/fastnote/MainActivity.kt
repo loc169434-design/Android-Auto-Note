@@ -191,7 +191,7 @@ class MainActivity : ComponentActivity() {
         // ── Cloud sync: chỉ chạy khi isPremium VÀ đã đăng nhập Google thật ─────
         lifecycleScope.launch {
             val isGoogleUser = AuthManager.isLoggedIn() && !AuthManager.isAnonymous
-            val isPremiumUser = com.tatl.fastnote.billing.PremiumManager.isPremium()
+            val isPremiumUser = com.tatl.fastnote.billing.PremiumManager.isPremium(applicationContext)
             if (isGoogleUser && isPremiumUser) {
                 com.tatl.fastnote.sync.GoogleDriveSyncManager.sync(applicationContext)
                 CloudSyncManager.syncFromCloud(applicationContext)
