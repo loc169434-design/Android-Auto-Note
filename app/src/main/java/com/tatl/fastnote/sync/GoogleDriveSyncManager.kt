@@ -342,12 +342,23 @@ object GoogleDriveSyncManager {
             val driveEntries = parseRawTextToBlocks(driveRaw)
             val driveHeaderMap = driveEntries.associateBy { it.header }
 
-            // 4. Tìm các bản ghi lệch
+            // 4. Tìm các bản ghi lệch và bản ghi đã bị chỉnh sửa nội dung
             val missingOnLocal = driveEntries.filter { it.header !in localHeaderMap }
             val missingOnDrive = localEntries.filter { it.header !in driveHeaderMap }
 
-            if (missingOnLocal.isEmpty() && missingOnDrive.isEmpty()) {
-                Log.d(TAG, "Sync complete: Both local and Drive are already up-to-date")
+            // Kiểm tra các bản ghi cùng header nhưng nội dung đã bị sửa đổi trên máy
+            val contentModifiedEntries = localEntries.filter { localEntry ->
+                val driveEntry = driveHeaderMap[localEntry.header]
+                driveEntry != null && driveEntry.content.trim() != localEntry.content.trim()
+            }
+
+            val hasChanges = missingOnLocal.isNotEmpty() ||
+                    missingOnDrive.isNotEmpty() ||
+                    contentModifiedEntries.isNotEmpty() ||
+                    (localRaw.trim() != driveRaw.trim())
+
+            if (!hasChanges) {
+                Log.d(TAG, "Sync complete: Both local and Drive are already up-to-date and identical")
                 _syncStatus.value = SyncStatus.Success(com.tatl.fastnote.R.string.str_sync_up_to_date, 0, System.currentTimeMillis())
                 scheduleResetSyncStatus()
                 return@withContext true
@@ -364,7 +375,7 @@ object GoogleDriveSyncManager {
                 }
             }
 
-            // Đưa bản ghi từ Local vào (sẽ ghi đè bản ghi Drive nếu trùng key để ưu tiên nội dung máy)
+            // Đưa bản ghi từ Local vào (sẽ ghi đè bản ghi Drive nếu trùng key để ưu tiên nội dung mới sửa trên máy)
             for (entry in localEntries) {
                 val key = entry.header.ifBlank { entry.content }
                 if (key.isNotBlank()) {
@@ -400,10 +411,10 @@ object GoogleDriveSyncManager {
                 Log.d(TAG, "Merged ${missingOnLocal.size} new entries from Drive into Local")
             }
 
-            // 7. Cập nhật Drive nếu local có bản ghi mới
-            if (missingOnDrive.isNotEmpty() || missingOnLocal.isNotEmpty()) {
+            // 7. Cập nhật Drive nếu local có bản ghi mới, có ghi chú sửa đổi, hoặc file Drive khác với file máy
+            if (missingOnDrive.isNotEmpty() || contentModifiedEntries.isNotEmpty() || driveRaw.trim() != mergedText.trim()) {
                 updateDriveFile(token, fileId, mergedText)
-                Log.d(TAG, "Uploaded merged notes to Drive appDataFolder")
+                Log.d(TAG, "Uploaded merged/updated notes to Drive appDataFolder (modified=${contentModifiedEntries.size}, missingOnDrive=${missingOnDrive.size})")
             }
 
             val successResId = if (missingOnLocal.isNotEmpty()) com.tatl.fastnote.R.string.str_sync_restored else com.tatl.fastnote.R.string.str_sync_success

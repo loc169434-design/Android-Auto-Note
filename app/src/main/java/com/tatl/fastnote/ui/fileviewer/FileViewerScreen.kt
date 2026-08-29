@@ -133,6 +133,7 @@ fun FileViewerScreen(
             isSaving = false
             if (error == null) {
                 keyboardController?.hide()
+                com.tatl.fastnote.sync.GoogleDriveSyncWorker.enqueueOneTimeSync(context)
                 onClose()
             } else {
                 showProtectToast = true

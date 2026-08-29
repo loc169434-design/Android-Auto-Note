@@ -201,6 +201,7 @@ fun HomeScreen(
                 withContext(Dispatchers.IO) {
                     fileEntries = FileHelper.parseEntries(context)
                 }
+                com.tatl.fastnote.sync.GoogleDriveSyncWorker.enqueueOneTimeSync(context)
                 isEditMode = false
             } else {
                 showProtectToast = true

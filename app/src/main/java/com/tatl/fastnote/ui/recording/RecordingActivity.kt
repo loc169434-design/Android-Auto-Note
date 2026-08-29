@@ -204,6 +204,8 @@ class RecordingActivity : ComponentActivity() {
 
             WidgetUpdater.updateAllWidgets(this@RecordingActivity)
 
+            com.tatl.fastnote.sync.GoogleDriveSyncWorker.enqueueOneTimeSync(applicationContext)
+
             stopRecordingService()
             finishAndRemoveTask()
         }
