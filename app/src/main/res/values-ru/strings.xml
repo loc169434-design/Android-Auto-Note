@@ -137,4 +137,10 @@
     <string name="str_btn_login_drive_backup">Войти через Google для копирования</string>
     <string name="str_btn_enable_backup_premium">Включить резервное копирование с Premium</string>
 
+    <!-- Trial Countdown & Lock (Day 29+) -->
+    <string name="str_trial_countdown_2_days">Осталось 02 дня бесплатного периода. Обновитесь для бессрочного доступа!</string>
+    <string name="str_trial_countdown_1_day">Осталось 01 день бесплатного периода. Обновитесь для бессрочного доступа!</string>
+    <string name="str_trial_expired_permanent">Пожалуйста, обновитесь для продолжения использования!</string>
+    <string name="str_trial_expired_save_blocked">Пробный период истек. Обновитесь для сохранения новых заметок!</string>
+
 </resources>

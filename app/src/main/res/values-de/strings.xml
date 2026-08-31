@@ -137,4 +137,10 @@
     <string name="str_btn_login_drive_backup">Mit Google anmelden zum Sichern</string>
     <string name="str_btn_enable_backup_premium">Sicherung mit Premium aktivieren</string>
 
+    <!-- Trial Countdown & Lock (Day 29+) -->
+    <string name="str_trial_countdown_2_days">Sie haben noch 02 Tage kostenlose Testversion. Upgraden Sie für lebenslangen Zugriff!</string>
+    <string name="str_trial_countdown_1_day">Sie haben noch 01 Tag kostenlose Testversion. Upgraden Sie für lebenslangen Zugriff!</string>
+    <string name="str_trial_expired_permanent">Bitte upgraden Sie, um fortzufahren!</string>
+    <string name="str_trial_expired_save_blocked">Testversion abgelaufen. Bitte upgraden, um Notizen zu speichern!</string>
+
 </resources>

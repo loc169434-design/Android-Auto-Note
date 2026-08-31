@@ -100,9 +100,11 @@ private val CancelBorder = Color(0xFF444444)
 fun RecordingScreen(
     service: VoiceRecordingService?,
     isBound: Boolean,
+    isPremiumUser: Boolean = false,
     showSavedToast: Boolean = false,
     onCancel: () -> Unit,
-    onSaveAndExit: () -> Unit
+    onSaveAndExit: () -> Unit,
+    onUpgradeClick: () -> Unit = {}
 ) {
     val recognizedText by (service?.recognizedText
         ?: kotlinx.coroutines.flow.MutableStateFlow("")).collectAsState()
@@ -122,6 +124,7 @@ fun RecordingScreen(
         isListening = isListening,
         isPaused = isPaused,
         isBound = isBound,
+        isPremiumUser = isPremiumUser,
         showSavedToast = showSavedToast,
         currentLanguage = currentLanguage,
         onLanguageSelect = { lang ->
@@ -129,7 +132,8 @@ fun RecordingScreen(
             service?.updateLanguageAndRestart()
         },
         onCancel = onCancel,
-        onSaveAndExit = onSaveAndExit
+        onSaveAndExit = onSaveAndExit,
+        onUpgradeClick = onUpgradeClick
     )
 }
 
@@ -145,11 +149,13 @@ fun RecordingScreenContent(
     isListening: Boolean = true,
     isPaused: Boolean = false,
     isBound: Boolean = true,
+    isPremiumUser: Boolean = false,
     showSavedToast: Boolean = false,
     currentLanguage: AppLanguage = AppLanguage.VIETNAMESE,
     onLanguageSelect: (AppLanguage) -> Unit = {},
     onCancel: () -> Unit = {},
-    onSaveAndExit: () -> Unit = {}
+    onSaveAndExit: () -> Unit = {},
+    onUpgradeClick: () -> Unit = {}
 ) {
     val langLabel = currentLanguage.shortCode
 
@@ -183,12 +189,17 @@ fun RecordingScreenContent(
         baseContext.createConfigurationContext(config)
     }
 
-    CompositionLocalProvider(LocalContext provides localizedContext) {
+    CompositionLocalProvider(
+        LocalContext provides localizedContext,
+        androidx.compose.ui.platform.LocalConfiguration provides localizedContext.resources.configuration
+    ) {
 
         // Lay text trong locale hien tai (tu dong cap nhat khi currentLanguage thay doi)
-        val saveText   = stringResource(R.string.btn_save_upper)
-        val cancelText = stringResource(R.string.btn_cancel_upper)
-        val savedMessage = stringResource(R.string.str_saved)
+        val saveText     = localizedContext.resources.getString(R.string.btn_save_upper)
+        val cancelText   = localizedContext.resources.getString(R.string.btn_cancel_upper)
+        val savedMessage = localizedContext.resources.getString(R.string.str_saved)
+        val pausedText   = localizedContext.resources.getString(R.string.str_paused)
+        val connectingText = localizedContext.resources.getString(R.string.str_connecting)
 
         // Tap ngoai = luu va thoat
         Box(
@@ -243,8 +254,8 @@ fun RecordingScreenContent(
                 // -- Dong chu huong dan --
                 Text(
                     text = when {
-                        isPaused -> stringResource(R.string.str_paused)
-                        !isBound -> stringResource(R.string.str_connecting)
+                        isPaused -> pausedText
+                        !isBound -> connectingText
                         else     -> currentLanguage.promptText
                     },
                     fontFamily = InterFontFamily,
@@ -304,6 +315,33 @@ fun RecordingScreenContent(
                 }
 
                 Spacer(Modifier.weight(1f))
+
+                // -- Dòng thông báo đếm ngược / Khóa App (Từ ngày 29 trở đi) --
+                val shouldShowBanner = com.tatl.fastnote.billing.TrialManager.shouldShowMicBanner(localizedContext, isPremiumUser)
+                val bannerText = com.tatl.fastnote.billing.TrialManager.getMicBannerMessage(localizedContext)
+
+                if (shouldShowBanner && bannerText != null) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(Color(0xFF1E1E1E))
+                            .clickable { onUpgradeClick() }
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = bannerText,
+                            fontFamily = InterFontFamily,
+                            fontWeight = FontWeight.Medium,
+                            fontSize = 13.sp,
+                            color = Color(0xFFFFD700), // Màu vàng sang trọng, nổi bật
+                            textAlign = TextAlign.Center,
+                            lineHeight = 19.sp
+                        )
+                    }
+                    Spacer(Modifier.height(24.dp))
+                }
 
                 // -- Nut HUY -- circle outlined --
                 OutlinedButton(

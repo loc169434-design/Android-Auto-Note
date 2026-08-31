@@ -142,4 +142,10 @@
     <string name="str_btn_login_drive_backup">Đăng nhập Google để sao lưu</string>
     <string name="str_btn_enable_backup_premium">Kích hoạt Sao lưu với Premium</string>
 
+    <!-- Trial Countdown & Lock (Day 29+) -->
+    <string name="str_trial_countdown_2_days">Bạn còn 02 ngày để sử dụng miễn phí. Hãy nâng cấp để sử dụng trọn đời!</string>
+    <string name="str_trial_countdown_1_day">Bạn còn 01 ngày để sử dụng miễn phí. Hãy nâng cấp để sử dụng trọn đời!</string>
+    <string name="str_trial_expired_permanent">Hãy nâng cấp để tiếp tục sử dụng!</string>
+    <string name="str_trial_expired_save_blocked">Đã hết hạn dùng thử. Vui lòng nâng cấp để lưu ghi chú mới!</string>
+
 </resources>

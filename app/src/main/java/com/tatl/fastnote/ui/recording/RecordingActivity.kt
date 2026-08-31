@@ -41,10 +41,24 @@ import kotlinx.coroutines.launch
  *  1. note_{timestamp}.txt    — raw single-session file
  *  2. fileguidi.txt           — cumulative backup (append, never erased)
  */
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalConfiguration
+import android.content.res.Configuration
+import java.util.Locale
+import com.tatl.fastnote.data.user.LanguageManager
+
 class RecordingActivity : ComponentActivity() {
+
+    override fun attachBaseContext(newBase: Context) {
+        super.attachBaseContext(LanguageManager.getLocalizedContext(newBase))
+    }
 
     private var voiceService: VoiceRecordingService? = null
     private var isBound by mutableStateOf(false)
+    private var isPremiumUser by mutableStateOf(false)
     private var hasSaved = false    // Guard: prevent double-save
     private var showSavedToast by mutableStateOf(false)
 
@@ -91,6 +105,11 @@ class RecordingActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
+        isPremiumUser = com.tatl.fastnote.billing.PremiumManager.isPremiumCached(this)
+        lifecycleScope.launch {
+            isPremiumUser = com.tatl.fastnote.billing.PremiumManager.isPremium(this@RecordingActivity)
+        }
+
         if (hasRequiredPermissions()) {
             startRecordingService()
         } else {
@@ -99,13 +118,27 @@ class RecordingActivity : ComponentActivity() {
 
         setContent {
             AndroidAutoNoteTheme {
-                RecordingScreen(
-                    service = voiceService,
-                    isBound = isBound,
-                    showSavedToast = showSavedToast,
-                    onCancel = { cancelRecording() },
-                    onSaveAndExit = { autoSaveNote() }
-                )
+                val currentLanguage by LanguageManager.currentLanguage.collectAsState()
+                val baseCtx = LocalContext.current
+                val localizedContext = remember(currentLanguage) {
+                    val config = Configuration(baseCtx.resources.configuration)
+                    config.setLocale(Locale.forLanguageTag(currentLanguage.code))
+                    baseCtx.createConfigurationContext(config)
+                }
+                CompositionLocalProvider(
+                    LocalContext provides localizedContext,
+                    LocalConfiguration provides localizedContext.resources.configuration
+                ) {
+                    RecordingScreen(
+                        service = voiceService,
+                        isBound = isBound,
+                        isPremiumUser = isPremiumUser,
+                        showSavedToast = showSavedToast,
+                        onCancel = { cancelRecording() },
+                        onSaveAndExit = { autoSaveNote() },
+                        onUpgradeClick = { openPremiumFlow() }
+                    )
+                }
             }
         }
 
@@ -115,6 +148,14 @@ class RecordingActivity : ComponentActivity() {
                 autoSaveNote()
             }
         })
+    }
+
+    private fun openPremiumFlow() {
+        val intent = Intent(this, com.tatl.fastnote.MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            putExtra("SHOW_PREMIUM_DIALOG", true)
+        }
+        startActivity(intent)
     }
 
     /**
@@ -183,6 +224,17 @@ class RecordingActivity : ComponentActivity() {
         voiceService?.markAsSaved()
 
         if (text.isBlank()) {
+            stopRecordingService()
+            finishAndRemoveTask()
+            return
+        }
+
+        // ── Kiểm tra khóa tính năng từ ngày 31 (Nếu chưa nâng cấp Premium) ──
+        val isPrem = com.tatl.fastnote.billing.PremiumManager.isPremiumCached(this)
+        val isExpired = com.tatl.fastnote.billing.TrialManager.isTrialExpired(this)
+        if (!isPrem && isExpired) {
+            val blockedMsg = com.tatl.fastnote.billing.TrialManager.getSaveBlockedMessage(this)
+            Toast.makeText(this, blockedMsg, Toast.LENGTH_LONG).show()
             stopRecordingService()
             finishAndRemoveTask()
             return

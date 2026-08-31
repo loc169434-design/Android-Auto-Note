@@ -2,8 +2,10 @@ package com.tatl.fastnote.ui.home
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -22,6 +24,7 @@ import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -133,6 +136,7 @@ private val RedHighlight      = Color(0xFFFF5252)
 private val RedBg             = Color(0x33FF5252)
 
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun HomeScreen(
     viewModel: HomeViewModel,
@@ -173,6 +177,13 @@ fun HomeScreen(
     var searchActive by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
 
+    // ── Filter ────────────────────────────────────────────────────────────────
+    val filteredEntries = if (searchQuery.isBlank()) fileEntries
+    else fileEntries.filter {
+        it.content.contains(searchQuery, ignoreCase = true) ||
+        it.header.contains(searchQuery, ignoreCase = true)
+    }
+
     // ── Edit Mode State ───────────────────────────────────────────────────────
     var isEditMode by remember { mutableStateOf(false) }
     var editTfv by remember { mutableStateOf(TextFieldValue("")) }
@@ -198,6 +209,9 @@ fun HomeScreen(
             isSaving = false
             if (error == null) {
                 keyboardController?.hide()
+                focusManager.clearFocus()
+                searchActive = false
+                searchQuery = ""
                 withContext(Dispatchers.IO) {
                     fileEntries = FileHelper.parseEntries(context)
                 }
@@ -209,10 +223,102 @@ fun HomeScreen(
         }
     }
 
+    // ── Mở Chỉnh Sửa tại Đúng Vị Trí Mục Tiêu (Tình huống 1 & Tình huống 2) ──
+    fun openEditModeAtTarget(targetEntryIndex: Int? = null, searchKeyword: String? = null) {
+        scope.launch {
+            val raw = withContext(Dispatchers.IO) {
+                FileHelper.readRawFile(context)
+            }
+            originalContent = raw
+            val reversed = reverseEntries(raw)
+
+            var targetOffset = 0
+            var selectionLength = 0
+
+            // Tình huống 2: Mở từ kết quả tìm kiếm (Kính lúp)
+            val query = searchKeyword?.trim()
+            if (!query.isNullOrBlank()) {
+                val matchIdx = reversed.indexOf(query, ignoreCase = true)
+                if (matchIdx != -1) {
+                    targetOffset = matchIdx
+                    selectionLength = query.length
+                }
+            } else {
+                // Tình huống 1: Cuộn xem ở vị trí B trong danh sách ghi chú
+                val currentList = if (searchQuery.isNotBlank()) filteredEntries else fileEntries
+                val index = (targetEntryIndex ?: listState.firstVisibleItemIndex)
+                    .coerceIn(0, (currentList.size - 1).coerceAtLeast(0))
+                if (currentList.isNotEmpty() && index in currentList.indices) {
+                    val targetEntry = currentList[index]
+                    val headerSearch = targetEntry.header.trim()
+                    var entryIdx = if (headerSearch.isNotBlank()) {
+                        reversed.indexOf(headerSearch, ignoreCase = true)
+                    } else -1
+
+                    if (entryIdx == -1 && targetEntry.content.isNotBlank()) {
+                        val snippet = targetEntry.content.take(30).trim()
+                        entryIdx = reversed.indexOf(snippet, ignoreCase = true)
+                    }
+
+                    if (entryIdx != -1) {
+                        val colonIdx = reversed.indexOf(':', entryIdx)
+                        if (colonIdx != -1 && colonIdx < entryIdx + 80) {
+                            var cursorIdx = colonIdx + 1
+                            while (cursorIdx < reversed.length && (reversed[cursorIdx] == ' ' || reversed[cursorIdx] == '\t')) {
+                                cursorIdx++
+                            }
+                            targetOffset = cursorIdx
+                        } else {
+                            targetOffset = entryIdx
+                        }
+                    }
+                }
+            }
+
+            targetOffset = targetOffset.coerceIn(0, reversed.length)
+            val initialTfv = if (selectionLength > 0) {
+                TextFieldValue(
+                    reversed,
+                    selection = TextRange(targetOffset, (targetOffset + selectionLength).coerceAtMost(reversed.length))
+                )
+            } else {
+                TextFieldValue(reversed, selection = TextRange(targetOffset))
+            }
+
+            editTfv = adjustSelectionOutOfHeaders(initialTfv)
+            isEditMode = true
+            // Tắt thanh tìm kiếm và bàn phím tìm kiếm khi chuyển sang chế độ Sửa
+            searchActive = false
+            searchQuery = ""
+            focusManager.clearFocus()
+
+            // Tính toán dòng cần cuộn đến
+            val textBefore = reversed.substring(0, editTfv.selection.start.coerceIn(0, reversed.length))
+            val targetLineIndex = textBefore.count { it == '\n' }
+            val totalLines = reversed.count { it == '\n' }.coerceAtLeast(1)
+
+            kotlinx.coroutines.delay(50L)
+            try {
+                focusRequester.requestFocus()
+                keyboardController?.show()
+            } catch (_: Exception) {}
+
+            kotlinx.coroutines.delay(100L)
+            if (editScrollState.maxValue > 0 && totalLines > 1) {
+                val scrollFraction = targetLineIndex.toFloat() / totalLines.toFloat()
+                val targetScroll = (editScrollState.maxValue.toFloat() * scrollFraction).toInt()
+                editScrollState.scrollTo(targetScroll.coerceIn(0, editScrollState.maxValue))
+            }
+        }
+    }
+
     // ── Back Handler khi ở Edit Mode hoặc Search Mode ────────────────────────
     BackHandler(enabled = isEditMode || searchActive) {
         if (isEditMode) {
             keyboardController?.hide()
+            focusManager.clearFocus()
+            searchActive = false
+            searchQuery = ""
             doSave()
         } else if (searchActive) {
             focusManager.clearFocus()
@@ -233,45 +339,59 @@ fun HomeScreen(
         }
     }
 
-    // ── Focus, Cursor & Scroll lên đầu khi vào Edit Mode ─────────────────────
+    // ── Focus, Cursor & Scroll đến vị trí mục tiêu khi vào Edit Mode ─────────
     LaunchedEffect(isEditMode) {
         if (isEditMode) {
-            editTfv = adjustSelectionOutOfHeaders(editTfv.copy(selection = TextRange(0)))
-            editScrollState.scrollTo(0)
             kotlinx.coroutines.delay(50L)
             try {
                 focusRequester.requestFocus()
                 keyboardController?.show()
             } catch (_: Exception) {}
-            editScrollState.scrollTo(0)
-        } else {
-            listState.scrollToItem(0)
+
+            val textBefore = editTfv.text.substring(0, editTfv.selection.start.coerceIn(0, editTfv.text.length))
+            val targetLineIndex = textBefore.count { it == '\n' }
+            val totalLines = editTfv.text.count { it == '\n' }.coerceAtLeast(1)
+            kotlinx.coroutines.delay(100L)
+            if (editScrollState.maxValue > 0 && totalLines > 1) {
+                val scrollFraction = targetLineIndex.toFloat() / totalLines.toFloat()
+                val targetScroll = (editScrollState.maxValue.toFloat() * scrollFraction).toInt()
+                editScrollState.scrollTo(targetScroll.coerceIn(0, editScrollState.maxValue))
+            }
         }
     }
 
     // ── Lifecycle ─────────────────────────────────────────────────────────────
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) {
+            if (event == Lifecycle.Event.ON_PAUSE || event == Lifecycle.Event.ON_STOP) {
+                autoSaveJob?.cancel()
+                if (isEditMode) {
+                    val textToSave = reverseEntries(editTfv.text)
+                    FileHelper.saveEditedRaw(context, originalContent, textToSave)
+                    com.tatl.fastnote.sync.GoogleDriveSyncWorker.enqueueOneTimeSync(context)
+                    fileEntries = FileHelper.parseEntries(context)
+                    isEditMode = false
+                }
+            } else if (event == Lifecycle.Event.ON_RESUME) {
                 refreshKey++
                 // Bug 1.4 fix: reset search box when returning to HomeScreen
                 searchActive = false
                 searchQuery = ""
-                scope.launch {
-                    if (isEditMode) {
-                        editScrollState.scrollTo(0)
-                        editTfv = adjustSelectionOutOfHeaders(editTfv.copy(selection = TextRange(0)))
-                    } else {
-                        listState.scrollToItem(0)
-                    }
-                }
                 widgetActiveNow = if (currentHasPinned) {
                     PinWidgetHelper.isWidgetActive(context, TripleActionWidgetReceiver::class.java)
                 } else false
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            autoSaveJob?.cancel()
+            if (isEditMode) {
+                val textToSave = reverseEntries(editTfv.text)
+                FileHelper.saveEditedRaw(context, originalContent, textToSave)
+                com.tatl.fastnote.sync.GoogleDriveSyncWorker.enqueueOneTimeSync(context)
+            }
+        }
     }
 
     LaunchedEffect(hasPinnedWidget) {
@@ -304,13 +424,6 @@ fun HomeScreen(
     val shouldShowWidgetPrompt = !hasPinnedWidget || widgetWasRemoved || showManualPinPrompt
     val isPromptMandatory = !hasPinnedWidget || widgetWasRemoved
 
-    // ── Filter ────────────────────────────────────────────────────────────────
-    val filteredEntries = if (searchQuery.isBlank()) fileEntries
-    else fileEntries.filter {
-        it.content.contains(searchQuery, ignoreCase = true) ||
-        it.header.contains(searchQuery, ignoreCase = true)
-    }
-
     // ─────────────────────────────────────────────────────────────────────────
     //  ROOT: Nền Slate-Blue gradient mượt mà theo ảnh thiết kế
     // ─────────────────────────────────────────────────────────────────────────
@@ -323,18 +436,60 @@ fun HomeScreen(
                 )
             )
     ) {
-        // ── Hiển thị phiên bản & Version Code nhỏ ở góc trên ──────────────────
-        Text(
-            text = "v${com.tatl.fastnote.BuildConfig.VERSION_NAME} (${com.tatl.fastnote.BuildConfig.VERSION_CODE})",
-            fontSize = 9.5.sp,
-            fontFamily = InterFontFamily,
-            fontWeight = FontWeight.Medium,
-            color = Color(0x66BACFD9),
+        // ── Khu vực chạm ẩn Dev Mode & Text phiên bản góc trên bên phải (Luôn hiển thị ở cả Xem và Sửa) ──
+        var versionTapCount by remember { mutableIntStateOf(0) }
+        var lastTapTimeMs by remember { mutableStateOf(0L) }
+
+        Box(
             modifier = Modifier
                 .align(Alignment.TopEnd)
                 .windowInsetsPadding(WindowInsets.statusBars)
-                .padding(end = 10.dp, top = 2.dp)
-        )
+                .width(120.dp)
+                .height(36.dp)
+                .combinedClickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null,
+                    onClick = {
+                        val now = System.currentTimeMillis()
+                        if (now - lastTapTimeMs < 1200L) {
+                            versionTapCount++
+                        } else {
+                            versionTapCount = 1
+                        }
+                        lastTapTimeMs = now
+
+                        if (versionTapCount >= 5) {
+                            versionTapCount = 0
+                            val isBypass = com.tatl.fastnote.util.SecretDevModeManager.toggleBypassSecurityLayer1(context)
+                            val msg = if (isBypass) {
+                                "⚡ Đã mở khóa ẩn: Gửi dữ liệu thô lên AI (Không che ***)"
+                            } else {
+                                "🔒 Đã bật lại bảo mật Lớp 1 (Che số *** khi gửi AI)"
+                            }
+                            android.widget.Toast.makeText(context, msg, android.widget.Toast.LENGTH_LONG).show()
+                        }
+                    },
+                    onLongClick = {
+                        val isBypass = com.tatl.fastnote.util.SecretDevModeManager.toggleBypassSecurityLayer1(context)
+                        val msg = if (isBypass) {
+                            "⚡ Đã mở khóa ẩn: Gửi dữ liệu thô lên AI (Không che ***)"
+                        } else {
+                            "🔒 Đã bật lại bảo mật Lớp 1 (Che số *** khi gửi AI)"
+                        }
+                        android.widget.Toast.makeText(context, msg, android.widget.Toast.LENGTH_LONG).show()
+                    }
+                ),
+            contentAlignment = Alignment.TopEnd
+        ) {
+            Text(
+                text = "v${com.tatl.fastnote.BuildConfig.VERSION_NAME} (${com.tatl.fastnote.BuildConfig.VERSION_CODE})",
+                fontSize = 9.5.sp,
+                fontFamily = InterFontFamily,
+                fontWeight = FontWeight.Medium,
+                color = Color(0x66BACFD9),
+                modifier = Modifier.padding(end = 10.dp, top = 2.dp)
+            )
+        }
 
         if (isEditMode) {
             // ═════════════════════════════════════════════════════════════════
@@ -345,11 +500,11 @@ fun HomeScreen(
                     .fillMaxSize()
                     .imePadding()
             ) {
-                // Khoảng trống status bar phía trên
+                // Khoảng trống status bar + chỗ cho text phiên bản phía trên (đẩy card soạn thảo xuống bên dưới chữ phiên bản)
                 Spacer(
                     Modifier
                         .windowInsetsPadding(WindowInsets.statusBars)
-                        .height(12.dp)
+                        .height(36.dp)
                 )
 
                 // ── Khung nền lớn chứa toàn bộ vùng soạn thảo ─────────────────
@@ -416,10 +571,10 @@ fun HomeScreen(
 
                                 editTfv = adjustSelectionOutOfHeaders(newTfv)
 
-                                // ── Tự động lưu theo thời gian thực (Cứ sửa tới đâu lưu tới đó) ──
+                                // ── Tự động lưu ngầm mượt mà khi người dùng dừng tay gõ (sau 800ms) ──
                                 autoSaveJob?.cancel()
                                 autoSaveJob = scope.launch(Dispatchers.IO) {
-                                    kotlinx.coroutines.delay(200L)
+                                    kotlinx.coroutines.delay(800L)
                                     val textToSave = reverseEntries(newText)
                                     FileHelper.saveEditedRaw(context, originalContent, textToSave)
                                 }
@@ -832,10 +987,16 @@ fun HomeScreen(
                                 }
                             }
 
-                            items(filteredEntries) { entry ->
+                            itemsIndexed(filteredEntries) { index, entry ->
                                 NoteEntryItem(
                                     entry = entry,
-                                    searchQuery = searchQuery
+                                    searchQuery = searchQuery,
+                                    onLongClick = {
+                                        openEditModeAtTarget(
+                                            targetEntryIndex = index,
+                                            searchKeyword = if (searchActive && searchQuery.isNotBlank()) searchQuery else null
+                                        )
+                                    }
                                 )
                                 Spacer(Modifier.height(18.dp))
                             }
@@ -869,16 +1030,10 @@ fun HomeScreen(
                         // Nút SỬA dạng Icon bên trái (UI 2.3: nền nổi bật)
                         Surface(
                             onClick = {
-                                scope.launch {
-                                    val raw = withContext(Dispatchers.IO) {
-                                        FileHelper.readRawFile(context)
-                                    }
-                                    originalContent = raw
-                                    val reversed = reverseEntries(raw)
-                                    editTfv = adjustSelectionOutOfHeaders(TextFieldValue(reversed, selection = TextRange(0)))
-                                    isEditMode = true
-                                    editScrollState.scrollTo(0)
-                                }
+                                openEditModeAtTarget(
+                                    targetEntryIndex = listState.firstVisibleItemIndex,
+                                    searchKeyword = if (searchActive && searchQuery.isNotBlank()) searchQuery else null
+                                )
                             },
                             shape = RoundedCornerShape(10.dp),
                             color = Color(0xFF1A2C3D).copy(alpha = 0.85f),
@@ -1059,8 +1214,13 @@ private fun adjustSelectionOutOfHeaders(tfv: TextFieldValue): TextFieldValue {
 
 // ── Note entry item ───────────────────────────────────────────────────────────
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun NoteEntryItem(entry: FileHelper.NoteEntry, searchQuery: String) {
+private fun NoteEntryItem(
+    entry: FileHelper.NoteEntry,
+    searchQuery: String,
+    onLongClick: () -> Unit = {}
+) {
     val annotatedString = remember(entry.header, entry.content, searchQuery) {
         buildFormattedNoteEntry(entry.header, entry.content, searchQuery)
     }
@@ -1073,7 +1233,14 @@ private fun NoteEntryItem(entry: FileHelper.NoteEntry, searchQuery: String) {
             lineHeight = 22.sp,
             letterSpacing = 0.1.sp
         ),
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier
+            .fillMaxWidth()
+            .combinedClickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = {}, // Chạm thường hoặc vuốt cuộn màn hình không bị ảnh hưởng
+                onLongClick = onLongClick // Tính năng ẩn: Nhấn giữ (long press) để sửa ngay tại dòng này
+            )
     )
 }
 

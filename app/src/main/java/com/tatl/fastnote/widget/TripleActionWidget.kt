@@ -77,12 +77,7 @@ class TripleActionWidget : GlanceAppWidget() {
                     modifier           = GlanceModifier
                         .defaultWeight()
                         .fillMaxHeight()
-                        .clickable(
-                            if (trialExpired)
-                                actionRunCallback<TrialExpiredCallback>()
-                            else
-                                actionStartActivity<RecordingActivity>()
-                        )
+                        .clickable(actionStartActivity<RecordingActivity>())
                 )
 
                 Spacer(modifier = GlanceModifier.width(6.dp))

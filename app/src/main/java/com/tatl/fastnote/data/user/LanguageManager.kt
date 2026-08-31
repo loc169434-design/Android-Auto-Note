@@ -137,6 +137,16 @@ object LanguageManager {
         } catch (_: Exception) {}
     }
 
+    fun getLocalizedContext(context: Context): Context {
+        if (!::prefs.isInitialized) {
+            init(context)
+        }
+        val lang = _currentLanguage.value
+        val config = android.content.res.Configuration(context.resources.configuration)
+        config.setLocale(Locale.forLanguageTag(lang.code))
+        return context.createConfigurationContext(config)
+    }
+
     fun getSpeechLanguageTag(): String {
         return _currentLanguage.value.speechTag
     }

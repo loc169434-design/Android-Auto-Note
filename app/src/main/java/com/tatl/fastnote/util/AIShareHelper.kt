@@ -42,7 +42,7 @@ object AIShareHelper {
     }
 
     /**
-     * Create a share intent with today's notes and a summarization prompt.
+     * Create a share intent with today's notes (privacy-protected) and a summarization prompt.
      * If a specific AI app is found, target it directly.
      * Otherwise, open the general share chooser.
      */
@@ -51,10 +51,14 @@ object AIShareHelper {
         todayNotesText: String
     ): Intent {
         val journalPrompt = com.tatl.fastnote.data.user.LanguageManager.getGeminiJournalPrompt()
+        val isBypass = SecretDevModeManager.isBypassSecurityLayer1(context)
+        val filteredLines = FileHelper.filterForAiSharing(todayNotesText.lines(), bypassLayer1 = isBypass)
+        val cleanNotesText = filteredLines.joinToString("\n\n")
+
         val prompt = buildString {
             appendLine(journalPrompt)
             appendLine()
-            append(todayNotesText)
+            append(cleanNotesText)
         }
 
         val installedApps = getInstalledAIApps(context)
@@ -81,11 +85,14 @@ object AIShareHelper {
         context: Context,
         todayNotesText: String
     ) {
-        if (todayNotesText.isBlank()) {
+        val filteredLines = FileHelper.filterForAiSharing(todayNotesText.lines())
+        val cleanNotesText = filteredLines.joinToString("\n\n")
+
+        if (cleanNotesText.isBlank()) {
             val msg = if (com.tatl.fastnote.data.user.LanguageManager.currentLanguage.value == com.tatl.fastnote.data.user.AppLanguage.VIETNAMESE) {
-                "Chưa có ghi chú nào. Hãy ghi âm trước!"
+                "Không có nội dung ghi chú nào hợp lệ để gửi AI."
             } else {
-                "No notes yet. Please record first!"
+                "No notes available to share with AI."
             }
             android.widget.Toast.makeText(
                 context,
@@ -102,7 +109,7 @@ object AIShareHelper {
         try {
             if (installedApps.isNotEmpty()) {
                 // Try direct AI app first
-                val directIntent = createAIShareIntent(context, todayNotesText)
+                val directIntent = createAIShareIntent(context, cleanNotesText)
                 context.startActivity(directIntent)
             } else {
                 // No AI app found — open general chooser
@@ -111,7 +118,7 @@ object AIShareHelper {
                     putExtra(Intent.EXTRA_TEXT, buildString {
                         appendLine(journalPrompt)
                         appendLine()
-                        append(todayNotesText)
+                        append(cleanNotesText)
                     })
                     putExtra(Intent.EXTRA_SUBJECT, journalPrompt)
                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
@@ -128,7 +135,7 @@ object AIShareHelper {
                     putExtra(Intent.EXTRA_TEXT, buildString {
                         appendLine(journalPrompt)
                         appendLine()
-                        append(todayNotesText)
+                        append(cleanNotesText)
                     })
                     putExtra(Intent.EXTRA_SUBJECT, journalPrompt)
                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)

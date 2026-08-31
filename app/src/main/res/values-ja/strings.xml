@@ -137,4 +137,10 @@
     <string name="str_btn_login_drive_backup">バックアップ用にGoogleログイン</string>
     <string name="str_btn_enable_backup_premium">Premiumでバックアップを有効化</string>
 
+    <!-- Trial Countdown & Lock (Day 29+) -->
+    <string name="str_trial_countdown_2_days">無料トライアルは残り02日です。生涯無制限で利用するにはアップグレードしてください！</string>
+    <string name="str_trial_countdown_1_day">無料トライアルは残り01日です。生涯無制限で利用するにはアップグレードしてください！</string>
+    <string name="str_trial_expired_permanent">引き続きご利用いただくにはアップグレードしてください！</string>
+    <string name="str_trial_expired_save_blocked">無料トライアルが終了しました。保存するにはアップグレードしてください！</string>
+
 </resources>

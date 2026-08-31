@@ -62,6 +62,7 @@ import androidx.compose.ui.platform.LocalContext
 import com.tatl.fastnote.data.user.LanguageManager
 import java.util.Locale
 
+import android.content.Context
 import android.util.Log
 import androidx.activity.result.contract.ActivityResultContracts
 import com.google.android.gms.auth.api.signin.GoogleSignIn
@@ -70,6 +71,10 @@ import com.google.android.gms.common.api.ApiException
 import com.google.firebase.auth.GoogleAuthProvider
 
 class MainActivity : ComponentActivity() {
+
+    override fun attachBaseContext(newBase: Context) {
+        super.attachBaseContext(LanguageManager.getLocalizedContext(newBase))
+    }
 
     companion object {
         private const val TAG = "MainActivity"
@@ -210,13 +215,21 @@ class MainActivity : ComponentActivity() {
                     config.setLocale(Locale.forLanguageTag(currentLanguage.code))
                     baseCtx.createConfigurationContext(config)
                 }
-                CompositionLocalProvider(LocalContext provides localizedContext) {
+                CompositionLocalProvider(
+                    LocalContext provides localizedContext,
+                    androidx.compose.ui.platform.LocalConfiguration provides localizedContext.resources.configuration
+                ) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = Color(0xFF000000)  // den tuyet doi, khong ghi de edge-to-edge
                 ) {
                     val navController = rememberNavController()
-                    var showPremiumDialog  by remember { mutableStateOf(false) }
+                    var showPremiumDialog  by remember {
+                        mutableStateOf(
+                            intent?.getBooleanExtra("SHOW_PREMIUM_DIALOG", false) == true ||
+                            intent?.getBooleanExtra("SHOW_TRIAL_EXPIRED", false) == true
+                        )
+                    }
                     var isPremiumUser      by remember { mutableStateOf(false) }
                     var showSendPcDialog  by remember { mutableStateOf(false) }
 
@@ -276,6 +289,12 @@ class MainActivity : ComponentActivity() {
                                 },
                                 onAIShareClick = {
                                     lifecycleScope.launch {
+                                        val isPrem = isPremiumUser || com.tatl.fastnote.billing.PremiumManager.isPremium(this@MainActivity)
+                                        val isExpired = com.tatl.fastnote.billing.TrialManager.isTrialExpired(this@MainActivity)
+                                        if (!isPrem && isExpired) {
+                                            showPremiumDialog = true
+                                            return@launch
+                                        }
                                         val todayText = viewModel.getTodayNotesText()
                                         AIShareHelper.launchAIShare(this@MainActivity, todayText)
                                     }

@@ -109,6 +109,31 @@ fun FileViewerScreen(
     var showProtectToast by remember { mutableStateOf(false) }
     var autoSaveJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
 
+    // ── Tự động lưu ngay lập tức khi ứng dụng bị ẩn (Nhấn nút Home, tắt màn hình, chuyển app) ──
+    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    androidx.compose.runtime.DisposableEffect(lifecycleOwner) {
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            if (event == androidx.lifecycle.Lifecycle.Event.ON_PAUSE || event == androidx.lifecycle.Lifecycle.Event.ON_STOP) {
+                autoSaveJob?.cancel()
+                if (tfv.text.isNotBlank() && tfv.text != originalContent) {
+                    val textToSave = reverseEntries(tfv.text)
+                    FileHelper.saveEditedRaw(context, originalContent, textToSave)
+                    com.tatl.fastnote.sync.GoogleDriveSyncWorker.enqueueOneTimeSync(context)
+                }
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            autoSaveJob?.cancel()
+            if (tfv.text.isNotBlank() && tfv.text != originalContent) {
+                val textToSave = reverseEntries(tfv.text)
+                FileHelper.saveEditedRaw(context, originalContent, textToSave)
+                com.tatl.fastnote.sync.GoogleDriveSyncWorker.enqueueOneTimeSync(context)
+            }
+        }
+    }
+
     // ── Load file — đảo ngược để mới nhất lên đầu ────────────────────────────
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) {
@@ -240,10 +265,10 @@ fun FileViewerScreen(
                             tfv = newTfv
                             rawContent = newText
 
-                            // ── Tự động lưu theo thời gian thực (Cứ sửa tới đâu lưu tới đó) ──
+                            // ── Tự động lưu ngầm mượt mà khi người dùng dừng tay gõ (sau 800ms) ──
                             autoSaveJob?.cancel()
                             autoSaveJob = scope.launch(Dispatchers.IO) {
-                                kotlinx.coroutines.delay(200L)
+                                kotlinx.coroutines.delay(800L)
                                 val textToSave = reverseEntries(newText)
                                 FileHelper.saveEditedRaw(context, originalContent, textToSave)
                             }

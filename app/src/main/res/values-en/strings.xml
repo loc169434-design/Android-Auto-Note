@@ -142,4 +142,10 @@
     <string name="str_btn_login_drive_backup">Sign in with Google to Back Up</string>
     <string name="str_btn_enable_backup_premium">Activate Backup with Premium</string>
 
+    <!-- Trial Countdown & Lock (Day 29+) -->
+    <string name="str_trial_countdown_2_days">You have 02 days of free trial left. Upgrade for lifetime access!</string>
+    <string name="str_trial_countdown_1_day">You have 01 day of free trial left. Upgrade for lifetime access!</string>
+    <string name="str_trial_expired_permanent">Please upgrade to continue using!</string>
+    <string name="str_trial_expired_save_blocked">Free trial expired. Please upgrade to save new notes!</string>
+
 </resources>
