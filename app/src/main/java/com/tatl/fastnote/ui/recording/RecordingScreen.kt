@@ -27,11 +27,14 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.border
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MicOff
+import androidx.compose.material.icons.filled.Save
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsPadding
@@ -212,13 +215,11 @@ fun RecordingScreenContent(
                 ) { onSaveAndExit() }
         ) {
 
-            // (Nút chọn ngôn ngữ đã được chuyển vào HomeScreen)
-
             // ── Noi dung chinh -- can giua ──────────────────────────────────
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 32.dp)
+                    .padding(horizontal = 28.dp)
                     .clickable(
                         indication = null,
                         interactionSource = remember { MutableInteractionSource() }
@@ -228,28 +229,18 @@ fun RecordingScreenContent(
             ) {
                 Spacer(Modifier.weight(1f))
 
-                // -- Nut LUU lon o giua (nhan de luu) --
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier
-                        .clickable(
-                            indication = null,
-                            interactionSource = remember { MutableInteractionSource() }
-                        ) { onSaveAndExit() }
+                // -- Vong tron Mic o giua (nhan de luu & thoat) --
+                Box(
+                    modifier = Modifier.clickable(
+                        indication = null,
+                        interactionSource = remember { MutableInteractionSource() }
+                    ) { onSaveAndExit() },
+                    contentAlignment = Alignment.Center
                 ) {
                     MicCircle(isActive = isActive, isPaused = isPaused)
-                    Spacer(Modifier.height(14.dp))
-                    Text(
-                        text = saveText,
-                        fontFamily = InterFontFamily,
-                        fontWeight = FontWeight.Medium,
-                        fontSize = 13.sp,
-                        letterSpacing = 2.sp,
-                        color = Color.White
-                    )
                 }
 
-                Spacer(Modifier.height(36.dp))
+                Spacer(Modifier.height(20.dp))
 
                 // -- Dong chu huong dan --
                 Text(
@@ -260,15 +251,15 @@ fun RecordingScreenContent(
                     },
                     fontFamily = InterFontFamily,
                     fontWeight = FontWeight.Normal,
-                    fontSize = 14.sp,
-                    letterSpacing = 0.5.sp,
+                    fontSize = 15.sp,
+                    letterSpacing = 0.4.sp,
                     color = TextPrimary,
                     textAlign = TextAlign.Center
                 )
 
                 // -- Transcript cuon duoc --
                 if (displayText.isNotBlank()) {
-                    Spacer(Modifier.height(28.dp))
+                    Spacer(Modifier.height(20.dp))
                     val scrollState = rememberScrollState()
                     LaunchedEffect(displayText) {
                         scrollState.animateScrollTo(scrollState.maxValue)
@@ -276,29 +267,11 @@ fun RecordingScreenContent(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(120.dp)
-                            .drawBehind {
-                                val barWidth = 3.dp.toPx()
-                                val trackHeight = size.height
-                                val maxScroll = scrollState.maxValue.toFloat()
-                                val scrollFraction = if (maxScroll > 0f) scrollState.value / maxScroll else 0f
-                                val thumbHeightFraction = trackHeight / (trackHeight + maxScroll).coerceAtLeast(1f)
-                                val thumbHeight = (trackHeight * thumbHeightFraction).coerceAtLeast(24.dp.toPx())
-                                val thumbTop = (trackHeight - thumbHeight) * scrollFraction
-                                val x = size.width - barWidth - 2.dp.toPx()
-                                drawRoundRect(
-                                    color = Color(0x22FFFFFF),
-                                    topLeft = Offset(x, 0f),
-                                    size = Size(barWidth, trackHeight),
-                                    cornerRadius = CornerRadius(barWidth / 2)
-                                )
-                                drawRoundRect(
-                                    color = Color(0x88FFFFFF.toInt()),
-                                    topLeft = Offset(x, thumbTop),
-                                    size = Size(barWidth, thumbHeight),
-                                    cornerRadius = CornerRadius(barWidth / 2)
-                                )
-                            }
+                            .height(125.dp)
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(Color(0xFF0F172A).copy(alpha = 0.6f))
+                            .border(BorderStroke(1.dp, Color(0xFF1E293B)), RoundedCornerShape(16.dp))
+                            .padding(horizontal = 16.dp, vertical = 12.dp)
                             .verticalScroll(scrollState)
                     ) {
                         Text(
@@ -306,10 +279,10 @@ fun RecordingScreenContent(
                             fontFamily = NotoSansFontFamily,
                             fontWeight = FontWeight.Normal,
                             fontSize = 15.sp,
-                            lineHeight = 24.sp,
-                            color = TextPrimary,
+                            lineHeight = 23.sp,
+                            color = Color(0xFFF1F5F9),
                             textAlign = TextAlign.Center,
-                            modifier = Modifier.padding(end = 8.dp)
+                            modifier = Modifier.fillMaxWidth()
                         )
                     }
                 }
@@ -324,8 +297,9 @@ fun RecordingScreenContent(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(8.dp))
+                            .clip(RoundedCornerShape(10.dp))
                             .background(Color(0xFF1E1E1E))
+                            .border(BorderStroke(1.dp, Color(0xFF333333)), RoundedCornerShape(10.dp))
                             .clickable { onUpgradeClick() }
                             .padding(horizontal = 16.dp, vertical = 12.dp),
                         contentAlignment = Alignment.Center
@@ -343,30 +317,84 @@ fun RecordingScreenContent(
                     Spacer(Modifier.height(24.dp))
                 }
 
-                // -- Nut HUY -- circle outlined --
-                OutlinedButton(
-                    onClick = onCancel,
-                    modifier = Modifier.size(72.dp),
-                    shape = CircleShape,
-                    border = BorderStroke(1.dp, CancelBorder),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        containerColor = Color.Transparent,
-                        contentColor = TextMuted
-                    ),
-                    contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp)
+                // ── Hang 2 nut hanh dong can doi o duoi: HUY (trai) & LUU (phai) ──
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(48.dp, Alignment.CenterHorizontally),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = cancelText,
-                        fontFamily = InterFontFamily,
-                        fontWeight = FontWeight.Normal,
-                        fontSize = if (cancelText.length > 6) 10.sp else 13.sp,
-                        letterSpacing = 1.sp,
-                        color = TextMuted,
-                        textAlign = TextAlign.Center
-                    )
+                    // Nút HUY (Cancel)
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.clickable(
+                            indication = null,
+                            interactionSource = remember { MutableInteractionSource() }
+                        ) { onCancel() }
+                    ) {
+                        Surface(
+                            onClick = onCancel,
+                            shape = CircleShape,
+                            color = Color(0xFF1E293B).copy(alpha = 0.7f),
+                            border = BorderStroke(1.dp, Color(0xFF475569)),
+                            modifier = Modifier.size(62.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.Default.Close,
+                                    contentDescription = cancelText,
+                                    tint = Color(0xFFCBD5E1),
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
+                        }
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            text = cancelText,
+                            fontFamily = InterFontFamily,
+                            fontWeight = FontWeight.Medium,
+                            fontSize = 11.sp,
+                            letterSpacing = 1.sp,
+                            color = Color(0xFF94A3B8)
+                        )
+                    }
+
+                    // Nút LƯU (Save - Biểu tượng đĩa mềm)
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.clickable(
+                            indication = null,
+                            interactionSource = remember { MutableInteractionSource() }
+                        ) { onSaveAndExit() }
+                    ) {
+                        Surface(
+                            onClick = onSaveAndExit,
+                            shape = CircleShape,
+                            color = Color(0xFF2563EB),
+                            border = BorderStroke(1.dp, Color(0xFF60A5FA)),
+                            modifier = Modifier.size(62.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.Default.Save,
+                                    contentDescription = saveText,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(26.dp)
+                                )
+                            }
+                        }
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            text = saveText,
+                            fontFamily = InterFontFamily,
+                            fontWeight = FontWeight.Medium,
+                            fontSize = 11.sp,
+                            letterSpacing = 1.sp,
+                            color = Color(0xFF93C5FD)
+                        )
+                    }
                 }
 
-                Spacer(Modifier.height(56.dp))
+                Spacer(Modifier.height(44.dp))
             }
 
             // -- Custom Toast: hien khi luu xong --
@@ -380,35 +408,60 @@ fun RecordingScreenContent(
     }
 }
 
-// -- Vong tron mic -- trang lon, pulse khi active --
+// -- Vong tron mic -- trang lon, pulse hao quang khi active --
 
 @Composable
 private fun MicCircle(isActive: Boolean, isPaused: Boolean) {
     val infiniteTransition = rememberInfiniteTransition(label = "mic_pulse")
-    val scale by infiniteTransition.animateFloat(
+    val pulseScale by infiniteTransition.animateFloat(
         initialValue = 1f,
-        targetValue = if (isActive) 1.06f else 1f,
+        targetValue = if (isActive) 1.20f else 1f,
         animationSpec = infiniteRepeatable(
-            animation = tween(900, easing = EaseInOutSine),
+            animation = tween(1200, easing = EaseInOutSine),
             repeatMode = RepeatMode.Reverse
         ),
-        label = "mic_scale"
+        label = "mic_halo_scale"
+    )
+    val pulseAlpha by infiniteTransition.animateFloat(
+        initialValue = if (isActive) 0.30f else 0f,
+        targetValue = if (isActive) 0.05f else 0f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1200, easing = EaseInOutSine),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "mic_halo_alpha"
     )
 
     Box(
-        modifier = Modifier
-            .size(110.dp)
-            .scale(if (isActive) scale else 1f)
-            .clip(CircleShape)
-            .background(MicCircleBg),
+        modifier = Modifier.size(126.dp),
         contentAlignment = Alignment.Center
     ) {
-        Icon(
-            imageVector = if (!isPaused) Icons.Default.Mic else Icons.Default.MicOff,
-            contentDescription = if (isActive) "Đang ghi âm" else "Mic",
-            tint = MicIconColor,
-            modifier = Modifier.size(44.dp)
-        )
+        // Outer glowing pulse ring
+        if (isActive) {
+            Box(
+                modifier = Modifier
+                    .size(106.dp)
+                    .scale(pulseScale)
+                    .clip(CircleShape)
+                    .background(Color(0xFF3B82F6).copy(alpha = pulseAlpha))
+            )
+        }
+
+        // Main white circle
+        Box(
+            modifier = Modifier
+                .size(100.dp)
+                .clip(CircleShape)
+                .background(MicCircleBg),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = if (!isPaused) Icons.Default.Mic else Icons.Default.MicOff,
+                contentDescription = if (isActive) "Đang ghi âm" else "Mic",
+                tint = MicIconColor,
+                modifier = Modifier.size(42.dp)
+            )
+        }
     }
 }
 
