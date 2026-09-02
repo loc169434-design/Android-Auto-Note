@@ -60,3 +60,13 @@
 # ── 10. Glance App Widgets ──
 -keep class androidx.glance.** { *; }
 -keep class com.tatl.fastnote.widget.** { *; }
+
+# ── 11. Per-App Language (AppCompatDelegate.setApplicationLocales) ──
+# Giữ AppCompatDelegate để đổi ngôn ngữ hoạt động trong release build
+-keep class androidx.appcompat.app.AppCompatDelegate { *; }
+-keep class androidx.core.os.LocaleListCompat { *; }
+# Giữ LanguageManager và AppLanguage enum (đã có trong data.** nhưng khai báo rõ hơn)
+-keep class com.tatl.fastnote.data.user.LanguageManager { *; }
+-keep class com.tatl.fastnote.data.user.AppLanguage { *; }
+# Ngăn resource shrinker xóa các string resources của các ngôn ngữ phụ
+-keepresourcexmlelements locale
