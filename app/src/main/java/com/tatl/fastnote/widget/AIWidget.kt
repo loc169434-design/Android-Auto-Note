@@ -1,6 +1,7 @@
-﻿package com.tatl.fastnote.widget
+package com.tatl.fastnote.widget
 
 import android.content.Context
+import com.tatl.fastnote.R
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
@@ -48,29 +49,14 @@ class AIWidget : GlanceAppWidget() {
         Box(
             modifier = GlanceModifier
                 .fillMaxSize()
-                .cornerRadius(24.dp)
-                .background(ColorProvider(day = Color(0xFF6A1B9A), night = Color(0xFF4A148C)))
-                .clickable(actionStartActivity<AIWidgetActivity>())
-                .padding(8.dp),
+                .clickable(actionStartActivity<AIWidgetActivity>()),
             contentAlignment = Alignment.Center
         ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Image(
-                    provider = ImageProvider(android.R.drawable.btn_star_big_on),
-                    contentDescription = "AI Tóm tắt",
-                    modifier = GlanceModifier.size(28.dp)
-                )
-                Text(
-                    text = "AI Tóm tắt",
-                    style = TextStyle(
-                        color = ColorProvider(day = Color.White, night = Color.White),
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                )
-            }
+            Image(
+                provider = ImageProvider(R.drawable.ic_ai),
+                contentDescription = "AI Tóm tắt",
+                modifier = GlanceModifier.size(54.dp)
+            )
         }
     }
 }

@@ -1,6 +1,8 @@
 package com.tatl.fastnote.billing
 
 import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -68,23 +70,32 @@ private val TextBody         = Color(0xFFE2E8F0)
 private val TextMuted        = Color(0xFF94A3B8)
 private val AccentGold       = Color(0xFFFFB800)
 
+private tailrec fun Context.findActivity(): Activity? = when (this) {
+    is Activity -> this
+    is ContextWrapper -> baseContext.findActivity()
+    else -> null
+}
+
 /**
  * Premium gate dialog — giao diện Slate-Blue sang trọng, chữ to rõ ràng.
  */
 @Composable
 fun PremiumGateDialog(
+    activity:         Activity? = null,
     onDismiss:        () -> Unit,
     onPremiumGranted: () -> Unit
 ) {
     val baseCtx = LocalContext.current
-    val activity = baseCtx as? Activity
+    val hostActivity = remember(baseCtx, activity) {
+        activity ?: baseCtx.findActivity() ?: (baseCtx as? Activity)
+    }
     val scope    = rememberCoroutineScope()
 
     // ── Locale-aware context ──
     val currentLanguage by LanguageManager.currentLanguage.collectAsState()
     val localizedCtx = remember(currentLanguage) {
         val config = android.content.res.Configuration(baseCtx.resources.configuration)
-        config.setLocale(Locale(currentLanguage.code))
+        config.setLocale(Locale.forLanguageTag(currentLanguage.code))
         baseCtx.createConfigurationContext(config)
     }
 
@@ -261,25 +272,17 @@ fun PremiumGateDialog(
                                 val pd = product
                                 if (pd == null) {
                                     android.util.Log.e("PremiumDialog", "❌ product is NULL (Google Play not synced or not uploaded to Internal Testing)")
-                                    if (com.tatl.fastnote.BuildConfig.DEBUG) {
-                                        // ⚡ Chế độ Debug: Kích hoạt Premium giả lập ngay để test luồng app mà không phải chờ Google Play đồng bộ
-                                        scope.launch {
-                                            PremiumManager.setPremium("DEBUG_MOCK_TOKEN")
-                                            statusText = ""
-                                            onPremiumGranted()
-                                        }
-                                        return@Button
-                                    }
                                     statusText = strProductErr
                                     return@Button
                                 }
-                                if (activity == null) {
-                                    android.util.Log.e("PremiumDialog", "❌ activity is NULL (context is not Activity?)")
+                                val act = hostActivity ?: activity ?: baseCtx.findActivity()
+                                if (act == null) {
+                                    android.util.Log.e("PremiumDialog", "❌ act is NULL (context is not Activity?)")
                                     return@Button
                                 }
-                                android.util.Log.d("PremiumDialog", "✅ Calling launchBillingFlow with product=${pd.productId}")
+                                android.util.Log.d("PremiumDialog", "✅ Calling launchBillingFlow with act=$act, product=${pd.productId}")
                                 bm.launchBillingFlow(
-                                    activity = activity,
+                                    activity = act,
                                     productDetails = pd,
                                     onSuccess = {
                                         android.util.Log.d("PremiumDialog", "✅ Purchase SUCCESS")

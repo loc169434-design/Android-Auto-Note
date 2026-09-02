@@ -409,12 +409,16 @@ class VoiceRecordingService : Service() {
 
     override fun onDestroy() {
         if (!isSaved) {
-            val text = getFullText()
-            if (text.isNotBlank()) {
-                try {
-                    emergencySaveToFiles(text)
-                } catch (e: Exception) {
-                    android.util.Log.e(TAG, "Emergency file save failed", e)
+            val isPrem = com.tatl.fastnote.billing.PremiumManager.isPremiumCached(applicationContext)
+            val isExpired = com.tatl.fastnote.billing.TrialManager.isTrialExpired(applicationContext)
+            if (isPrem || !isExpired) {
+                val text = getFullText()
+                if (text.isNotBlank()) {
+                    try {
+                        emergencySaveToFiles(text)
+                    } catch (e: Exception) {
+                        android.util.Log.e(TAG, "Emergency file save failed", e)
+                    }
                 }
             }
         }

@@ -1,6 +1,8 @@
 package com.tatl.fastnote.ui.fileviewer
 
 import android.content.Intent
+import androidx.compose.ui.res.stringResource
+import com.tatl.fastnote.R
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -107,6 +109,31 @@ fun FileViewerScreen(
     var showProtectToast by remember { mutableStateOf(false) }
     var autoSaveJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
 
+    // ── Tự động lưu ngay lập tức khi ứng dụng bị ẩn (Nhấn nút Home, tắt màn hình, chuyển app) ──
+    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    androidx.compose.runtime.DisposableEffect(lifecycleOwner) {
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            if (event == androidx.lifecycle.Lifecycle.Event.ON_PAUSE || event == androidx.lifecycle.Lifecycle.Event.ON_STOP) {
+                autoSaveJob?.cancel()
+                if (tfv.text.isNotBlank() && tfv.text != originalContent) {
+                    val textToSave = reverseEntries(tfv.text)
+                    FileHelper.saveEditedRaw(context, originalContent, textToSave)
+                    com.tatl.fastnote.sync.GoogleDriveSyncWorker.enqueueOneTimeSync(context)
+                }
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            autoSaveJob?.cancel()
+            if (tfv.text.isNotBlank() && tfv.text != originalContent) {
+                val textToSave = reverseEntries(tfv.text)
+                FileHelper.saveEditedRaw(context, originalContent, textToSave)
+                com.tatl.fastnote.sync.GoogleDriveSyncWorker.enqueueOneTimeSync(context)
+            }
+        }
+    }
+
     // ── Load file — đảo ngược để mới nhất lên đầu ────────────────────────────
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) {
@@ -131,9 +158,7 @@ fun FileViewerScreen(
             isSaving = false
             if (error == null) {
                 keyboardController?.hide()
-                withContext(Dispatchers.IO) {
-                    com.tatl.fastnote.sync.GoogleDriveSyncManager.sync(context)
-                }
+                com.tatl.fastnote.sync.GoogleDriveSyncWorker.enqueueOneTimeSync(context)
                 onClose()
             } else {
                 showProtectToast = true
@@ -240,10 +265,10 @@ fun FileViewerScreen(
                             tfv = newTfv
                             rawContent = newText
 
-                            // ── Tự động lưu theo thời gian thực (Cứ sửa tới đâu lưu tới đó) ──
+                            // ── Tự động lưu ngầm mượt mà khi người dùng dừng tay gõ (sau 800ms) ──
                             autoSaveJob?.cancel()
                             autoSaveJob = scope.launch(Dispatchers.IO) {
-                                kotlinx.coroutines.delay(200L)
+                                kotlinx.coroutines.delay(800L)
                                 val textToSave = reverseEntries(newText)
                                 FileHelper.saveEditedRaw(context, originalContent, textToSave)
                             }
@@ -265,7 +290,7 @@ fun FileViewerScreen(
                         decorationBox = { innerTextField ->
                             if (tfv.text.isEmpty()) {
                                 Text(
-                                    text = "Chưa có ghi chú nào...",
+                                    text = stringResource(R.string.str_no_notes_yet),
                                     color = FvTextMuted,
                                     fontFamily = NotoSansFontFamily,
                                     fontSize = 18.sp
@@ -339,7 +364,7 @@ fun FileViewerScreen(
                                 modifier = Modifier.size(18.dp)
                             )
                             Text(
-                                text = if (isSaving) "Đang lưu..." else "LƯU",
+                                text = if (isSaving) stringResource(R.string.str_saving) else stringResource(R.string.str_btn_save_action),
                                 color = Color(0xFF93C5FD),
                                 fontFamily = InterFontFamily,
                                 fontWeight = FontWeight.Bold,
@@ -355,7 +380,7 @@ fun FileViewerScreen(
         // -- AppToast: cảnh báo khi có gắng xóa dòng thời gian --
         AppToast(
             visible = showProtectToast,
-            message = "Không thể xóa dòng thời gian ghi chú",
+            message = stringResource(R.string.str_protect_toast),
             durationMs = 2000L,
             onDismiss = { showProtectToast = false }
         )

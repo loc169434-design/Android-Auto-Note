@@ -62,7 +62,63 @@ import androidx.compose.ui.platform.LocalContext
 import com.tatl.fastnote.data.user.LanguageManager
 import java.util.Locale
 
+import android.content.Context
+import android.util.Log
+import androidx.activity.result.contract.ActivityResultContracts
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+import com.google.android.gms.common.api.ApiException
+import com.google.firebase.auth.GoogleAuthProvider
+
 class MainActivity : ComponentActivity() {
+
+    override fun attachBaseContext(newBase: Context) {
+        super.attachBaseContext(LanguageManager.getLocalizedContext(newBase))
+    }
+
+    companion object {
+        private const val TAG = "MainActivity"
+    }
+
+    private var pendingActionAfterPremium: (() -> Unit)? = null
+
+    private val googleSignInLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
+        try {
+            val account = task.getResult(ApiException::class.java)
+            Log.d(TAG, "Google sign-in OK: ${account.email}")
+            com.tatl.fastnote.data.user.UserManager.updateProfileFromGoogle(account)
+            Toast.makeText(this@MainActivity, "Đã kết nối Google Drive: ${account.email}", Toast.LENGTH_SHORT).show()
+            lifecycleScope.launch {
+                val ok = com.tatl.fastnote.sync.GoogleDriveSyncManager.sync(applicationContext)
+                if (ok) {
+                    Toast.makeText(this@MainActivity, "Đã sao lưu & đồng bộ dữ liệu với Google Drive!", Toast.LENGTH_SHORT).show()
+                }
+                kotlinx.coroutines.delay(600L)
+                // Chỉ khi đã đồng bộ Google Drive hoàn tất thì mới mở popup chờ (Send PC)
+                pendingActionAfterPremium?.invoke()
+                pendingActionAfterPremium = null
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Google sign-in failed", e)
+            val code = if (e is ApiException) " (Mã: ${e.statusCode})" else if (e.cause is ApiException) " (Mã: ${(e.cause as ApiException).statusCode})" else ""
+            Toast.makeText(this@MainActivity, "Đăng nhập Google chưa hoàn tất$code", Toast.LENGTH_LONG).show()
+            pendingActionAfterPremium = null
+        }
+    }
+
+    fun launchGoogleSignInForDrive() {
+        val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+            .requestEmail()
+            .requestScopes(com.tatl.fastnote.sync.GoogleDriveSyncManager.DRIVE_APPDATA_SCOPE)
+            .build()
+        val client = GoogleSignIn.getClient(this, gso)
+        client.signOut().addOnCompleteListener {
+            googleSignInLauncher.launch(client.signInIntent)
+        }
+    }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
@@ -140,7 +196,7 @@ class MainActivity : ComponentActivity() {
         // ── Cloud sync: chỉ chạy khi isPremium VÀ đã đăng nhập Google thật ─────
         lifecycleScope.launch {
             val isGoogleUser = AuthManager.isLoggedIn() && !AuthManager.isAnonymous
-            val isPremiumUser = com.tatl.fastnote.billing.PremiumManager.isPremium()
+            val isPremiumUser = com.tatl.fastnote.billing.PremiumManager.isPremium(applicationContext)
             if (isGoogleUser && isPremiumUser) {
                 com.tatl.fastnote.sync.GoogleDriveSyncManager.sync(applicationContext)
                 CloudSyncManager.syncFromCloud(applicationContext)
@@ -156,19 +212,26 @@ class MainActivity : ComponentActivity() {
                 val baseCtx = LocalContext.current
                 val localizedContext = remember(currentLanguage) {
                     val config = Configuration(baseCtx.resources.configuration)
-                    config.setLocale(Locale(currentLanguage.code))
+                    config.setLocale(Locale.forLanguageTag(currentLanguage.code))
                     baseCtx.createConfigurationContext(config)
                 }
-                CompositionLocalProvider(LocalContext provides localizedContext) {
+                CompositionLocalProvider(
+                    LocalContext provides localizedContext,
+                    androidx.compose.ui.platform.LocalConfiguration provides localizedContext.resources.configuration
+                ) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = Color(0xFF000000)  // den tuyet doi, khong ghi de edge-to-edge
                 ) {
                     val navController = rememberNavController()
-                    var showPremiumDialog  by remember { mutableStateOf(false) }
+                    var showPremiumDialog  by remember {
+                        mutableStateOf(
+                            intent?.getBooleanExtra("SHOW_PREMIUM_DIALOG", false) == true ||
+                            intent?.getBooleanExtra("SHOW_TRIAL_EXPIRED", false) == true
+                        )
+                    }
                     var isPremiumUser      by remember { mutableStateOf(false) }
                     var showSendPcDialog  by remember { mutableStateOf(false) }
-                    var pendingActionAfterPremium by remember { mutableStateOf<(() -> Unit)?>(null) }
 
                     // ── Tự động đóng dialog khi app xuống background / chuyển tab ────────
                     val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
@@ -226,6 +289,12 @@ class MainActivity : ComponentActivity() {
                                 },
                                 onAIShareClick = {
                                     lifecycleScope.launch {
+                                        val isPrem = isPremiumUser || com.tatl.fastnote.billing.PremiumManager.isPremium(this@MainActivity)
+                                        val isExpired = com.tatl.fastnote.billing.TrialManager.isTrialExpired(this@MainActivity)
+                                        if (!isPrem && isExpired) {
+                                            showPremiumDialog = true
+                                            return@launch
+                                        }
                                         val todayText = viewModel.getTodayNotesText()
                                         AIShareHelper.launchAIShare(this@MainActivity, todayText)
                                     }
@@ -239,7 +308,18 @@ class MainActivity : ComponentActivity() {
                                     lifecycleScope.launch {
                                         val isPrem = isPremiumUser || com.tatl.fastnote.billing.PremiumManager.isPremium(this@MainActivity)
                                         if (isPrem) {
-                                            showSendPcDialog = true
+                                            val googleAccount = GoogleSignIn.getLastSignedInAccount(this@MainActivity)
+                                            if (googleAccount == null) {
+                                                Toast.makeText(
+                                                    this@MainActivity,
+                                                    "Vui lòng chọn tài khoản Google để kích hoạt Sao lưu & Gửi PC.",
+                                                    Toast.LENGTH_SHORT
+                                                ).show()
+                                                pendingActionAfterPremium = { showSendPcDialog = true }
+                                                launchGoogleSignInForDrive()
+                                            } else {
+                                                showSendPcDialog = true
+                                            }
                                         } else {
                                             pendingActionAfterPremium = { showSendPcDialog = true }
                                             showPremiumDialog = true
@@ -257,13 +337,39 @@ class MainActivity : ComponentActivity() {
                                     pendingActionAfterPremium = null
                                     showPremiumDialog = true
                                 },
+                                onRestoreClick = {
+                                    pendingActionAfterPremium = null
+                                    showPremiumDialog = true
+                                },
                                 onLoginClick = {
-                                    startActivity(Intent(this@MainActivity, OnboardingActivity::class.java))
+                                    launchGoogleSignInForDrive()
+                                },
+                                onSyncClick = {
+                                    val googleAccount = GoogleSignIn.getLastSignedInAccount(this@MainActivity)
+                                    if (googleAccount == null) {
+                                        Toast.makeText(
+                                            this@MainActivity,
+                                            "Vui lòng chọn tài khoản Google để sao lưu dữ liệu.",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                        launchGoogleSignInForDrive()
+                                    } else {
+                                        lifecycleScope.launch {
+                                            val ok = com.tatl.fastnote.sync.GoogleDriveSyncManager.sync(applicationContext)
+                                            if (ok) {
+                                                Toast.makeText(this@MainActivity, "Đã sao lưu & đồng bộ dữ liệu với Google Drive!", Toast.LENGTH_SHORT).show()
+                                            }
+                                        }
+                                    }
                                 },
                                 onLogoutClick = {
                                     AuthManager.signOut()
-                                    startActivity(Intent(this@MainActivity, OnboardingActivity::class.java))
-                                    finish()
+                                    GoogleSignIn.getClient(
+                                        this@MainActivity,
+                                        GoogleSignInOptions.DEFAULT_SIGN_IN
+                                    ).signOut()
+                                    com.tatl.fastnote.data.user.UserManager.init(this@MainActivity)
+                                    Toast.makeText(this@MainActivity, "Đã đăng xuất tài khoản Google", Toast.LENGTH_SHORT).show()
                                 },
                                 onBack = { navController.popBackStack() }
                             )
@@ -277,6 +383,7 @@ class MainActivity : ComponentActivity() {
                         exit  = slideOutVertically(tween(240)) { it / 2 } + fadeOut(tween(200))
                     ) {
                         PremiumGateDialog(
+                            activity = this@MainActivity,
                             onDismiss = {
                                 showPremiumDialog = false
                                 pendingActionAfterPremium = null
@@ -286,16 +393,26 @@ class MainActivity : ComponentActivity() {
                                 showPremiumDialog = false
                                 lifecycleScope.launch {
                                     com.tatl.fastnote.billing.PremiumManager.setPremium(context = this@MainActivity)
-                                    com.tatl.fastnote.sync.GoogleDriveSyncManager.sync(applicationContext)
-                                    com.tatl.fastnote.sync.CloudSyncManager.syncFromCloud(applicationContext)
+                                    val googleAccount = GoogleSignIn.getLastSignedInAccount(this@MainActivity)
+                                    if (googleAccount == null) {
+                                        Toast.makeText(
+                                            this@MainActivity,
+                                            "Vui lòng chọn tài khoản Google để kích hoạt Sao lưu Drive.",
+                                            Toast.LENGTH_LONG
+                                        ).show()
+                                        launchGoogleSignInForDrive()
+                                    } else {
+                                        com.tatl.fastnote.sync.GoogleDriveSyncManager.sync(applicationContext)
+                                        com.tatl.fastnote.sync.CloudSyncManager.syncFromCloud(applicationContext)
+                                        Toast.makeText(
+                                            this@MainActivity,
+                                            "Cảm ơn bạn. Các đặc quyền Premium & Đồng bộ Drive đã được mở thành công!",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                        pendingActionAfterPremium?.invoke()
+                                        pendingActionAfterPremium = null
+                                    }
                                 }
-                                Toast.makeText(
-                                    this@MainActivity,
-                                    "Cảm ơn bạn. Các đặc quyền Premium đã được mở thành công!",
-                                    Toast.LENGTH_SHORT
-                                ).show()
-                                pendingActionAfterPremium?.invoke()
-                                pendingActionAfterPremium = null
                             }
                         )
                     }

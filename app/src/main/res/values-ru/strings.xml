@@ -10,7 +10,7 @@
     <string name="widget_ai_title">ИИ Резюме</string>
     <string name="widget_ai_desc">Краткое резюме сегодняшних заметок через ИИ</string>
     <string name="widget_triple_action_title">Тройное действие</string>
-    <string name="widget_triple_action_desc">Микрофон, Gemini и просмотр файлов в одном виджете</string>
+    <string name="widget_triple_action_desc">Микрофон, заметки и Gemini в одном виджете</string>
 
     <string name="recording_notification_title">Идет запись</string>
     <string name="recording_notification_text">Zero-Friction Notes записывает голос...</string>
@@ -107,5 +107,40 @@
     <string name="str_premium_restore_hint">Уже купили? Нажмите для восстановления</string>
     <string name="str_premium_later">ПОТОМ</string>
     <string name="str_btn_share">Отправить</string>
+
+    <!-- PinWidgetBottomSheet -->
+    <string name="str_tap_to_create_widget">(Нажмите здесь, чтобы добавить виджет на главный экран)</string>
+    <string name="btn_later">ПОЗЖЕ</string>
+    <string name="widget_triple_action_name">Тройное действие</string>
+    <string name="str_widget_icon_desc">Создать виджет</string>
+
+    <!-- Sensitive ZZ Tip -->
+    <string name="str_sensitive_tip_zz">[Добавьте zz в начале и в конце конфиденциальных заметок для вашей защиты]</string>
+
+    <!-- Gemini Journal Prompt -->
+    <string name="str_gemini_journal_prompt">Это мой дневник. Пожалуйста, прочитайте, усвойте данные и ожидайте следующего запроса.</string>
+
+    <!-- Google Drive Sync & Progress Bar -->
+    <string name="str_sync_connecting">Подключение к Google Диску...</string>
+    <string name="str_sync_syncing">Синхронизация данных с облаком...</string>
+    <string name="str_sync_success">Резервная копия сохранена на Google Диск!</string>
+    <string name="str_sync_up_to_date">Все данные актуальны</string>
+    <string name="str_sync_restored">Восстановлено заметок из Диска: %1$d!</string>
+    <string name="str_sync_failed">Ошибка синхронизации с облаком</string>
+    <string name="str_drive_connected_title">☁️ Google Диск подключен</string>
+    <string name="str_drive_unlinked_title">⚠️ Резервное копирование на Диск не включено</string>
+    <string name="str_drive_backup_title">☁️ Резервное копирование на Google Диск</string>
+    <string name="str_drive_desc_connected">Ваши заметки безопасно и автоматически синхронизируются с Google Диском.</string>
+    <string name="str_drive_desc_premium_unlinked">У вас есть Premium! Подключите аккаунт Google для автоматического сохранения заметок.</string>
+    <string name="str_drive_desc_free">Сохраняйте и синхронизируйте все свои заметки на собственном Google Диске.</string>
+    <string name="str_btn_sync_now">🔄 Синхронизировать сейчас</string>
+    <string name="str_btn_login_drive_backup">Войти через Google для копирования</string>
+    <string name="str_btn_enable_backup_premium">Включить резервное копирование с Premium</string>
+
+    <!-- Trial Countdown & Lock (Day 29+) -->
+    <string name="str_trial_countdown_2_days">Осталось 02 дня бесплатного периода. Обновитесь для бессрочного доступа!</string>
+    <string name="str_trial_countdown_1_day">Осталось 01 день бесплатного периода. Обновитесь для бессрочного доступа!</string>
+    <string name="str_trial_expired_permanent">Пожалуйста, обновитесь для продолжения использования!</string>
+    <string name="str_trial_expired_save_blocked">Пробный период истек. Обновитесь для сохранения новых заметок!</string>
 
 </resources>

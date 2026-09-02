@@ -70,24 +70,31 @@ class TripleActionWidget : GlanceAppWidget() {
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalAlignment   = Alignment.CenterVertically
             ) {
-                // ── Mic — nút pill riêng biệt ────────────────────────────────
+                // ── 1. Mic — nút pill bên trái ──────────────────────────────
                 PillIconButton(
                     iconRes            = R.drawable.ic_mic,
                     contentDescription = "Ghi âm",
                     modifier           = GlanceModifier
                         .defaultWeight()
                         .fillMaxHeight()
-                        .clickable(
-                            if (trialExpired)
-                                actionRunCallback<TrialExpiredCallback>()
-                            else
-                                actionStartActivity<RecordingActivity>()
-                        )
+                        .clickable(actionStartActivity<RecordingActivity>())
                 )
 
                 Spacer(modifier = GlanceModifier.width(6.dp))
 
-                // ── AI — nút pill riêng biệt ──────────────────────────────────
+                // ── 2. Sổ (Note) — nút pill ở giữa ──────────────────────────
+                PillIconButton(
+                    iconRes            = R.drawable.ic_note,
+                    contentDescription = "Ghi chú",
+                    modifier           = GlanceModifier
+                        .defaultWeight()
+                        .fillMaxHeight()
+                        .clickable(actionRunCallback<OpenNoteViewCallback>())
+                )
+
+                Spacer(modifier = GlanceModifier.width(6.dp))
+
+                // ── 3. Não (AI) — nút pill bên phải ──────────────────────────
                 PillIconButton(
                     iconRes            = R.drawable.ic_ai,
                     contentDescription = "AI",
@@ -101,24 +108,12 @@ class TripleActionWidget : GlanceAppWidget() {
                                 actionStartActivity<GeminiLaunchActivity>()
                         )
                 )
-
-                Spacer(modifier = GlanceModifier.width(6.dp))
-
-                // ── Note — nút pill riêng biệt ────────────────────────────────
-                PillIconButton(
-                    iconRes            = R.drawable.ic_note,
-                    contentDescription = "Ghi chú",
-                    modifier           = GlanceModifier
-                        .defaultWeight()
-                        .fillMaxHeight()
-                        .clickable(actionRunCallback<OpenNoteViewCallback>())
-                )
             }
         }
     }
 
     /**
-     * Mỗi icon nằm trong "pill" mờ riêng → 3 nút trông độc lập nổi bật trên mọi wallpaper.
+     * Không nền (trong suốt hoàn toàn), icon phóng to ~54dp gần bằng kích thước icon ứng dụng.
      */
     @Composable
     private fun PillIconButton(
@@ -127,21 +122,13 @@ class TripleActionWidget : GlanceAppWidget() {
         modifier: GlanceModifier = GlanceModifier
     ) {
         Box(
-            modifier = modifier
-                .cornerRadius(20.dp)
-                .background(
-                    ColorProvider(
-                        day   = Color(0xCC000000),   // Nền đen mờ 80%
-                        night = Color(0xCC000000)
-                    )
-                )
-                .padding(4.dp),
+            modifier = modifier,
             contentAlignment = Alignment.Center
         ) {
             Image(
                 provider           = ImageProvider(iconRes),
                 contentDescription = contentDescription,
-                modifier           = GlanceModifier.size(30.dp)
+                modifier           = GlanceModifier.size(54.dp)
             )
         }
     }

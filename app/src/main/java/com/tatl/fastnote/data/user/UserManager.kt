@@ -33,13 +33,38 @@ object UserManager {
         prefs = context.applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         val guestId = getOrCreateGuestId()
         
-        updateProfile(AuthManager.currentUser, guestId)
+        val googleAccount = com.google.android.gms.auth.api.signin.GoogleSignIn.getLastSignedInAccount(context)
+        if (googleAccount != null) {
+            updateProfileFromGoogle(googleAccount)
+        } else {
+            updateProfile(AuthManager.currentUser, guestId)
+        }
 
         CoroutineScope(Dispatchers.Main).launch {
             AuthManager.authStateFlow.collect { firebaseUser ->
-                updateProfile(firebaseUser, getOrCreateGuestId())
+                if (firebaseUser != null && !firebaseUser.isAnonymous) {
+                    updateProfile(firebaseUser, getOrCreateGuestId())
+                } else {
+                    val gAcc = com.google.android.gms.auth.api.signin.GoogleSignIn.getLastSignedInAccount(context)
+                    if (gAcc != null) {
+                        updateProfileFromGoogle(gAcc)
+                    } else {
+                        updateProfile(firebaseUser, getOrCreateGuestId())
+                    }
+                }
             }
         }
+    }
+
+    fun updateProfileFromGoogle(account: com.google.android.gms.auth.api.signin.GoogleSignInAccount) {
+        _userProfile.value = UserProfile(
+            userId = account.id ?: account.email ?: "GOOGLE-USER",
+            userName = account.displayName ?: account.email?.substringBefore("@") ?: "Google User",
+            email = account.email ?: "",
+            avatarUrl = account.photoUrl?.toString(),
+            isLoggedIn = true,
+            accountType = AccountType.GOOGLE
+        )
     }
 
     private fun getOrCreateGuestId(): String {

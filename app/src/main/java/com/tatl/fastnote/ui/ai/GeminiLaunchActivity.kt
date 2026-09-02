@@ -61,10 +61,25 @@ class GeminiLaunchActivity : ComponentActivity() {
                 return
             }
 
-            // Build ACTION_SEND intent with the .txt file as attachment
+            val journalPrompt = com.tatl.fastnote.data.user.LanguageManager.getGeminiJournalPrompt()
+
+            // 1. Sao chép câu lệnh Prompt vào khay nhớ tạm để người dùng có thể Dán trực tiếp vào ô chat Gemini nếu cần
+            try {
+                val clipboard = getSystemService(android.content.Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
+                if (clipboard != null) {
+                    val clip = android.content.ClipData.newPlainText("Gemini Prompt", journalPrompt)
+                    clipboard.setPrimaryClip(clip)
+                }
+            } catch (e: Exception) {
+                // Ignore clipboard error
+            }
+
+            // Build ACTION_SEND intent with the .txt file as attachment and localized journal prompt
             val fileIntent = Intent(Intent.ACTION_SEND).apply {
                 type = "text/plain"
                 putExtra(Intent.EXTRA_STREAM, uri)
+                putExtra(Intent.EXTRA_TEXT, journalPrompt)
+                putExtra(Intent.EXTRA_SUBJECT, journalPrompt)
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
@@ -103,9 +118,11 @@ class GeminiLaunchActivity : ComponentActivity() {
         val text = FileHelper.readGuidiFile(this)
         if (!text.isNullOrBlank()) {
             try {
+                val journalPrompt = com.tatl.fastnote.data.user.LanguageManager.getGeminiJournalPrompt()
                 val textIntent = Intent(Intent.ACTION_SEND).apply {
                     type = "text/plain"
-                    putExtra(Intent.EXTRA_TEXT, text.takeLast(30_000))
+                    putExtra(Intent.EXTRA_TEXT, "$journalPrompt\n\n${text.takeLast(30_000)}")
+                    putExtra(Intent.EXTRA_SUBJECT, journalPrompt)
                     setPackage(GEMINI_PACKAGE)
                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 }

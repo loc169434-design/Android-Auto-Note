@@ -10,7 +10,7 @@
     <string name="widget_ai_title">AI要約</string>
     <string name="widget_ai_desc">AIで今日のメモを要約</string>
     <string name="widget_triple_action_title">トリプルアクション</string>
-    <string name="widget_triple_action_desc">録音マイク、Gemini、ファイル表示ウィジェット</string>
+    <string name="widget_triple_action_desc">録音マイク、メモ、Geminiウィジェット</string>
 
     <string name="recording_notification_title">録音中</string>
     <string name="recording_notification_text">Zero-Friction Notesが音声を録音しています</string>
@@ -107,5 +107,40 @@
     <string name="str_premium_restore_hint">購入済みですか？タップして復元</string>
     <string name="str_premium_later">後で</string>
     <string name="str_btn_share">シェア</string>
+
+    <!-- PinWidgetBottomSheet -->
+    <string name="str_tap_to_create_widget">(タップしてホーム画面にウィジェットを追加)</string>
+    <string name="btn_later">あとで</string>
+    <string name="widget_triple_action_name">トリプルアクション</string>
+    <string name="str_widget_icon_desc">ウィジェット作成</string>
+
+    <!-- Sensitive ZZ Tip -->
+    <string name="str_sensitive_tip_zz">[機密なメモの前後にzzを追加してプライバシーを保護してください]</string>
+
+    <!-- Gemini Journal Prompt -->
+    <string name="str_gemini_journal_prompt">これは私の日記です。データをよく読み、理解した上で次の指示をお待ちください。</string>
+
+    <!-- Google Drive Sync & Progress Bar -->
+    <string name="str_sync_connecting">Google ドライブに接続中...</string>
+    <string name="str_sync_syncing">クラウドとデータを同期中...</string>
+    <string name="str_sync_success">Google ドライブにバックアップ完了！</string>
+    <string name="str_sync_up_to_date">データは最新の状態です</string>
+    <string name="str_sync_restored">ドライブから %1$d 件のメモを復元しました！</string>
+    <string name="str_sync_failed">クラウド同期に失敗しました</string>
+    <string name="str_drive_connected_title">☁️ Google ドライブ接続済み</string>
+    <string name="str_drive_unlinked_title">⚠️ ドライブバックアップ未有効</string>
+    <string name="str_drive_backup_title">☁️ Google ドライブバックアップ</string>
+    <string name="str_drive_desc_connected">メモは Google ドライブと安全に自動双方向同期されます。</string>
+    <string name="str_drive_desc_premium_unlinked">Premiumをご利用中です！メモを保護して自動バックアップするためにGoogleアカウントを接続してください。</string>
+    <string name="str_drive_desc_free">すべてのメモをご自身の Google ドライブ クラウドで安全に保護・同期します。</string>
+    <string name="str_btn_sync_now">🔄 今すぐ同期</string>
+    <string name="str_btn_login_drive_backup">バックアップ用にGoogleログイン</string>
+    <string name="str_btn_enable_backup_premium">Premiumでバックアップを有効化</string>
+
+    <!-- Trial Countdown & Lock (Day 29+) -->
+    <string name="str_trial_countdown_2_days">無料トライアルは残り02日です。生涯無制限で利用するにはアップグレードしてください！</string>
+    <string name="str_trial_countdown_1_day">無料トライアルは残り01日です。生涯無制限で利用するにはアップグレードしてください！</string>
+    <string name="str_trial_expired_permanent">引き続きご利用いただくにはアップグレードしてください！</string>
+    <string name="str_trial_expired_save_blocked">無料トライアルが終了しました。保存するにはアップグレードしてください！</string>
 
 </resources>

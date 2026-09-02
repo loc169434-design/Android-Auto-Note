@@ -74,20 +74,21 @@ class BillingManager(context: Context) {
     // ── Query product ─────────────────────────────────────────────────────────
 
     suspend fun queryProduct(): ProductDetails? = withContext(Dispatchers.IO) {
+        val productList = listOf("lifetime-purchase", "premium_lifetime").map { id ->
+            QueryProductDetailsParams.Product.newBuilder()
+                .setProductId(id)
+                .setProductType(BillingClient.ProductType.INAPP)
+                .build()
+        }
         val params = QueryProductDetailsParams.newBuilder()
-            .setProductList(listOf(
-                QueryProductDetailsParams.Product.newBuilder()
-                    .setProductId(PRODUCT_ID)
-                    .setProductType(BillingClient.ProductType.INAPP)
-                    .build()
-            ))
+            .setProductList(productList)
             .build()
 
         suspendCancellableCoroutine { cont ->
-            billingClient.queryProductDetailsAsync(params) { result, details ->
+            billingClient.queryProductDetailsAsync(params) { result, productDetailsResult ->
                 cont.resume(
                     if (result.responseCode == BillingClient.BillingResponseCode.OK)
-                        details.firstOrNull()
+                        productDetailsResult.productDetailsList?.firstOrNull()
                     else null
                 )
             }

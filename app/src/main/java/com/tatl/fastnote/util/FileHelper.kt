@@ -42,7 +42,7 @@ object FileHelper {
 
     // ── Regex Header Tiền Tố Ngày Tháng ──────────────────────────────────────
     val DATE_HEADER_REGEX = Regex(
-        """^-\s*(?:Thứ\s+[a-zA-Z\p{L}]+|Chủ\s+nhật|Ngày)(?:,\s*ngày|\s+ngày)?\s*\d{1,2}[-/]\d{1,2}[-/]\d{4}\s*lúc\s*\d{1,2}[\.:]\d{2}\s*:""",
+        """^-\s*(?:Thứ\s+[a-zA-Z\p{L}]+|Chủ\s+nhật|Ngày)(?:,\s*ngày|\s+ngày|,)?\s*\d{1,2}[-/]\d{1,2}[-/]\d{4}(?:\s*lúc|\s+)\s*\d{1,2}[\.:]\d{2}\s*:""",
         RegexOption.IGNORE_CASE
     )
 
@@ -54,45 +54,6 @@ object FileHelper {
         val trimmed = line.trimStart()
         val match = DATE_HEADER_REGEX.find(trimmed)
         return match?.value?.trim()
-    }
-
-    // ── Sample Data cho môi trường không tiện ghi âm ───────────────────────────
-    fun ensureSampleData(context: Context) {
-        val rawFile = getRawFile(context)
-        val guidiFile = getGuidiFile(context)
-        if (!rawFile.exists() || rawFile.length() == 0L || !guidiFile.exists() || guidiFile.length() == 0L) {
-            val sampleText = buildSampleNotes()
-            try {
-                rawFile.writeText(sampleText, Charsets.UTF_8)
-                guidiFile.writeText(sampleText, Charsets.UTF_8)
-                Log.d(TAG, "Initialized sample notes data")
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to initialize sample notes", e)
-            }
-        }
-    }
-
-    private fun buildSampleNotes(): String {
-        val cal = Calendar.getInstance()
-        fun formatDate(c: Calendar, hour: Int, minute: Int): String {
-            val dayName = DAY_NAMES[c.get(Calendar.DAY_OF_WEEK)] ?: "Ngày"
-            val day = String.format(Locale.getDefault(), "%02d", c.get(Calendar.DAY_OF_MONTH))
-            val month = String.format(Locale.getDefault(), "%02d", c.get(Calendar.MONTH) + 1)
-            val year = c.get(Calendar.YEAR)
-            val h = String.format(Locale.getDefault(), "%02d", hour)
-            val m = String.format(Locale.getDefault(), "%02d", minute)
-            return "- $dayName, ngày $day-$month-$year lúc $h.$m:"
-        }
-
-        val header1 = formatDate(cal, 8, 30)
-        val header2 = formatDate(cal, 10, 15)
-
-        val calPrev = (cal.clone() as Calendar).apply { add(Calendar.DAY_OF_MONTH, -1) }
-        val header3 = formatDate(calPrev, 16, 45)
-
-        return "$header1 Họp giao ban đầu tuần, thảo luận về kế hoạch triển khai tính năng AI và đồng bộ đám mây.\n\n" +
-                "$header2 **Ý TƯỞNG PHÁT TRIỂN:** Tối ưu hóa bộ nhận diện Regex cho ghi chú, hỗ trợ xóa nội dung linh hoạt và tự động bảo vệ tiền tố ngày tháng.\n\n" +
-                "$header3 Mua sách và chuẩn bị tài liệu nghiên cứu Jetpack Compose Canvas."
     }
 
     // ── Directory ─────────────────────────────────────────────────────────────
@@ -152,7 +113,6 @@ object FileHelper {
      * Supports single-line and multi-line notes.
      */
     fun parseEntries(context: Context): List<NoteEntry> {
-        ensureSampleData(context)
         val file = getGuidiFile(context)
         if (!file.exists()) return emptyList()
 
@@ -208,7 +168,6 @@ object FileHelper {
     // ── Raw file edit ─────────────────────────────────────────────────────────
 
     fun readRawFile(context: Context): String {
-        ensureSampleData(context)
         val f = getRawFile(context)
         return if (f.exists()) f.readText(Charsets.UTF_8) else ""
     }
@@ -269,35 +228,114 @@ object FileHelper {
 
     // ── Sensitive data masking (Regex Guard) ──────────────────────────────────
 
-    // 1. Mật khẩu & Từ khóa xác thực (mk, pass, password, mat khau, mật khẩu...) với :, =, là, -, khoảng trắng
-    private val PASSWORD_REGEX = Regex(
-        """(?i)(mk|pass(?:word)?|m[aậ]t\s*kh[aẩ]u)\s*[:=l\u00e0\s\-]+\s*([^\s,;]+)"""
+    // ── Sensitive data masking (Màng Lọc Bảo Mật 2 Lớp Cho File Gửi AI) ──────
+
+    // 0. Cặp đánh dấu người dùng tự bảo vệ: zz...zz (case-insensitive)
+    private val ZZ_SENSITIVE_REGEX = Regex(
+        """(?i)zz[\s\S]*?zz"""
     )
 
-    // 2. Mã OTP / PIN (4 - 6 số) đi sau từ khóa otp, mã pin, mã xác nhận, pin...
-    private val OTP_PIN_REGEX = Regex(
-        """(?i)(otp|m[aã]\s*(?:pin|x[aá]c\s*nh[aậ]n|otp)|pin)\s*[:=l\u00e0\s\-]+\s*(\d{4,6})"""
-    )
-
-    // 3. API Key / Hash / Token / Secret Key (chuỗi hỗn hợp hoa, thường, số >= 20 ký tự)
-    private val SECRET_TOKEN_REGEX = Regex(
-        """(?<![a-zA-Z0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z0-9_\-]{20,}(?![a-zA-Z0-9])"""
-    )
-
-    // 4. Địa chỉ Email
-    private val EMAIL_REGEX = Regex(
-        """[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}"""
-    )
-
-    // 5. Thẻ ngân hàng / Số tài khoản / CCCD dài (12 - 19 chữ số, có thể có khoảng trắng hoặc dấu gạch)
+    // Lớp 1: Số nhạy cảm
+    // 1.1 Thẻ ngân hàng (16 số) / CCCD (12 số) / Số tài khoản dài (12 - 19 chữ số)
     private val BANK_CARD_LONG_NUM_REGEX = Regex(
         """(?<!\d)\d(?:[\s\-]*\d){11,18}(?!\d)"""
     )
 
-    // 6. Số điện thoại / CMND 9 - 11 chữ số (có thể có khoảng trắng hoặc dấu gạch)
+    // 1.2 Số điện thoại (10 số) / CMND cũ (9 số) / Đầu số quốc tế (9 - 11 chữ số)
     private val PHONE_SHORT_NUM_REGEX = Regex(
         """(?<!\d)\d(?:[\s\-]*\d){8,10}(?!\d)"""
     )
+
+    // 1.3 Mật khẩu & Từ khóa xác thực
+    private val PASSWORD_REGEX = Regex(
+        """(?i)(mk|pass(?:word)?|m[aậ]t\s*kh[aẩ]u)\s*[:=l\u00e0\s\-]+\s*([^\s,;]+)"""
+    )
+
+    // 1.4 Mã OTP / PIN (4 - 6 số)
+    private val OTP_PIN_REGEX = Regex(
+        """(?i)(otp|m[aã]\s*(?:pin|x[aá]c\s*nh[aậ]n|otp)|pin)\s*[:=l\u00e0\s\-]+\s*(\d{4,6})"""
+    )
+
+    // 1.5 API Key / Hash / Token / Secret Key (>= 20 ký tự)
+    private val SECRET_TOKEN_REGEX = Regex(
+        """(?<![a-zA-Z0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z0-9_\-]{20,}(?![a-zA-Z0-9])"""
+    )
+
+    // 1.6 Địa chỉ Email
+    private val EMAIL_REGEX = Regex(
+        """[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}"""
+    )
+
+    // ── Lớp 2: Từ khóa nhạy cảm đa ngôn ngữ (VN, EN, JA, DE, RU) ─────────────
+    // Cứ xuất hiện bất kỳ từ khóa nào dưới đây trong câu ghi chú -> XÓA SẠCH TOÀN BỘ DÒNG ĐÓ
+    private val SENSITIVE_LINE_KEYWORDS_REGEX = Regex(
+        """(?i)(""" +
+        // --- 1. TIẾNG VIỆT, TIẾNG ANH, TIẾNG ĐỨC, TIẾNG NGA (Có ranh giới từ) ---
+        """(?<![\p{L}\p{N}])(?:""" +
+        """m[aậ]t\s*kh[aẩ]u|mat\s*khau|m[aậ]t\s*m[aã]|mat\s*ma|mk|""" +
+        """m[aã]\s*pin|ma\s*pin|m[aã]\s*puk|ma\s*puk|m[aã]\s*otp|ma\s*otp|""" +
+        """m[aã]\s*x[aá]c\s*th[uự]c|ma\s*xac\s*thuc|m[aã]\s*x[aá]c\s*nh[aậ]n|ma\s*xac\s*nhan|""" +
+        """m[aã]\s*b[aả]o\s*m[aậ]t|ma\s*bao\s*mat|m[aã]\s*b[aả]o\s*v[eệ]|ma\s*bao\s*ve|""" +
+        """t[aà]i\s*kho[aả]n\s*ng[aâ]n\s*h[aà]ng|tai\s*khoan\s*ngan\s*hang|""" +
+        """s[oố]\s*t[aà]i\s*kho[aả]n|so\s*tai\s*khoan|stk|s[oố]\s*th[eẻ]|so\s*the|""" +
+        """m[aã]|ma|""" +
+        """password|passwd|passcode|pass|pwd|pw|""" +
+        """pin\s*code|pin|puk\s*code|puk|otp\s*code|otp|""" +
+        """secret\s*key|secret|auth\s*code|authentication\s*code|verification\s*code|security\s*code|""" +
+        """access\s*code|credentials|login\s*info|2fa|mfa|""" +
+        """passwort|kennwort|geheimzahl|sicherheitscode|bestätigungscode|verifizierungscode|einmalpasswort|zugangscode|geheimschlüssel|""" +
+        """пароль|пар|пвд|пин-код|пин\s*код|пин|пук-код|пук\s*код|пук|отп|одноразовый\s*пароль|""" +
+        """код\s*подтверждения|код\s*проверки|код\s*безопасности|секретный\s*код|код\s*доступа""" +
+        """)(?![\p{L}\p{N}])|""" +
+        // --- 2. TIẾNG NHẬT (Không dùng khoảng trắng giữa từ và trợ từ ngữ pháp) ---
+        """パスワード|パス|暗証番号|暗号|認証コード|確認コード|ワンタイムパスワード|合言葉|セキュリティコード|PINコード|PUKコード|秘密鍵""" +
+        """)"""
+    )
+
+    /**
+     * Kiểm tra xem một đoạn văn bản ghi chú có chứa từ khóa nhạy cảm (Lớp 2) hay không.
+     */
+    fun containsSensitiveKeyword(text: String): Boolean {
+        val trimmed = text.trim()
+        val match = DATE_HEADER_REGEX.find(trimmed)
+        val contentToCheck = if (match != null) {
+            trimmed.substring(match.range.last + 1).trim()
+        } else {
+            trimmed
+        }
+        if (contentToCheck.isBlank()) return false
+        return SENSITIVE_LINE_KEYWORDS_REGEX.containsMatchIn(contentToCheck)
+    }
+
+    /**
+     * Lọc bảo mật cho danh sách dòng văn bản gửi đi cho AI:
+     * - Lớp 2: Luôn kiểm tra và XÓA TOÀN BỘ DÒNG chứa từ khóa nhạy cảm (mk, pass, mật khẩu, pin, otp, v.v.).
+     * - Lớp 1: Che các số 9, 10, 12, 16 chữ số, email, token trên các dòng còn lại thành *** (có thể bỏ qua nếu bypassLayer1 = true).
+     */
+    fun filterForAiSharing(lines: List<String>, bypassLayer1: Boolean = false): List<String> {
+        val result = mutableListOf<String>()
+        for (line in lines) {
+            val trimmed = line.trim()
+            if (trimmed.isEmpty()) continue
+
+            // Lớp 2: Kiểm tra từ khóa nhạy cảm -> Nếu có thì XÓA TOÀN BỘ DÒNG NÀY
+            if (containsSensitiveKeyword(trimmed)) {
+                continue
+            }
+
+            if (bypassLayer1) {
+                // Mở khóa ẩn: Bỏ qua che số, giữ nguyên dòng nguyên vẹn
+                result.add(line)
+            } else {
+                // Lớp 1: Che các số nhạy cảm (9, 10, 12, 16 số), email, token còn lại
+                val maskedLine = maskLine(line)
+                if (maskedLine.isNotBlank()) {
+                    result.add(maskedLine)
+                }
+            }
+        }
+        return result
+    }
 
     /**
      * Mask sensitive data in a list of lines (display only, file never changed).
@@ -322,12 +360,21 @@ object FileHelper {
     }
 
     /**
-     * Áp dụng toàn bộ bộ lọc Regex Guard lên nội dung text thuần túy
+     * Áp dụng toàn bộ bộ lọc Regex Guard lên nội dung text thuần túy (Lớp 1)
      */
     fun maskContent(text: String): String {
         var result = text
 
-        // Rule 1: Mật khẩu & Từ khóa xác thực -> giữ từ khóa và dấu nối, che giá trị thành ***
+        // Rule 0: Che toàn bộ nội dung nằm giữa cặp 'zz' do người dùng chủ động đánh dấu
+        result = result.replace(ZZ_SENSITIVE_REGEX, "***")
+
+        // Rule 1: Thẻ ngân hàng 16 số / CCCD 12 số / Số tài khoản dài (12 - 19 chữ số) -> ***
+        result = result.replace(BANK_CARD_LONG_NUM_REGEX, "***")
+
+        // Rule 2: Số điện thoại 10 số / CMND cũ 9 số (9 - 11 chữ số) -> ***
+        result = result.replace(PHONE_SHORT_NUM_REGEX, "***")
+
+        // Rule 3: Mật khẩu & Từ khóa xác thực -> giữ từ khóa và dấu nối, che giá trị thành ***
         result = result.replace(PASSWORD_REGEX) { mr ->
             val fullMatch = mr.value
             val valToMask = mr.groupValues[2]
@@ -335,7 +382,7 @@ object FileHelper {
             "${prefix}***"
         }
 
-        // Rule 2: Mã OTP / PIN -> giữ từ khóa và dấu nối, che số thành ***
+        // Rule 4: Mã OTP / PIN -> giữ từ khóa và dấu nối, che số thành ***
         result = result.replace(OTP_PIN_REGEX) { mr ->
             val fullMatch = mr.value
             val valToMask = mr.groupValues[2]
@@ -343,17 +390,11 @@ object FileHelper {
             "${prefix}***"
         }
 
-        // Rule 3: API Key / Hash / Token / Secret Key -> ***
+        // Rule 5: API Key / Hash / Token / Secret Key -> ***
         result = result.replace(SECRET_TOKEN_REGEX, "***")
 
-        // Rule 4: Email -> ***
+        // Rule 6: Email -> ***
         result = result.replace(EMAIL_REGEX, "***")
-
-        // Rule 5: Thẻ ngân hàng / Số tài khoản / CCCD (12 - 19 chữ số) -> ***
-        result = result.replace(BANK_CARD_LONG_NUM_REGEX, "***")
-
-        // Rule 6: Số điện thoại / CMND (9 - 11 chữ số) -> ***
-        result = result.replace(PHONE_SHORT_NUM_REGEX, "***")
 
         return result
     }
@@ -368,7 +409,7 @@ object FileHelper {
     }
 
     /**
-     * Xuất tệp tin sạch đã lọc bảo mật để gửi sang Google Gemini (V38 Phần 6):
+     * Xuất tệp tin sạch đã lọc bảo mật 2 lớp để gửi sang Google Gemini (V38 Phần 6):
      * - Tiếng Việt: File_gui_di_(Da_loc_bao_mat).txt
      * - Quốc tế: Shared_File_(Privacy_Protected).txt
      */
@@ -376,10 +417,17 @@ object FileHelper {
         val fileName = com.tatl.fastnote.data.user.LanguageManager.getSharedFileName()
         val cleanFile = File(getNotesDir(context), fileName)
         val rawText = readRawFile(context).ifBlank { readGuidiFile(context) ?: "" }
+        val journalPrompt = com.tatl.fastnote.data.user.LanguageManager.getGeminiJournalPrompt()
         if (rawText.isNotBlank()) {
             val lines = rawText.lines()
-            val maskedLines = maskSensitive(lines)
-            cleanFile.writeText(maskedLines.joinToString("\n"), Charsets.UTF_8)
+            val filteredLines = filterForAiSharing(lines)
+            val fullContent = buildString {
+                appendLine("[AI INSTRUCTION / YÊU CẦU CHO AI]: $journalPrompt")
+                appendLine("==================================================")
+                appendLine()
+                append(filteredLines.joinToString("\n\n"))
+            }
+            cleanFile.writeText(fullContent, Charsets.UTF_8)
         }
         return cleanFile
     }

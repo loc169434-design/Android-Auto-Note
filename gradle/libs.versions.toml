@@ -13,7 +13,7 @@ room = "2.7.1"
 glance = "1.1.1"
 navigationCompose = "2.9.0"
 coroutines = "1.10.2"
-billing = "7.1.1"
+billing = "8.0.0"
 fragmentKtx = "1.8.5"
 lifecycleViewmodelCompose = "2.10.0"
 # Firebase
@@ -24,6 +24,11 @@ credentials = "1.3.0"
 
 appcompat = "1.7.0"
 composeFonts = "1.7.8"
+# External Utilities
+zip4j = "2.11.5"
+coreSplashscreen = "1.0.1"
+work = "2.9.1"
+okhttp = "4.12.0"
 
 [libraries]
 # Core
@@ -82,7 +87,11 @@ play-services-auth = { group = "com.google.android.gms", name = "play-services-a
 credentials = { group = "androidx.credentials", name = "credentials", version.ref = "credentials" }
 credentials-play-services = { group = "androidx.credentials", name = "credentials-play-services-auth", version.ref = "credentials" }
 google-id = { group = "com.google.android.libraries.identity.googleid", name = "googleid", version = "1.1.1" }
-okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version = "4.12.0" }
+okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhttp" }
+androidx-work-runtime-ktx = { group = "androidx.work", name = "work-runtime-ktx", version.ref = "work" }
+zip4j = { group = "net.lingala.zip4j", name = "zip4j", version.ref = "zip4j" }
+androidx-core-splashscreen = { group = "androidx.core", name = "core-splashscreen", version.ref = "coreSplashscreen" }
+
 
 
 [plugins]

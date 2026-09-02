@@ -89,7 +89,7 @@ fun SendPcDialog(
     val baseCtx = LocalContext.current
     val localizedCtx = remember(currentLanguage) {
         val config = Configuration(baseCtx.resources.configuration)
-        config.setLocale(Locale(currentLanguage.code))
+        config.setLocale(Locale.forLanguageTag(currentLanguage.code))
         baseCtx.createConfigurationContext(config)
     }
 

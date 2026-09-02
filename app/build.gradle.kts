@@ -15,8 +15,8 @@ android {
     defaultConfig {
         applicationId = "com.tatl.fastnote"
         minSdk = 26
-        targetSdk = 35
-        versionCode = 4
+        targetSdk = 36
+        versionCode = 16
         versionName = "1.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -35,16 +35,19 @@ android {
             storePassword = keystoreProperties.getProperty("KEYSTORE_PASSWORD") ?: "12345678"
             keyAlias = keystoreProperties.getProperty("KEY_ALIAS") ?: "key0"
             keyPassword = keystoreProperties.getProperty("KEY_PASSWORD") ?: "12345678"
+            enableV1Signing = true
+            enableV2Signing = true
         }
     }
 
     buildTypes {
         debug {
             isMinifyEnabled = false
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName("release")
         }
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             signingConfig = signingConfigs.getByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
@@ -115,12 +118,14 @@ dependencies {
     implementation(libs.credentials.play.services)
     implementation(libs.google.id)
     implementation(libs.okhttp)
+    implementation(libs.androidx.work.runtime.ktx)
+
 
     // Zip4j — AES-256 encrypted zip cho tính năng Gửi PC
-    implementation("net.lingala.zip4j:zip4j:2.11.5")
+    implementation(libs.zip4j)
 
     // Splash Screen API (Android 12+)
-    implementation("androidx.core:core-splashscreen:1.0.1")
+    implementation(libs.androidx.core.splashscreen)
 
     // Test
     testImplementation(libs.junit)

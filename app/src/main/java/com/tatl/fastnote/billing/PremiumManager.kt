@@ -25,14 +25,18 @@ object PremiumManager {
     // ── Read premium status ───────────────────────────────────────────────────
 
     /**
+     * Synchronous check from local SharedPreferences cache.
+     */
+    fun isPremiumCached(context: Context): Boolean {
+        return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .getBoolean(KEY_IS_PREMIUM, false)
+    }
+
+    /**
      * Fetch premium status from local cache or Firestore.
      */
     suspend fun isPremium(context: Context? = null): Boolean {
-        if (context != null) {
-            val localCached = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-                .getBoolean(KEY_IS_PREMIUM, false)
-            if (localCached) return true
-        }
+        if (context != null && isPremiumCached(context)) return true
         val uid = AuthManager.uid ?: return false
         return try {
             val doc = Firebase.firestore

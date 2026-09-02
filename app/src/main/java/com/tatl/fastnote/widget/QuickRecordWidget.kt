@@ -1,6 +1,7 @@
-﻿package com.tatl.fastnote.widget
+package com.tatl.fastnote.widget
 
 import android.content.Context
+import com.tatl.fastnote.R
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
@@ -49,30 +50,14 @@ class QuickRecordWidget : GlanceAppWidget() {
         Box(
             modifier = GlanceModifier
                 .fillMaxSize()
-                .cornerRadius(16.dp)
-                .background(ColorProvider(day = Color(0xFF1565C0), night = Color(0xFF0D47A1)))
-                .clickable(actionStartActivity<RecordingActivity>())
-                .padding(12.dp),
+                .clickable(actionStartActivity<RecordingActivity>()),
             contentAlignment = Alignment.Center
         ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Image(
-                    provider = ImageProvider(android.R.drawable.ic_btn_speak_now),
-                    contentDescription = "Ghi âm",
-                    modifier = GlanceModifier.size(36.dp)
-                )
-                Spacer(modifier = GlanceModifier.height(4.dp))
-                Text(
-                    text = "Ghi chú nhanh",
-                    style = TextStyle(
-                        color = ColorProvider(day = Color.White, night = Color.White),
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Medium
-                    )
-                )
-            }
+            Image(
+                provider = ImageProvider(R.drawable.ic_mic),
+                contentDescription = "Ghi âm",
+                modifier = GlanceModifier.size(54.dp)
+            )
         }
     }
 }

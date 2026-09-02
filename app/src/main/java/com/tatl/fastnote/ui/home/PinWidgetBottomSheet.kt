@@ -28,10 +28,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.tatl.fastnote.R
 import com.tatl.fastnote.ui.theme.InterFontFamily
 import com.tatl.fastnote.ui.theme.NotoSansFontFamily
 import com.tatl.fastnote.util.PinWidgetHelper
@@ -57,13 +59,14 @@ fun PinWidgetBottomSheet(
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
+    val widgetTitle = stringResource(R.string.widget_triple_action_name)
 
     fun pinAndDismiss() {
         ThemePreferences.setWidgetPinned(true)
         PinWidgetHelper.pinWidget(
             context,
             TripleActionWidgetReceiver::class.java,
-            "Bộ 3 tính năng"
+            widgetTitle
         )
         onDismiss()
     }
@@ -108,7 +111,7 @@ fun PinWidgetBottomSheet(
                     // Icon Widget nổi bật
                     Icon(
                         imageVector = Icons.Default.Widgets,
-                        contentDescription = "Tạo Widget",
+                        contentDescription = stringResource(R.string.str_widget_icon_desc),
                         tint = Color(0xFF38BDF8),
                         modifier = Modifier.size(48.dp)
                     )
@@ -116,7 +119,7 @@ fun PinWidgetBottomSheet(
                     Spacer(Modifier.height(18.dp))
 
                     Text(
-                        text = "XIN MỜI TẠO WIDGET",
+                        text = stringResource(R.string.str_create_widget),
                         fontFamily = InterFontFamily,
                         fontWeight = FontWeight.Bold,
                         fontSize = 17.sp,
@@ -128,7 +131,7 @@ fun PinWidgetBottomSheet(
                     Spacer(Modifier.height(8.dp))
 
                     Text(
-                        text = "(Chạm vào đây để tạo widget ra màn hình chính)",
+                        text = stringResource(R.string.str_tap_to_create_widget),
                         fontFamily = NotoSansFontFamily,
                         fontWeight = FontWeight.Normal,
                         fontSize = 13.sp,
@@ -149,7 +152,7 @@ fun PinWidgetBottomSheet(
                     modifier = Modifier.padding(bottom = 32.dp)
                 ) {
                     Text(
-                        text = "ĐỂ SAU",
+                        text = stringResource(R.string.btn_later),
                         fontFamily = InterFontFamily,
                         fontWeight = FontWeight.Medium,
                         fontSize = 14.sp,
