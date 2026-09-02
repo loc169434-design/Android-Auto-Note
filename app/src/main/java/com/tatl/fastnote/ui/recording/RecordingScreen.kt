@@ -347,15 +347,6 @@ fun RecordingScreenContent(
                                 )
                             }
                         }
-                        Spacer(Modifier.height(8.dp))
-                        Text(
-                            text = cancelText,
-                            fontFamily = InterFontFamily,
-                            fontWeight = FontWeight.Medium,
-                            fontSize = 11.sp,
-                            letterSpacing = 1.sp,
-                            color = Color(0xFF94A3B8)
-                        )
                     }
 
                     // Nút LƯU (Save - Biểu tượng đĩa mềm)
@@ -382,15 +373,6 @@ fun RecordingScreenContent(
                                 )
                             }
                         }
-                        Spacer(Modifier.height(8.dp))
-                        Text(
-                            text = saveText,
-                            fontFamily = InterFontFamily,
-                            fontWeight = FontWeight.Medium,
-                            fontSize = 11.sp,
-                            letterSpacing = 1.sp,
-                            color = Color(0xFF93C5FD)
-                        )
                     }
                 }
 

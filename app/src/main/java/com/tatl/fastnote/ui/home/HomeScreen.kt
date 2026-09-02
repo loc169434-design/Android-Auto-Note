@@ -426,7 +426,10 @@ fun HomeScreen(
 
     // ─────────────────────────────────────────────────────────────────────────
     //  ROOT: Nền Slate-Blue gradient mượt mà theo ảnh thiết kế
+    //  key(currentLanguage): force recompose toàn bộ khi đổi ngôn ngữ
+    //  → stringResource() sẽ re-resolve đúng ngôn ngữ mới
     // ─────────────────────────────────────────────────────────────────────────
+    androidx.compose.runtime.key(currentLanguage) {
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -1134,7 +1137,8 @@ fun HomeScreen(
             durationMs = 2000L,
             onDismiss = { showProtectToast = false }
         )
-    }
+    } // end Box
+    } // end key(currentLanguage)
 }
 
 // ── Đảo ngược thứ tự các entry trong file ghi chú ────────────────────────────
