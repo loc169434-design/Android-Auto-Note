@@ -1,4 +1,4 @@
-﻿package com.tatl.fastnote.util
+package com.tatl.fastnote.util
 
 import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
@@ -6,7 +6,7 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.os.Build
-import android.widget.Toast
+
 import com.tatl.fastnote.widget.WidgetPlacedReceiver
 
 /**
@@ -54,21 +54,10 @@ object PinWidgetHelper {
                 // Strategy B: Polling fallback (handles MIUI, OnePlus, etc.)
                 // Runs in parallel — whichever fires first wins via KEY_HANDLED flag.
                 WidgetPlacedReceiver.startWatching(context)
-
-            } else {
-                Toast.makeText(
-                    context,
-                    "Launcher không hỗ trợ ghim widget tự động — hãy kéo \"$widgetName\" thủ công từ menu Widget",
-                    Toast.LENGTH_LONG
-                ).show()
             }
-        } else {
-            Toast.makeText(
-                context,
-                "Hãy kéo \"$widgetName\" thủ công từ menu Widget màn hình chính",
-                Toast.LENGTH_LONG
-            ).show()
+            // else: launcher không hỗ trợ pin tự động — im lặng, không toast
         }
+        // else: API < O — im lặng, không toast
     }
 
     /**

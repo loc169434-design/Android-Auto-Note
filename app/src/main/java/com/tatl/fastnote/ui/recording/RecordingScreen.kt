@@ -360,15 +360,15 @@ fun RecordingScreenContent(
                         Surface(
                             onClick = onSaveAndExit,
                             shape = CircleShape,
-                            color = Color(0xFF2563EB),
-                            border = BorderStroke(1.dp, Color(0xFF60A5FA)),
+                            color = Color(0xFF1E293B).copy(alpha = 0.7f),
+                            border = BorderStroke(1.dp, Color(0xFF475569)),
                             modifier = Modifier.size(62.dp)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
                                 Icon(
                                     imageVector = Icons.Default.Save,
                                     contentDescription = saveText,
-                                    tint = Color.White,
+                                    tint = Color(0xFFCBD5E1),
                                     modifier = Modifier.size(26.dp)
                                 )
                             }

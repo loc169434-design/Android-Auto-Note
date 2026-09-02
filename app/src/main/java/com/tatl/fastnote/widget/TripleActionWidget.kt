@@ -128,7 +128,7 @@ class TripleActionWidget : GlanceAppWidget() {
             Image(
                 provider           = ImageProvider(iconRes),
                 contentDescription = contentDescription,
-                modifier           = GlanceModifier.size(54.dp)
+                modifier           = GlanceModifier.size(46.dp)
             )
         }
     }
