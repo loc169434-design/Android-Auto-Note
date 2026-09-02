@@ -45,7 +45,8 @@ class GeminiLaunchActivity : ComponentActivity() {
             return
         }
 
-        val aiSharedFile = FileHelper.getAiSharedFile(this)
+        val isBypass = com.tatl.fastnote.util.SecretDevModeManager.isBypassSecurityLayer1(this)
+        val aiSharedFile = FileHelper.getAiSharedFile(this, bypassLayer1 = isBypass)
 
         if (aiSharedFile.exists() && aiSharedFile.length() > 0) {
             // Build a content:// URI via FileProvider so Gemini can read the file

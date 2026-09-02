@@ -413,14 +413,14 @@ object FileHelper {
      * - Tiếng Việt: File_gui_di_(Da_loc_bao_mat).txt
      * - Quốc tế: Shared_File_(Privacy_Protected).txt
      */
-    fun getAiSharedFile(context: Context): File {
+    fun getAiSharedFile(context: Context, bypassLayer1: Boolean = false): File {
         val fileName = com.tatl.fastnote.data.user.LanguageManager.getSharedFileName()
         val cleanFile = File(getNotesDir(context), fileName)
         val rawText = readRawFile(context).ifBlank { readGuidiFile(context) ?: "" }
         val journalPrompt = com.tatl.fastnote.data.user.LanguageManager.getGeminiJournalPrompt()
         if (rawText.isNotBlank()) {
             val lines = rawText.lines()
-            val filteredLines = filterForAiSharing(lines)
+            val filteredLines = filterForAiSharing(lines, bypassLayer1 = bypassLayer1)
             val fullContent = buildString {
                 appendLine("[AI INSTRUCTION / YÊU CẦU CHO AI]: $journalPrompt")
                 appendLine("==================================================")

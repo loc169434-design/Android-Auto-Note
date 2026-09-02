@@ -85,7 +85,9 @@ object AIShareHelper {
         context: Context,
         todayNotesText: String
     ) {
-        val filteredLines = FileHelper.filterForAiSharing(todayNotesText.lines())
+        // ✅ Đọc bypass flag TRƯỚC khi filter — nếu bypass bật thì gửi bản gốc không che
+        val isBypass = SecretDevModeManager.isBypassSecurityLayer1(context)
+        val filteredLines = FileHelper.filterForAiSharing(todayNotesText.lines(), bypassLayer1 = isBypass)
         val cleanNotesText = filteredLines.joinToString("\n\n")
 
         if (cleanNotesText.isBlank()) {
@@ -106,41 +108,33 @@ object AIShareHelper {
         val journalPrompt = com.tatl.fastnote.data.user.LanguageManager.getGeminiJournalPrompt()
         val promptTitle = com.tatl.fastnote.data.user.LanguageManager.getSharedFileTitle()
 
+        // Build prompt với text đã filter đúng (không filter lại lần nữa)
+        val fullPrompt = buildString {
+            appendLine(journalPrompt)
+            appendLine()
+            append(cleanNotesText)
+        }
+
+        fun buildShareIntent(targetPackage: String? = null): Intent =
+            Intent(Intent.ACTION_SEND).apply {
+                type = "text/plain"
+                putExtra(Intent.EXTRA_TEXT, fullPrompt)
+                putExtra(Intent.EXTRA_SUBJECT, journalPrompt)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                if (targetPackage != null) setPackage(targetPackage)
+            }
+
         try {
             if (installedApps.isNotEmpty()) {
-                // Try direct AI app first
-                val directIntent = createAIShareIntent(context, cleanNotesText)
-                context.startActivity(directIntent)
+                context.startActivity(buildShareIntent(installedApps.first().packageName))
             } else {
-                // No AI app found — open general chooser
-                val genericIntent = Intent(Intent.ACTION_SEND).apply {
-                    type = "text/plain"
-                    putExtra(Intent.EXTRA_TEXT, buildString {
-                        appendLine(journalPrompt)
-                        appendLine()
-                        append(cleanNotesText)
-                    })
-                    putExtra(Intent.EXTRA_SUBJECT, journalPrompt)
-                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                }
-                val chooser = Intent.createChooser(genericIntent, promptTitle)
+                val chooser = Intent.createChooser(buildShareIntent(), promptTitle)
                 chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 context.startActivity(chooser)
             }
         } catch (e: Exception) {
-            // If direct app launch fails, fall back to chooser
             try {
-                val fallbackIntent = Intent(Intent.ACTION_SEND).apply {
-                    type = "text/plain"
-                    putExtra(Intent.EXTRA_TEXT, buildString {
-                        appendLine(journalPrompt)
-                        appendLine()
-                        append(cleanNotesText)
-                    })
-                    putExtra(Intent.EXTRA_SUBJECT, journalPrompt)
-                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                }
-                val chooser = Intent.createChooser(fallbackIntent, promptTitle)
+                val chooser = Intent.createChooser(buildShareIntent(), promptTitle)
                 chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 context.startActivity(chooser)
             } catch (e2: Exception) {
