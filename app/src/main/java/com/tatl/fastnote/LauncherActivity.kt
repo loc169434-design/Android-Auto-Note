@@ -1,6 +1,7 @@
 package com.tatl.fastnote
 
 import android.app.Activity
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import com.tatl.fastnote.ui.recording.RecordingActivity
@@ -19,7 +20,9 @@ class LauncherActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val hasPinned = ThemePreferences.hasPinnedWidget.value
+        // Đọc trực tiếp từ SharedPreferences để tránh race condition với StateFlow
+        val prefs = getSharedPreferences("auto_note_prefs", Context.MODE_PRIVATE)
+        val hasPinned = prefs.getBoolean("has_pinned_widget", false)
         val isWidgetActive = PinWidgetHelper.isWidgetActive(this, TripleActionWidgetReceiver::class.java)
 
         if (hasPinned && isWidgetActive) {

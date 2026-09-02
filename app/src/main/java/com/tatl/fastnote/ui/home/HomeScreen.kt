@@ -1124,7 +1124,8 @@ fun HomeScreen(
             PinWidgetBottomSheet(
                 isMandatory = isPromptMandatory,
                 onDismiss = {
-                    if (widgetWasRemoved) ThemePreferences.setWidgetPinned(true)
+                    // Không set hasPinned=true ở đây — chỉ set sau khi widget
+                    // thực sự được xác nhận đặt lên màn hình (WidgetPlacedReceiver)
                     showManualPinPrompt = false
                 }
             )

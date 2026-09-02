@@ -1,4 +1,4 @@
-﻿package com.tatl.fastnote.widget
+package com.tatl.fastnote.widget
 
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -110,6 +110,10 @@ class WidgetPlacedReceiver : BroadcastReceiver() {
         private fun handleWidgetPlaced(context: Context) {
             if (isHandled(context)) return      // prevent double-fire
             setHandled(context, true)
+
+            // ✅ Đây là nơi DUY NHẤT đúng để mark widget đã được tạo thực sự
+            // (sau khi launcher xác nhận đặt widget lên màn hình)
+            com.tatl.fastnote.util.ThemePreferences.setWidgetPinned(true)
 
             // 1. Navigate to home screen so user lands on the widget
             goToHomeScreen(context)

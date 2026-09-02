@@ -62,7 +62,8 @@ fun PinWidgetBottomSheet(
     val widgetTitle = stringResource(R.string.widget_triple_action_name)
 
     fun pinAndDismiss() {
-        ThemePreferences.setWidgetPinned(true)
+        // KHÔNG set hasPinned=true ở đây — chỉ set sau khi widget
+        // thực sự được xác nhận đặt lên màn hình (trong WidgetPlacedReceiver)
         PinWidgetHelper.pinWidget(
             context,
             TripleActionWidgetReceiver::class.java,
