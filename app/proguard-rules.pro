@@ -6,10 +6,15 @@
 -keepattributes Signature
 -keepattributes InnerClasses,EnclosingMethod
 
-# ── 2. Data Models, Enums & Serialization ──
--keep class com.tatl.fastnote.data.** { *; }
--keep class com.tatl.fastnote.billing.** { *; }
--keep class com.tatl.fastnote.sync.** { *; }
+# ── 2. Entire Project Codebase & Sub-packages ──
+# Bảo vệ 100% tất cả các class, models, services, UI, utils, widgets của Fast Note
+-keep class com.tatl.fastnote.** { *; }
+-keepclassmembers class com.tatl.fastnote.** { *; }
+-keep class * extends android.app.Activity
+-keep class * extends android.app.Service
+-keep class * extends android.content.BroadcastReceiver
+-keep class * extends android.content.ContentProvider
+-keep class * extends android.appwidget.AppWidgetProvider
 
 -keepclassmembers enum * {
     public static **[] values();
@@ -62,11 +67,5 @@
 -keep class com.tatl.fastnote.widget.** { *; }
 
 # ── 11. Per-App Language (AppCompatDelegate.setApplicationLocales) ──
-# Giữ AppCompatDelegate để đổi ngôn ngữ hoạt động trong release build
 -keep class androidx.appcompat.app.AppCompatDelegate { *; }
 -keep class androidx.core.os.LocaleListCompat { *; }
-# Giữ LanguageManager và AppLanguage enum (đã có trong data.** nhưng khai báo rõ hơn)
--keep class com.tatl.fastnote.data.user.LanguageManager { *; }
--keep class com.tatl.fastnote.data.user.AppLanguage { *; }
-# Ngăn resource shrinker xóa các string resources của các ngôn ngữ phụ
--keepresourcexmlelements locale
