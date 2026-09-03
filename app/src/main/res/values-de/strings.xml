@@ -143,4 +143,18 @@
     <string name="str_trial_expired_permanent">Bitte upgraden Sie, um fortzufahren!</string>
     <string name="str_trial_expired_save_blocked">Testversion abgelaufen. Bitte upgraden, um Notizen zu speichern!</string>
 
+    <!-- Drive & Billing & App Toasts -->
+    <string name="str_toast_drive_connected">Mit Google Drive verbunden: %1$s</string>
+    <string name="str_toast_drive_sync_success">Daten mit Google Drive gesichert &amp; synchronisiert!</string>
+    <string name="str_toast_google_signin_incomplete">Google-Anmeldung nicht abgeschlossen%1$s</string>
+    <string name="str_toast_press_back_again_to_exit">Erneut tippen zum Beenden</string>
+    <string name="str_toast_select_google_for_send_pc">Bitte wählen Sie ein Google-Konto aus, um Sicherung &amp; An PC senden zu aktivieren.</string>
+    <string name="str_toast_select_google_for_backup">Bitte wählen Sie ein Google-Konto für die Datensicherung aus.</string>
+    <string name="str_toast_logged_out_google">Von Google-Konto abgemeldet</string>
+    <string name="str_toast_select_google_for_drive_activation">Bitte wählen Sie ein Google-Konto aus, um die Drive-Sicherung zu aktivieren.</string>
+    <string name="str_toast_premium_and_drive_unlocked">Vielen Dank! Premium-Funktionen &amp; Drive-Synchronisierung wurden erfolgreich freigeschaltet!</string>
+    <string name="str_toast_trial_expired_30_days">Ihr Tagebuch begleitet Sie seit 30 Tagen. Bitte upgraden Sie, um weiterhin Momente festzuhalten!</string>
+    <string name="str_toast_cannot_open_gemini">Gemini kann nicht geöffnet werden</string>
+    <string name="str_toast_firebase_signin_failed">Firebase-Anmeldung fehlgeschlagen</string>
+
 </resources>

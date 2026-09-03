@@ -149,7 +149,7 @@ class GeminiLaunchActivity : ComponentActivity() {
                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 })
             } catch (ex: Exception) {
-                Toast.makeText(this, "Không thể mở Gemini", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, getString(com.tatl.fastnote.R.string.str_toast_cannot_open_gemini), Toast.LENGTH_SHORT).show()
             }
         }
     }

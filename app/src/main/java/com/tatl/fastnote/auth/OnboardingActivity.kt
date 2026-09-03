@@ -4,6 +4,7 @@ import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
+import com.tatl.fastnote.R
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
@@ -104,7 +105,7 @@ class OnboardingActivity : ComponentActivity() {
                     Log.d(TAG, "Firebase sign-in OK uid=${user.uid}")
                     goToMain()
                 } else {
-                    showToast("Đăng nhập Firebase thất bại")
+                    showToast(getString(R.string.str_toast_firebase_signin_failed))
                 }
             }
         } catch (e: ApiException) {

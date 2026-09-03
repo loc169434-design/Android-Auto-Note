@@ -143,4 +143,18 @@
     <string name="str_trial_expired_permanent">引き続きご利用いただくにはアップグレードしてください！</string>
     <string name="str_trial_expired_save_blocked">無料トライアルが終了しました。保存するにはアップグレードしてください！</string>
 
+    <!-- Drive & Billing & App Toasts -->
+    <string name="str_toast_drive_connected">Google ドライブに接続しました: %1$s</string>
+    <string name="str_toast_drive_sync_success">データを Google ドライブと同期・バックアップしました！</string>
+    <string name="str_toast_google_signin_incomplete">Google サインインが完了していません%1$s</string>
+    <string name="str_toast_press_back_again_to_exit">もう一度タップして終了</string>
+    <string name="str_toast_select_google_for_send_pc">バックアップとPC送信を有効にするには、Google アカウントを選択してください。</string>
+    <string name="str_toast_select_google_for_backup">データをバックアップするには、Google アカウントを選択してください。</string>
+    <string name="str_toast_logged_out_google">Google アカウントからログアウトしました</string>
+    <string name="str_toast_select_google_for_drive_activation">ドライブのバックアップを有効にするには、Google アカウントを選択してください。</string>
+    <string name="str_toast_premium_and_drive_unlocked">ありがとうございます！Premium 特典とドライブ同期が正常に解除されました！</string>
+    <string name="str_toast_trial_expired_30_days">ノートをご利用いただき30日が経ちました。引き続き記録を残すにはアップグレードしてください！</string>
+    <string name="str_toast_cannot_open_gemini">Gemini を開けません</string>
+    <string name="str_toast_firebase_signin_failed">Firebase サインインに失敗しました</string>
+
 </resources>

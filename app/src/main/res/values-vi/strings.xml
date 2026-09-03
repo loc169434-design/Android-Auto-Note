@@ -148,4 +148,18 @@
     <string name="str_trial_expired_permanent">Hãy nâng cấp để tiếp tục sử dụng!</string>
     <string name="str_trial_expired_save_blocked">Đã hết hạn dùng thử. Vui lòng nâng cấp để lưu ghi chú mới!</string>
 
+    <!-- Drive & Billing & App Toasts -->
+    <string name="str_toast_drive_connected">Đã kết nối Google Drive: %1$s</string>
+    <string name="str_toast_drive_sync_success">Đã sao lưu &amp; đồng bộ dữ liệu với Google Drive!</string>
+    <string name="str_toast_google_signin_incomplete">Đăng nhập Google chưa hoàn tất%1$s</string>
+    <string name="str_toast_press_back_again_to_exit">Bấm lại để thoát</string>
+    <string name="str_toast_select_google_for_send_pc">Vui lòng chọn tài khoản Google để kích hoạt Sao lưu &amp; Gửi PC.</string>
+    <string name="str_toast_select_google_for_backup">Vui lòng chọn tài khoản Google để sao lưu dữ liệu.</string>
+    <string name="str_toast_logged_out_google">Đã đăng xuất tài khoản Google</string>
+    <string name="str_toast_select_google_for_drive_activation">Vui lòng chọn tài khoản Google để kích hoạt Sao lưu Drive.</string>
+    <string name="str_toast_premium_and_drive_unlocked">Cảm ơn bạn. Các đặc quyền Premium &amp; Đồng bộ Drive đã được mở thành công!</string>
+    <string name="str_toast_trial_expired_30_days">Cuốn sổ của bạn đã đồng hành cùng bạn 30 ngày. Hãy nâng cấp để tiếp tục lưu giữ những khoảnh khắc tiếp theo nhé!</string>
+    <string name="str_toast_cannot_open_gemini">Không thể mở Gemini</string>
+    <string name="str_toast_firebase_signin_failed">Đăng nhập Firebase thất bại</string>
+
 </resources>

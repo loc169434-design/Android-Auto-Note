@@ -143,4 +143,18 @@
     <string name="str_trial_expired_permanent">Пожалуйста, обновитесь для продолжения использования!</string>
     <string name="str_trial_expired_save_blocked">Пробный период истек. Обновитесь для сохранения новых заметок!</string>
 
+    <!-- Drive & Billing & App Toasts -->
+    <string name="str_toast_drive_connected">Подключено к Google Диску: %1$s</string>
+    <string name="str_toast_drive_sync_success">Данные сохранены и синхронизированы с Google Диском!</string>
+    <string name="str_toast_google_signin_incomplete">Вход через Google не завершен%1$s</string>
+    <string name="str_toast_press_back_again_to_exit">Нажмите еще раз для выхода</string>
+    <string name="str_toast_select_google_for_send_pc">Пожалуйста, выберите аккаунт Google для резервного копирования и отправки на ПК.</string>
+    <string name="str_toast_select_google_for_backup">Пожалуйста, выберите аккаунт Google для резервного копирования данных.</string>
+    <string name="str_toast_logged_out_google">Выход из аккаунта Google выполнен</string>
+    <string name="str_toast_select_google_for_drive_activation">Пожалуйста, выберите аккаунт Google для активации резервного копирования на Диск.</string>
+    <string name="str_toast_premium_and_drive_unlocked">Спасибо! Функции Premium и синхронизация с Диском успешно активированы!</string>
+    <string name="str_toast_trial_expired_30_days">Ваш блокнот с вами уже 30 дней. Пожалуйста, обновитесь до Premium, чтобы продолжить сохранять записи!</string>
+    <string name="str_toast_cannot_open_gemini">Не удалось открыть Gemini</string>
+    <string name="str_toast_firebase_signin_failed">Ошибка входа в Firebase</string>
+
 </resources>

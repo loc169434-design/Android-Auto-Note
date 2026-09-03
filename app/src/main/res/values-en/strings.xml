@@ -148,4 +148,18 @@
     <string name="str_trial_expired_permanent">Please upgrade to continue using!</string>
     <string name="str_trial_expired_save_blocked">Free trial expired. Please upgrade to save new notes!</string>
 
+    <!-- Drive & Billing & App Toasts -->
+    <string name="str_toast_drive_connected">Connected to Google Drive: %1$s</string>
+    <string name="str_toast_drive_sync_success">Data backed up &amp; synced with Google Drive!</string>
+    <string name="str_toast_google_signin_incomplete">Google Sign-In not completed%1$s</string>
+    <string name="str_toast_press_back_again_to_exit">Press back again to exit</string>
+    <string name="str_toast_select_google_for_send_pc">Please select a Google account to enable Backup &amp; Send to PC.</string>
+    <string name="str_toast_select_google_for_backup">Please select a Google account to back up data.</string>
+    <string name="str_toast_logged_out_google">Logged out of Google account</string>
+    <string name="str_toast_select_google_for_drive_activation">Please select a Google account to activate Drive Backup.</string>
+    <string name="str_toast_premium_and_drive_unlocked">Thank you! Premium features &amp; Drive Sync have been successfully unlocked!</string>
+    <string name="str_toast_trial_expired_30_days">Your journal has been with you for 30 days. Please upgrade to continue capturing your moments!</string>
+    <string name="str_toast_cannot_open_gemini">Cannot open Gemini</string>
+    <string name="str_toast_firebase_signin_failed">Firebase sign-in failed</string>
+
 </resources>
