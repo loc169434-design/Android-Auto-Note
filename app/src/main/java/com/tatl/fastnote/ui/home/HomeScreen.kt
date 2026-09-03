@@ -39,6 +39,7 @@ import androidx.compose.material.icons.filled.Computer
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Keyboard
 import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.KeyboardHide
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Save
@@ -63,6 +64,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -70,6 +72,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.foundation.text.selection.LocalTextSelectionColors
+import androidx.compose.foundation.text.selection.TextSelectionColors
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
@@ -176,6 +180,8 @@ fun HomeScreen(
     var fileEntries by remember { mutableStateOf<List<FileHelper.NoteEntry>>(emptyList()) }
     var searchActive by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
+    // Global index trong toàn bộ danh sách xuất hiện (tất cả entries, tất cả lần xuất hiện)
+    var searchMatchIndex by remember { mutableIntStateOf(0) }
 
     // ── Filter ────────────────────────────────────────────────────────────────
     val filteredEntries = if (searchQuery.isBlank()) fileEntries
@@ -183,6 +189,38 @@ fun HomeScreen(
         it.content.contains(searchQuery, ignoreCase = true) ||
         it.header.contains(searchQuery, ignoreCase = true)
     }
+    val searchMatchCountByEntry = filteredEntries.size  // dùng riêng cho display nếu cần
+
+    // ── Đếm TẤT CẢ vị trí xuất hiện (từng entry × từng lần trong header + content) ──
+    // SearchHit: entryIndex = vị trí trong filteredEntries
+    //             contentOccurrenceRank = thứ tự xuất hiện trong content (≥ 0), -1 = match trong header
+    data class SearchHit(val entryIndex: Int, val contentOccurrenceRank: Int)
+    val allSearchHits: List<SearchHit> = remember(searchQuery, filteredEntries) {
+        if (searchQuery.isBlank()) emptyList()
+        else buildList {
+            val lq = searchQuery.lowercase()
+            filteredEntries.forEachIndexed { entryIdx, entry ->
+                val lowerHeader = entry.header.lowercase()
+                var idx = lowerHeader.indexOf(lq)
+                while (idx != -1) {
+                    add(SearchHit(entryIdx, -1))
+                    idx = lowerHeader.indexOf(lq, idx + lq.length)
+                }
+                val lowerContent = entry.content.lowercase()
+                var rank = 0
+                idx = lowerContent.indexOf(lq)
+                while (idx != -1) {
+                    add(SearchHit(entryIdx, rank++))
+                    idx = lowerContent.indexOf(lq, idx + lq.length)
+                }
+            }
+        }
+    }
+    val searchMatchCount = allSearchHits.size  // tổng số lần xuất hiện thực sự
+    val activeHit = allSearchHits.getOrNull(searchMatchIndex.coerceIn(0, (searchMatchCount - 1).coerceAtLeast(0)))
+    val activeEntryIdx = activeHit?.entryIndex ?: -1
+    val activeContentOccurrenceRank = activeHit?.contentOccurrenceRank ?: -1
+
 
     // ── Edit Mode State ───────────────────────────────────────────────────────
     var isEditMode by remember { mutableStateOf(false) }
@@ -191,6 +229,17 @@ fun HomeScreen(
     var isSaving by remember { mutableStateOf(false) }
     var showProtectToast by remember { mutableStateOf(false) }
     var autoSaveJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
+    // Offset ký tự cần scroll đến trong Edit Mode (set khi mở, reset khi đóng)
+    // Dùng -1 để biểu thị "không cần scroll"
+    var pendingScrollToOffset by remember { mutableStateOf(-1) }
+    // Layout result của BasicTextField để tính tọa độ cursor (phục vụ auto-scroll khi bàn phím bật)
+    var editTextLayoutResult by remember { mutableStateOf<androidx.compose.ui.text.TextLayoutResult?>(null) }
+    // Flag: edit mode được mở từ search (true) hay từ browse bình thường (false)
+    // Khi từ browse: giữ nguyên vị trí đang xem, kông aggressive scroll
+    // Khi từ search: scroll cursor lên trên bàn phím
+    var editModeOpenedFromSearch by remember { mutableStateOf(false) }
+    // Selection ban đầu khi mở edit (dùng để detect user tap vs mở lần đầu)
+    var editModeInitialSelection by remember { mutableStateOf(androidx.compose.ui.text.TextRange.Zero) }
 
     // Bug 1.3 fix: LazyColumn scroll state — reset to top on resume
     val listState = androidx.compose.foundation.lazy.rememberLazyListState()
@@ -210,8 +259,14 @@ fun HomeScreen(
             if (error == null) {
                 keyboardController?.hide()
                 focusManager.clearFocus()
+                // Reset toàn bộ search + edit state khi thoát edit mode
                 searchActive = false
                 searchQuery = ""
+                searchMatchIndex = 0
+                editModeOpenedFromSearch = false
+                editModeInitialSelection = androidx.compose.ui.text.TextRange.Zero
+                editTextLayoutResult = null
+                pendingScrollToOffset = -1
                 withContext(Dispatchers.IO) {
                     fileEntries = FileHelper.parseEntries(context)
                 }
@@ -224,7 +279,11 @@ fun HomeScreen(
     }
 
     // ── Mở Chỉnh Sửa tại Đúng Vị Trí Mục Tiêu (Tình huống 1 & Tình huống 2) ──
-    fun openEditModeAtTarget(targetEntryIndex: Int? = null, searchKeyword: String? = null) {
+    fun openEditModeAtTarget(
+        targetEntryIndex: Int? = null,
+        searchKeyword: String? = null,
+        searchOccurrenceRank: Int = 0  // thứ tự occurrence của searchKeyword cần nhảy đến (0-indexed)
+    ) {
         scope.launch {
             val raw = withContext(Dispatchers.IO) {
                 FileHelper.readRawFile(context)
@@ -238,9 +297,52 @@ fun HomeScreen(
             // Tình huống 2: Mở từ kết quả tìm kiếm (Kính lúp)
             val query = searchKeyword?.trim()
             if (!query.isNullOrBlank()) {
-                val matchIdx = reversed.indexOf(query, ignoreCase = true)
-                if (matchIdx != -1) {
-                    targetOffset = matchIdx
+                val lq = query.lowercase()
+                val lowerReversed = reversed.lowercase()
+
+                // ── Bước 1: Xác định vị trí bắt đầu của entry trong reversed text ──
+                // searchOccurrenceRank là thứ tự TRONG ENTRY, không phải trong toàn bộ file
+                // Nên phải tìm entry trước, rồi mới đếm occurrence từ đó
+                val currentList = if (searchQuery.isNotBlank()) filteredEntries else fileEntries
+                val entryIdx0 = (targetEntryIndex ?: 0)
+                    .coerceIn(0, (currentList.size - 1).coerceAtLeast(0))
+
+                var entryStartInReversed = 0  // mặc định: đầu file (nếu không tìm được entry)
+                if (currentList.isNotEmpty() && entryIdx0 in currentList.indices) {
+                    val targetEntry = currentList[entryIdx0]
+                    val headerSearch = targetEntry.header.trim()
+                    // Tìm header trước
+                    var pos = if (headerSearch.isNotBlank())
+                        lowerReversed.indexOf(headerSearch.lowercase()) else -1
+                    // Fallback: dùng 30 ký tự đầu của content
+                    if (pos == -1 && targetEntry.content.isNotBlank()) {
+                        val snippet = targetEntry.content.take(30).trim()
+                        pos = lowerReversed.indexOf(snippet.lowercase())
+                    }
+                    if (pos != -1) entryStartInReversed = pos
+                }
+
+                // ── Bước 2: Đếm occurrence thứ searchOccurrenceRank bắt đầu từ vị trí entry ──
+                var rank = 0
+                var searchStart = entryStartInReversed
+                var foundIdx = -1
+                while (true) {
+                    val idx = lowerReversed.indexOf(lq, searchStart)
+                    if (idx == -1) break
+                    if (rank == searchOccurrenceRank) {
+                        foundIdx = idx
+                        break
+                    }
+                    rank++
+                    searchStart = idx + lq.length
+                }
+                // Fallback 1: occurrence đầu tiên từ vị trí entry
+                if (foundIdx == -1) foundIdx = lowerReversed.indexOf(lq, entryStartInReversed)
+                // Fallback 2: occurrence đầu tiên trong toàn file
+                if (foundIdx == -1) foundIdx = lowerReversed.indexOf(lq)
+
+                if (foundIdx != -1) {
+                    targetOffset = foundIdx
                     selectionLength = query.length
                 }
             } else {
@@ -275,6 +377,7 @@ fun HomeScreen(
                 }
             }
 
+
             targetOffset = targetOffset.coerceIn(0, reversed.length)
             val initialTfv = if (selectionLength > 0) {
                 TextFieldValue(
@@ -287,28 +390,26 @@ fun HomeScreen(
 
             editTfv = adjustSelectionOutOfHeaders(initialTfv)
             isEditMode = true
-            // Tắt thanh tìm kiếm và bàn phím tìm kiếm khi chuyển sang chế độ Sửa
+            // Đặt flag: mở từ search hay từ browse
+            editModeOpenedFromSearch = !query.isNullOrBlank()
+            editModeInitialSelection = editTfv.selection  // lưu selection ban đầu
+            // Tắt thanh tìm kiếm khi chuyển sang chế độ Sửa
             searchActive = false
             searchQuery = ""
             focusManager.clearFocus()
 
-            // Tính toán dòng cần cuộn đến
-            val textBefore = reversed.substring(0, editTfv.selection.start.coerceIn(0, reversed.length))
-            val targetLineIndex = textBefore.count { it == '\n' }
-            val totalLines = reversed.count { it == '\n' }.coerceAtLeast(1)
+            // Lưu offset để LaunchedEffect scroll sau khi TextField layout xong
+            pendingScrollToOffset = editTfv.selection.start
 
-            kotlinx.coroutines.delay(50L)
+            // Đợi edit mode BasicTextField được compose xong rồi mới requestFocus
+            // 50ms thường chưa đủ → tăng lên 300ms để layout render + focusRequester attach
+            kotlinx.coroutines.delay(300L)
             try {
                 focusRequester.requestFocus()
+                // Show keyboard sau khi focus đã gắn thành công
+                kotlinx.coroutines.delay(50L)
                 keyboardController?.show()
             } catch (_: Exception) {}
-
-            kotlinx.coroutines.delay(100L)
-            if (editScrollState.maxValue > 0 && totalLines > 1) {
-                val scrollFraction = targetLineIndex.toFloat() / totalLines.toFloat()
-                val targetScroll = (editScrollState.maxValue.toFloat() * scrollFraction).toInt()
-                editScrollState.scrollTo(targetScroll.coerceIn(0, editScrollState.maxValue))
-            }
         }
     }
 
@@ -339,25 +440,41 @@ fun HomeScreen(
         }
     }
 
-    // ── Focus, Cursor & Scroll đến vị trí mục tiêu khi vào Edit Mode ─────────
-    LaunchedEffect(isEditMode) {
-        if (isEditMode) {
-            kotlinx.coroutines.delay(50L)
+    // ── Scroll đến đúng vị trí cursor khi mở Edit Mode ─────────────────────────
+    // Trigger: pendingScrollToOffset được set khi openEditModeAtTarget() chạy
+    // Chờ cho đến khi: layout sẵn sàng (maxValue > 0) và được nhàn focus (layout result != null)
+    LaunchedEffect(isEditMode, editScrollState.maxValue) {
+        if (!isEditMode || pendingScrollToOffset < 0 || editScrollState.maxValue <= 0) return@LaunchedEffect
+        // Chờ thêm 50ms cho layout render hết, rồi thử dùng getCursorRect
+        kotlinx.coroutines.delay(50L)
+        val layout = editTextLayoutResult
+        if (layout != null) {
             try {
-                focusRequester.requestFocus()
-                keyboardController?.show()
-            } catch (_: Exception) {}
-
-            val textBefore = editTfv.text.substring(0, editTfv.selection.start.coerceIn(0, editTfv.text.length))
-            val targetLineIndex = textBefore.count { it == '\n' }
-            val totalLines = editTfv.text.count { it == '\n' }.coerceAtLeast(1)
-            kotlinx.coroutines.delay(100L)
-            if (editScrollState.maxValue > 0 && totalLines > 1) {
+                val cursorIdx = pendingScrollToOffset.coerceIn(0, editTfv.text.length)
+                val cursorRect = layout.getCursorRect(cursorIdx)
+                val viewportH = editScrollState.viewportSize.toFloat()
+                // Scroll cursor vào đầu viewport (bắt đầu từ đây, sau đó LaunchedEffect(selection) sẽ điều chỉnh sau khi keyboard mở)
+                val targetScroll = (cursorRect.top - 40f).coerceAtLeast(0f)
+                editScrollState.animateScrollTo(targetScroll.toInt())
+            } catch (_: Exception) {
+                // Fallback: dùng line-fraction nếu getCursorRect thất bại
+                val offset = pendingScrollToOffset.coerceIn(0, editTfv.text.length)
+                val targetLineIndex = editTfv.text.substring(0, offset).count { it == '\n' }
+                val totalLines = editTfv.text.count { it == '\n' }.coerceAtLeast(1)
                 val scrollFraction = targetLineIndex.toFloat() / totalLines.toFloat()
                 val targetScroll = (editScrollState.maxValue.toFloat() * scrollFraction).toInt()
-                editScrollState.scrollTo(targetScroll.coerceIn(0, editScrollState.maxValue))
+                editScrollState.animateScrollTo(targetScroll.coerceIn(0, editScrollState.maxValue))
             }
+        } else {
+            // layout chưa có, dùng line-fraction
+            val offset = pendingScrollToOffset.coerceIn(0, editTfv.text.length)
+            val targetLineIndex = editTfv.text.substring(0, offset).count { it == '\n' }
+            val totalLines = editTfv.text.count { it == '\n' }.coerceAtLeast(1)
+            val scrollFraction = targetLineIndex.toFloat() / totalLines.toFloat()
+            val targetScroll = (editScrollState.maxValue.toFloat() * scrollFraction).toInt()
+            editScrollState.animateScrollTo(targetScroll.coerceIn(0, editScrollState.maxValue))
         }
+        pendingScrollToOffset = -1  // reset
     }
 
     // ── Lifecycle ─────────────────────────────────────────────────────────────
@@ -370,6 +487,14 @@ fun HomeScreen(
                     FileHelper.saveEditedRaw(context, originalContent, textToSave)
                     com.tatl.fastnote.sync.GoogleDriveSyncWorker.enqueueOneTimeSync(context)
                     fileEntries = FileHelper.parseEntries(context)
+                    // Reset toàn bộ state khi tự động lưu khi rời app
+                    searchActive = false
+                    searchQuery = ""
+                    searchMatchIndex = 0
+                    editModeOpenedFromSearch = false
+                    editModeInitialSelection = androidx.compose.ui.text.TextRange.Zero
+                    editTextLayoutResult = null
+                    pendingScrollToOffset = -1
                     isEditMode = false
                 }
             } else if (event == Lifecycle.Event.ON_RESUME) {
@@ -414,12 +539,60 @@ fun HomeScreen(
 
     // Bug 1.3: cuộn về đầu mỗi khi fileEntries được reload
     LaunchedEffect(fileEntries) {
-        if (fileEntries.isNotEmpty()) {
+        if (fileEntries.isNotEmpty() && !searchActive) {
             listState.scrollToItem(0)
         }
     }
 
-    // ── Widget prompt logic ───────────────────────────────────────────────────
+    // ── Tìm kiếm: reset về kết quả đầu tiên khi query thay đổi ─────────────────
+    // Dùng snapshotFlow để đọc searchQuery như một Flow → đảm bảo luôn nhận giá trị mới nhất
+    LaunchedEffect(Unit) {
+        androidx.compose.runtime.snapshotFlow { searchQuery }
+            .collect { query ->
+                searchMatchIndex = 0
+                if (query.isNotBlank()) {
+                    // scrollToItem (không animate) đảm bảo chạy ngay, không phụ thuộc vào layout timing
+                    listState.scrollToItem(0)
+                }
+            }
+    }
+
+    // ── Tìm kiếm: cuộn đến entry chứa occurrence đang chọn khi nhấn mũi tên ────────
+    LaunchedEffect(searchMatchIndex) {
+        if (searchActive && searchQuery.isNotBlank() && activeEntryIdx >= 0) {
+            listState.animateScrollToItem(activeEntryIdx)
+        }
+    }
+
+    // ── Edit Mode: điều chỉnh lại sau khi bàn phím mở hoàn toàn ─────────────────────
+    // CHỈ chạy khi:
+    //   1. Mở từ search: cần hiện từ kóa trên bàn phím
+    //   2. User tap dòng khác trong edit mode: scroll dòng đó lên trên bàn phím
+    //   (Khi mở từ browse: giữ nguyên vị trí đang xem, kông làm gì thêm)
+    LaunchedEffect(editTfv.selection, isEditMode) {
+        if (!isEditMode) return@LaunchedEffect
+        // Bỏ qua nếu mở từ browse và đây là lần mở đầu (selection chưa thay đổi)
+        val isInitialOpen = editTfv.selection == editModeInitialSelection
+        if (!editModeOpenedFromSearch && isInitialOpen) return@LaunchedEffect
+        // Chờ cho bàn phím animate xong và viewport được cập nhật
+        kotlinx.coroutines.delay(580L)
+        repeat(4) { attempt ->
+            val layout = editTextLayoutResult
+            if (layout != null && editScrollState.viewportSize > 0) {
+                try {
+                    val cursorIdx = editTfv.selection.start.coerceIn(0, editTfv.text.length)
+                    val cursorRect = layout.getCursorRect(cursorIdx)
+                    // Cursor nằm ở 30% từ đỉnh viewport
+                    val viewportH = editScrollState.viewportSize.toFloat()
+                    val idealScroll = (cursorRect.bottom - viewportH * 0.30f).coerceAtLeast(0f)
+                    editScrollState.animateScrollTo(idealScroll.toInt())
+                } catch (_: Exception) {}
+                return@LaunchedEffect
+            }
+            if (attempt < 3) kotlinx.coroutines.delay(120L)
+        }
+    }
+
     val widgetWasRemoved = hasPinnedWidget && !widgetActiveNow
     val shouldShowWidgetPrompt = !hasPinnedWidget || widgetWasRemoved || showManualPinPrompt
     val isPromptMandatory = !hasPinnedWidget || widgetWasRemoved
@@ -521,6 +694,14 @@ fun HomeScreen(
                     border = BorderStroke(0.8.dp, NoteCardBorder)
                 ) {
                     val scrollState = editScrollState
+                    // ── Màu highlight selection khi search jump: amber dễ nhìn trên nền tối ──
+                    CompositionLocalProvider(
+                        androidx.compose.foundation.text.selection.LocalTextSelectionColors provides
+                            androidx.compose.foundation.text.selection.TextSelectionColors(
+                                handleColor = Color(0xFFFFBF45),
+                                backgroundColor = Color(0x55FFBF45)  // Amber 33% opacity
+                            )
+                    ) {
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
@@ -596,6 +777,7 @@ fun HomeScreen(
                                 letterSpacing = 0.1.sp
                             ),
                             cursorBrush = SolidColor(Color.White),
+                            onTextLayout = { result -> editTextLayoutResult = result },
                             decorationBox = { innerTextField ->
                                 if (editTfv.text.isEmpty()) {
                                     Text(
@@ -609,6 +791,7 @@ fun HomeScreen(
                             }
                         )
                     }
+                    }  // end CompositionLocalProvider amber selection
                 }
 
                 // ── Thanh công cụ dưới: [ ⌨️ Bàn phím ] và [ 💾 LƯU ] ──
@@ -686,6 +869,11 @@ fun HomeScreen(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null
                     ) {
+                        if (searchActive) {
+                            searchActive = false
+                            searchQuery = ""
+                            searchMatchIndex = 0
+                        }
                         focusManager.clearFocus()
                         keyboardController?.hide()
                     }
@@ -855,45 +1043,129 @@ fun HomeScreen(
 
                 // ── Search bar (chỉ hiện khi active) ─────────────────────────
                 if (searchActive) {
-                    OutlinedTextField(
-                        value = searchQuery,
-                        onValueChange = { searchQuery = it },
-                        singleLine = true,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .focusRequester(searchFocusRequester)
-                            .padding(horizontal = 20.dp, vertical = 4.dp),
-                        placeholder = {
-                            Text(
-                                stringResource(R.string.str_search_hint),
-                                color = HomeTextMuted,
+                    Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)) {
+                        OutlinedTextField(
+                            value = searchQuery,
+                            onValueChange = { searchQuery = it },
+                            singleLine = true,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .focusRequester(searchFocusRequester),
+                            placeholder = {
+                                Text(
+                                    stringResource(R.string.str_search_hint),
+                                    color = HomeTextMuted,
+                                    fontFamily = NotoSansFontFamily,
+                                    fontSize = 14.sp
+                                )
+                            },
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedTextColor = HomeTextPrimary,
+                                unfocusedTextColor = HomeTextPrimary,
+                                focusedBorderColor = HomeSearchActive,
+                                unfocusedBorderColor = Color(0xFF555555),
+                                cursorColor = HomeTextPrimary
+                            ),
+                            textStyle = TextStyle(
                                 fontFamily = NotoSansFontFamily,
-                                fontSize = 14.sp
-                            )
-                        },
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = HomeTextPrimary,
-                            unfocusedTextColor = HomeTextPrimary,
-                            focusedBorderColor = HomeSearchActive,
-                            unfocusedBorderColor = Color(0xFF555555),
-                            cursorColor = HomeTextPrimary
-                        ),
-                        textStyle = TextStyle(
-                            fontFamily = NotoSansFontFamily,
-                            fontSize = 14.sp,
-                            color = HomeTextPrimary
-                        ),
-                        trailingIcon = {
-                            if (searchQuery.isNotBlank()) {
-                                IconButton(onClick = { searchQuery = "" }) {
-                                    Icon(Icons.Default.Close, null, tint = HomeTextMuted, modifier = Modifier.size(16.dp))
+                                fontSize = 14.sp,
+                                color = HomeTextPrimary
+                            ),
+                            trailingIcon = {
+                                if (searchQuery.isNotBlank()) {
+                                    IconButton(onClick = {
+                                        searchQuery = ""
+                                        searchMatchIndex = 0
+                                    }) {
+                                        Icon(Icons.Default.Close, null, tint = HomeTextMuted, modifier = Modifier.size(16.dp))
+                                    }
+                                }
+                            },
+                            shape = RoundedCornerShape(8.dp)
+                        )
+
+                        // ── Match counter + điều hướng ↑ ↓ ──────────────────
+                        if (searchQuery.isNotBlank()) {
+                            Spacer(Modifier.height(6.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                // Số kết quả
+                                if (searchMatchCount > 0) {
+                                    val displayIndex = (searchMatchIndex.coerceIn(0, searchMatchCount - 1)) + 1
+                                    Text(
+                                        text = "$displayIndex / $searchMatchCount",
+                                        fontFamily = NotoSansFontFamily,
+                                        fontSize = 13.sp,
+                                        color = Color(0xFFFFBF45),
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                } else {
+                                    Text(
+                                        text = "0 kết quả",
+                                        fontFamily = NotoSansFontFamily,
+                                        fontSize = 13.sp,
+                                        color = HomeTextMuted
+                                    )
+                                }
+
+                                // Nút ↑ ↓
+                                if (searchMatchCount > 1) {
+                                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                        // Nút ↑ (occurrence trước)
+                                        Surface(
+                                            onClick = {
+                                                searchMatchIndex = if (searchMatchIndex <= 0)
+                                                    searchMatchCount - 1
+                                                else
+                                                    searchMatchIndex - 1
+                                            },
+                                            shape = RoundedCornerShape(6.dp),
+                                            color = Color(0xFF1A2C3D),
+                                            border = BorderStroke(1.dp, Color(0xFF2E4355)),
+                                            modifier = Modifier.size(32.dp)
+                                        ) {
+                                            Box(contentAlignment = Alignment.Center) {
+                                                Icon(
+                                                    imageVector = Icons.Default.KeyboardArrowUp,
+                                                    contentDescription = "Kết quả trước",
+                                                    tint = Color(0xFFBACFD9),
+                                                    modifier = Modifier.size(18.dp)
+                                                )
+                                            }
+                                        }
+                                        // Nút ↓ (occurrence tiếp theo)
+                                        Surface(
+                                            onClick = {
+                                                searchMatchIndex = if (searchMatchIndex >= searchMatchCount - 1)
+                                                    0
+                                                else
+                                                    searchMatchIndex + 1
+                                            },
+                                            shape = RoundedCornerShape(6.dp),
+                                            color = Color(0xFF1A2C3D),
+                                            border = BorderStroke(1.dp, Color(0xFF2E4355)),
+                                            modifier = Modifier.size(32.dp)
+                                        ) {
+                                            Box(contentAlignment = Alignment.Center) {
+                                                Icon(
+                                                    imageVector = Icons.Default.KeyboardArrowDown,
+                                                    contentDescription = "Kết quả sau",
+                                                    tint = Color(0xFFBACFD9),
+                                                    modifier = Modifier.size(18.dp)
+                                                )
+                                            }
+                                        }
+                                    }
                                 }
                             }
-                        },
-                        shape = RoundedCornerShape(8.dp)
-                    )
-                    Spacer(Modifier.height(8.dp))
+                        }
+                    }
+                    Spacer(Modifier.height(6.dp))
                 }
+
 
                 // ── Khung nền lớn chứa toàn bộ danh sách ghi chú ──────────────
                 Surface(
@@ -991,13 +1263,22 @@ fun HomeScreen(
                             }
 
                             itemsIndexed(filteredEntries) { index, entry ->
+                                // Tính occurrenceRank trong entry này (nếu đây là entry đang active)
+                                val activeOccurrenceForThisEntry = if (
+                                    searchActive && searchQuery.isNotBlank() && index == activeEntryIdx
+                                ) activeContentOccurrenceRank else -1
                                 NoteEntryItem(
                                     entry = entry,
                                     searchQuery = searchQuery,
+                                    isActiveMatch = searchActive && searchQuery.isNotBlank() && index == activeEntryIdx,
+                                    activeOccurrenceInEntry = activeOccurrenceForThisEntry,
                                     onLongClick = {
                                         openEditModeAtTarget(
                                             targetEntryIndex = index,
-                                            searchKeyword = if (searchActive && searchQuery.isNotBlank()) searchQuery else null
+                                            searchKeyword = if (searchActive && searchQuery.isNotBlank()) searchQuery else null,
+                                            searchOccurrenceRank = if (searchActive && searchQuery.isNotBlank() && index == activeEntryIdx)
+                                                activeContentOccurrenceRank.coerceAtLeast(0)
+                                            else 0
                                         )
                                     }
                                 )
@@ -1034,8 +1315,21 @@ fun HomeScreen(
                         Surface(
                             onClick = {
                                 openEditModeAtTarget(
-                                    targetEntryIndex = listState.firstVisibleItemIndex,
-                                    searchKeyword = if (searchActive && searchQuery.isNotBlank()) searchQuery else null
+                                    targetEntryIndex = if (searchActive && searchQuery.isNotBlank()) {
+                                        activeEntryIdx
+                                    } else {
+                                        // LazyColumn item layout:
+                                        //   index 0 = top Spacer
+                                        //   index 1 = tip text (chỉ khi fileEntries.size < 4 && searchQuery.isBlank)
+                                        //   index 1 hoặc 2 = entry đầu tiên (entry index 0)
+                                        val headerItemCount = if (fileEntries.size < 4 && searchQuery.isBlank()) 2 else 1
+                                        val rawIdx = listState.firstVisibleItemIndex
+                                        (rawIdx - headerItemCount).coerceIn(0, (fileEntries.size - 1).coerceAtLeast(0))
+                                    },
+                                    searchKeyword = if (searchActive && searchQuery.isNotBlank()) searchQuery else null,
+                                    searchOccurrenceRank = if (searchActive && searchQuery.isNotBlank())
+                                        activeContentOccurrenceRank.coerceAtLeast(0)
+                                    else 0
                                 )
                             },
                             shape = RoundedCornerShape(10.dp),
@@ -1224,29 +1518,52 @@ private fun adjustSelectionOutOfHeaders(tfv: TextFieldValue): TextFieldValue {
 private fun NoteEntryItem(
     entry: FileHelper.NoteEntry,
     searchQuery: String,
+    isActiveMatch: Boolean = false,
+    activeOccurrenceInEntry: Int = -1,
     onLongClick: () -> Unit = {}
 ) {
-    val annotatedString = remember(entry.header, entry.content, searchQuery) {
-        buildFormattedNoteEntry(entry.header, entry.content, searchQuery)
+    val annotatedString = remember(entry.header, entry.content, searchQuery, activeOccurrenceInEntry) {
+        buildFormattedNoteEntry(entry.header, entry.content, searchQuery, activeOccurrenceInEntry)
     }
 
-    Text(
-        text = annotatedString,
-        style = TextStyle(
-            fontFamily = NotoSansFontFamily,
-            fontSize = 18.sp,
-            lineHeight = 22.sp,
-            letterSpacing = 0.1.sp
-        ),
+    val activeBg = if (isActiveMatch) Color(0x22FFBF45) else Color.Transparent
+    val activeBorder = if (isActiveMatch) Color(0x88FFBF45) else Color.Transparent
+
+    Box(
         modifier = Modifier
             .fillMaxWidth()
-            .combinedClickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-                onClick = {}, // Chạm thường hoặc vuốt cuộn màn hình không bị ảnh hưởng
-                onLongClick = onLongClick // Tính năng ẩn: Nhấn giữ (long press) để sửa ngay tại dòng này
+            .background(activeBg, shape = RoundedCornerShape(6.dp))
+            .then(
+                if (isActiveMatch) Modifier.drawBehind {
+                    // Đường viền trái màu amber cho kết quả đang chọn
+                    drawRoundRect(
+                        color = androidx.compose.ui.graphics.Color(0xFFFFBF45),
+                        topLeft = Offset(0f, 4f),
+                        size = Size(4f, size.height - 8f),
+                        cornerRadius = CornerRadius(2f)
+                    )
+                } else Modifier
             )
-    )
+            .padding(start = if (isActiveMatch) 8.dp else 0.dp)
+    ) {
+        Text(
+            text = annotatedString,
+            style = TextStyle(
+                fontFamily = NotoSansFontFamily,
+                fontSize = 18.sp,
+                lineHeight = 22.sp,
+                letterSpacing = 0.1.sp
+            ),
+            modifier = Modifier
+                .fillMaxWidth()
+                .combinedClickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null,
+                    onClick = {}, // Chạm thường hoặc vuốt cuộn màn hình không bị ảnh hưởng
+                    onLongClick = onLongClick // Tính năng ẩn: Nhấn giữ (long press) để sửa ngay tại dòng này
+                )
+        )
+    }
 }
 
 // ── Formatter hỗ trợ Markdown bold và Search highlight ───────────────────────
@@ -1254,10 +1571,11 @@ private fun NoteEntryItem(
 private fun buildFormattedNoteEntry(
     header: String,
     content: String,
-    query: String
+    query: String,
+    activeOccurrenceInEntry: Int = -1   // thứ tự occurrence trong content đang active (≥ 0), -1 = không có
 ): AnnotatedString {
     return buildAnnotatedString {
-        // 1. Nhãn ngày giờ: *Thứ..., ngày... lúc HH.MM: (nghiêng, màu xám xanh nếu có)
+        // 1. Nhãn ngày giờ
         val cleanHeader = header.trim().trimStart('-', '*').trim()
         if (cleanHeader.isNotEmpty()) {
             val headerPrefix = "*$cleanHeader: "
@@ -1275,32 +1593,97 @@ private fun buildFormattedNoteEntry(
             )
         }
 
-        // 2. Nội dung text (hỗ trợ **bold** markdown)
-        parseMarkdownContent(content)
-
-        // 3. Highlight kết quả tìm kiếm
+        // 2. Khi có từ khóa tìm kiếm → hiển đoạn trích xung quanh occurrence đang active
         if (query.isNotBlank()) {
+            val lq = query.lowercase()
+            val lowerContent = content.lowercase()
+
+            // Tìm vị trí của occurrence cần focus
+            val focusMatchIdx: Int = if (activeOccurrenceInEntry >= 0) {
+                // Tìm occurrence thứ activeOccurrenceInEntry trong content
+                var rank = 0
+                var searchIdx = lowerContent.indexOf(lq)
+                var found = -1
+                while (searchIdx != -1) {
+                    if (rank == activeOccurrenceInEntry) { found = searchIdx; break }
+                    rank++
+                    searchIdx = lowerContent.indexOf(lq, searchIdx + lq.length)
+                }
+                found
+            } else {
+                lowerContent.indexOf(lq)  // mặc định: occurrence đầu tiên
+            }
+
+            val displayContent: String
+            val headerLen = length  // length trước khi append content
+
+            if (focusMatchIdx == -1) {
+                // Không tìm thấy trong content (có thể match ở header)
+                displayContent = content
+            } else {
+                val snippetBefore = 120
+                val snippetAfter = 200
+                val rawStart = (focusMatchIdx - snippetBefore).coerceAtLeast(0)
+                val rawEnd = (focusMatchIdx + query.length + snippetAfter).coerceAtMost(content.length)
+                val start = if (rawStart == 0) 0 else {
+                    val si = content.indexOf(' ', rawStart)
+                    if (si != -1 && si < focusMatchIdx) si + 1 else rawStart
+                }
+                val end = if (rawEnd == content.length) content.length else {
+                    val si = content.lastIndexOf(' ', rawEnd)
+                    if (si != -1 && si > focusMatchIdx + query.length) si else rawEnd
+                }
+                val prefix = if (start > 0) "…" else ""
+                val suffix = if (end < content.length) "…" else ""
+                displayContent = prefix + content.substring(start, end) + suffix
+            }
+
+            parseMarkdownContent(displayContent)
+
+            // 3. Highlight: tất cả occurrence → đỏ (red), occurrence đang active → amber
             val fullText = toAnnotatedString().text
             val lowerFull = fullText.lowercase()
-            val lq = query.lowercase()
+            val lqSearch = query.lowercase()
             var last = 0
-            var idx = lowerFull.indexOf(lq, last)
+            var idx = lowerFull.indexOf(lqSearch, last)
+            var occurrenceCount = 0
             while (idx != -1) {
-                addStyle(
-                    SpanStyle(
-                        color = RedHighlight,
-                        background = RedBg,
-                        fontWeight = FontWeight.Bold
-                    ),
-                    idx,
-                    idx + query.length
-                )
+                // Tính xem đây là occurrence thứ mấy trong content (bỏ phần header)
+                val isActiveOccurrence = (activeOccurrenceInEntry >= 0) &&
+                    (occurrenceCount == activeOccurrenceInEntry ||
+                     idx >= headerLen && (occurrenceCount - (fullText.substring(0, headerLen).lowercase().split(lqSearch).size - 1)) == activeOccurrenceInEntry)
+                if (isActiveOccurrence) {
+                    // Amber nổi bật cho occurrence đang điều hướng tới
+                    addStyle(
+                        SpanStyle(
+                            color = Color(0xFF1A1A1A),
+                            background = Color(0xFFFFBF45),
+                            fontWeight = FontWeight.ExtraBold
+                        ),
+                        idx, idx + query.length
+                    )
+                } else {
+                    // Đỏ cho các occurrence khác
+                    addStyle(
+                        SpanStyle(
+                            color = RedHighlight,
+                            background = RedBg,
+                            fontWeight = FontWeight.Bold
+                        ),
+                        idx, idx + query.length
+                    )
+                }
+                occurrenceCount++
                 last = idx + query.length
-                idx = lowerFull.indexOf(lq, last)
+                idx = lowerFull.indexOf(lqSearch, last)
             }
+        } else {
+            // Không có từ khóa → hiển toàn bộ nội dung
+            parseMarkdownContent(content)
         }
     }
 }
+
 
 private fun AnnotatedString.Builder.parseMarkdownContent(content: String) {
     val boldRegex = Regex("""\*\*(.*?)\*\*""")
