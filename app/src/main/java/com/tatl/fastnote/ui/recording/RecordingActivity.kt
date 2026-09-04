@@ -122,7 +122,11 @@ class RecordingActivity : ComponentActivity() {
                 val baseCtx = LocalContext.current
                 val localizedContext = remember(currentLanguage) {
                     val config = Configuration(baseCtx.resources.configuration)
-                    config.setLocale(Locale.forLanguageTag(currentLanguage.code))
+                    val locale = Locale.forLanguageTag(currentLanguage.code)
+                    config.setLocale(locale)
+                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
+                        config.setLocales(android.os.LocaleList(locale))
+                    }
                     baseCtx.createConfigurationContext(config)
                 }
                 CompositionLocalProvider(

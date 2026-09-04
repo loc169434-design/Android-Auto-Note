@@ -132,6 +132,8 @@ object LanguageManager {
 
     private fun applyLocale(language: AppLanguage) {
         try {
+            val locale = Locale.forLanguageTag(language.code)
+            Locale.setDefault(locale)
             val localeList = LocaleListCompat.forLanguageTags(language.code)
             AppCompatDelegate.setApplicationLocales(localeList)
         } catch (_: Exception) {}
@@ -142,8 +144,13 @@ object LanguageManager {
             init(context)
         }
         val lang = _currentLanguage.value
+        val locale = Locale.forLanguageTag(lang.code)
+        Locale.setDefault(locale)
         val config = android.content.res.Configuration(context.resources.configuration)
-        config.setLocale(Locale.forLanguageTag(lang.code))
+        config.setLocale(locale)
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
+            config.setLocales(android.os.LocaleList(locale))
+        }
         return context.createConfigurationContext(config)
     }
 
