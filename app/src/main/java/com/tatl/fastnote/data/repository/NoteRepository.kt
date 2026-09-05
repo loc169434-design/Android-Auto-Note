@@ -1,4 +1,4 @@
-﻿package com.tatl.fastnote.data.repository
+package com.tatl.fastnote.data.repository
 
 import com.tatl.fastnote.data.db.NoteDao
 import com.tatl.fastnote.data.db.NoteEntity
@@ -53,8 +53,16 @@ class NoteRepository(private val noteDao: NoteDao) {
         val todayNotes = getNotesToday()
         if (todayNotes.isEmpty()) return ""
 
+        val header = when (com.tatl.fastnote.data.user.LanguageManager.currentLanguage.value) {
+            com.tatl.fastnote.data.user.AppLanguage.VIETNAMESE -> "📋 Ghi chú trong ngày hôm nay:"
+            com.tatl.fastnote.data.user.AppLanguage.JAPANESE   -> "📋 今日のメモ："
+            com.tatl.fastnote.data.user.AppLanguage.GERMAN     -> "📋 Heutige Notizen:"
+            com.tatl.fastnote.data.user.AppLanguage.RUSSIAN    -> "📋 Заметки за сегодня:"
+            else                                                -> "📋 Today's notes:"
+        }
+
         return buildString {
-            appendLine("📋 Ghi chú trong ngày hôm nay:")
+            appendLine(header)
             appendLine("═".repeat(40))
             appendLine()
             for (note in todayNotes) {

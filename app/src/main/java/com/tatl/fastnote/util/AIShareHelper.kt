@@ -138,9 +138,16 @@ object AIShareHelper {
                 chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 context.startActivity(chooser)
             } catch (e2: Exception) {
-                android.widget.Toast.makeText(
-                    context,
-                    "Không tìm thấy ứng dụng AI. Hãy cài Gemini hoặc ChatGPT.",
+                    val msg = when (com.tatl.fastnote.data.user.LanguageManager.currentLanguage.value) {
+                        com.tatl.fastnote.data.user.AppLanguage.VIETNAMESE -> "Không tìm thấy ứng dụng AI. Hãy cài Gemini hoặc ChatGPT."
+                        com.tatl.fastnote.data.user.AppLanguage.JAPANESE   -> "AIアプリが見つかりません。GeminiまたはChatGPTをインストールしてください。"
+                        com.tatl.fastnote.data.user.AppLanguage.GERMAN     -> "Keine AI-App gefunden. Bitte Gemini oder ChatGPT installieren."
+                        com.tatl.fastnote.data.user.AppLanguage.RUSSIAN    -> "AI-приложение не найдено. Установите Gemini или ChatGPT."
+                        else -> "No AI app found. Please install Gemini or ChatGPT."
+                    }
+                    android.widget.Toast.makeText(
+                        context,
+                        msg,
                     android.widget.Toast.LENGTH_LONG
                 ).show()
             }

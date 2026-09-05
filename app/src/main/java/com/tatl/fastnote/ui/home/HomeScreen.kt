@@ -540,6 +540,13 @@ fun HomeScreen(
         }
     }
 
+    // Khi đổi ngôn ngữ → re-parse để reformatHeader hiển thị đúng ngôn ngữ mới
+    LaunchedEffect(currentLanguage) {
+        withContext(Dispatchers.IO) {
+            fileEntries = FileHelper.parseEntries(context)
+        }
+    }
+
 
     // Bug 1.3: cuộn về đầu mỗi khi fileEntries được reload
     LaunchedEffect(fileEntries) {

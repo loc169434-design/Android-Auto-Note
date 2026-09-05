@@ -105,13 +105,21 @@ class GeminiLaunchActivity : ComponentActivity() {
             return
         }
 
-        // No file yet
-        val msg = "Chưa có ghi chú. Hãy ghi âm trước!"
-        Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
+        // Chưa có ghi chú → mở Recording để ghi âm trước
+        val noNotesMsg = when (com.tatl.fastnote.data.user.LanguageManager.currentLanguage.value) {
+            com.tatl.fastnote.data.user.AppLanguage.VIETNAMESE -> "Chưa có ghi chú. Hãy ghi âm trước!"
+            com.tatl.fastnote.data.user.AppLanguage.JAPANESE   -> "メモがありません。先に録音してください！"
+            com.tatl.fastnote.data.user.AppLanguage.GERMAN     -> "Noch keine Notizen. Bitte zuerst aufnehmen!"
+            com.tatl.fastnote.data.user.AppLanguage.RUSSIAN    -> "Нет заметок. Сначала запишите!"
+            else -> "No notes yet. Please record first!"
+        }
+        Toast.makeText(this, noNotesMsg, Toast.LENGTH_SHORT).show()
 
-        // Launch Gemini normally without attachment
-        launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        startActivity(launchIntent)
+        // Mở Recording thay vì Gemini
+        val recordIntent = Intent(this, com.tatl.fastnote.ui.recording.RecordingActivity::class.java).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        startActivity(recordIntent)
     }
 
     /** Last-resort fallback: paste content as plain text into Gemini */

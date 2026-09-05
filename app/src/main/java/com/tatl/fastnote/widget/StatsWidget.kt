@@ -26,6 +26,8 @@ import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import com.tatl.fastnote.AutoNoteApplication
+import com.tatl.fastnote.data.user.AppLanguage
+import com.tatl.fastnote.data.user.LanguageManager
 import kotlinx.coroutines.flow.first
 
 /**
@@ -88,7 +90,13 @@ class StatsWidget : GlanceAppWidget() {
                         )
                     )
                     Text(
-                        text = "Tổng ghi chú",
+                        text = when (LanguageManager.currentLanguage.value) {
+                            AppLanguage.VIETNAMESE -> "Tổng ghi chú"
+                            AppLanguage.JAPANESE -> "合計ノート"
+                            AppLanguage.GERMAN -> "Gesamt"
+                            AppLanguage.RUSSIAN -> "Всего"
+                            else -> "Total notes"
+                        },
                         style = TextStyle(
                             fontSize = 11.sp,
                             color = ColorProvider(day = Color.Gray, night = Color.Gray)
@@ -110,7 +118,13 @@ class StatsWidget : GlanceAppWidget() {
                         )
                     )
                     Text(
-                        text = "Hôm nay",
+                        text = when (LanguageManager.currentLanguage.value) {
+                            AppLanguage.VIETNAMESE -> "Hôm nay"
+                            AppLanguage.JAPANESE -> "今日"
+                            AppLanguage.GERMAN -> "Heute"
+                            AppLanguage.RUSSIAN -> "Сегодня"
+                            else -> "Today"
+                        },
                         style = TextStyle(
                             fontSize = 11.sp,
                             color = ColorProvider(day = Color.Gray, night = Color.Gray)

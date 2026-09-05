@@ -2,6 +2,8 @@ package com.tatl.fastnote.util
 
 import android.content.Context
 import android.util.Log
+import com.tatl.fastnote.data.user.AppLanguage
+import com.tatl.fastnote.data.user.LanguageManager
 import java.io.File
 import java.util.Calendar
 import java.util.Locale
@@ -15,8 +17,12 @@ import java.util.Locale
  *   raw.txt        — editable master file
  *   fileguidi.txt  — backup, overwritten from raw.txt on every edit-save
  *
- * Entry format:
- *   - Thứ ba, ngày 12-08-2026 lúc 09.30: [content]
+ * Entry format (localized per app language):
+ *   VI: - Thứ ba, ngày 12-08-2026 lúc 09.30: [content]
+ *   EN: - Tuesday, 12-08-2026 at 09.30: [content]
+ *   JP: - 火曜日、12-08-2026 09.30: [content]
+ *   DE: - Dienstag, 12-08-2026 um 09.30: [content]
+ *   RU: - Вторник, 12-08-2026 в 09.30: [content]
  *
  * Entries are stored oldest-first (append). Display reverses for newest-first.
  */
@@ -27,23 +33,58 @@ object FileHelper {
     const val RAW_FILE    = "raw.txt"
     const val GUIDI_FILE  = "ghichu_clean.txt"
 
-    private val DAY_NAMES = mapOf(
-        Calendar.MONDAY    to "Thứ hai",
-        Calendar.TUESDAY   to "Thứ ba",
-        Calendar.WEDNESDAY to "Thứ tư",
-        Calendar.THURSDAY  to "Thứ năm",
-        Calendar.FRIDAY    to "Thứ sáu",
-        Calendar.SATURDAY  to "Thứ bảy",
-        Calendar.SUNDAY    to "Chủ nhật"
+    // ── Localized day names (Calendar.DAY_OF_WEEK indexed) ────────────────────
+    private val DAY_NAMES_MAP = mapOf(
+        AppLanguage.VIETNAMESE to mapOf(
+            Calendar.MONDAY to "Thứ hai", Calendar.TUESDAY to "Thứ ba",
+            Calendar.WEDNESDAY to "Thứ tư", Calendar.THURSDAY to "Thứ năm",
+            Calendar.FRIDAY to "Thứ sáu", Calendar.SATURDAY to "Thứ bảy",
+            Calendar.SUNDAY to "Chủ nhật"
+        ),
+        AppLanguage.ENGLISH to mapOf(
+            Calendar.MONDAY to "Monday", Calendar.TUESDAY to "Tuesday",
+            Calendar.WEDNESDAY to "Wednesday", Calendar.THURSDAY to "Thursday",
+            Calendar.FRIDAY to "Friday", Calendar.SATURDAY to "Saturday",
+            Calendar.SUNDAY to "Sunday"
+        ),
+        AppLanguage.JAPANESE to mapOf(
+            Calendar.MONDAY to "月曜日", Calendar.TUESDAY to "火曜日",
+            Calendar.WEDNESDAY to "水曜日", Calendar.THURSDAY to "木曜日",
+            Calendar.FRIDAY to "金曜日", Calendar.SATURDAY to "土曜日",
+            Calendar.SUNDAY to "日曜日"
+        ),
+        AppLanguage.GERMAN to mapOf(
+            Calendar.MONDAY to "Montag", Calendar.TUESDAY to "Dienstag",
+            Calendar.WEDNESDAY to "Mittwoch", Calendar.THURSDAY to "Donnerstag",
+            Calendar.FRIDAY to "Freitag", Calendar.SATURDAY to "Samstag",
+            Calendar.SUNDAY to "Sonntag"
+        ),
+        AppLanguage.RUSSIAN to mapOf(
+            Calendar.MONDAY to "Понедельник", Calendar.TUESDAY to "Вторник",
+            Calendar.WEDNESDAY to "Среда", Calendar.THURSDAY to "Четверг",
+            Calendar.FRIDAY to "Пятница", Calendar.SATURDAY to "Суббота",
+            Calendar.SUNDAY to "Воскресенье"
+        )
     )
 
     // Keywords that trigger the NEXT LINE to be masked with *** in display
     val SENSITIVE_KEYWORDS = listOf("mật khẩu", "password", "pass", "mk")
 
-    // ── Regex Header Tiền Tố Ngày Tháng ──────────────────────────────────────
+    // ── Regex Header Tiền Tố Ngày Tháng (hỗ trợ tất cả 5 ngôn ngữ) ─────────
+    // Matches all localized formats:
+    //   - Thứ hai, ngày 12-08-2026 lúc 09.30:
+    //   - Monday, 12-08-2026 at 09.30:
+    //   - 月曜日、12-08-2026 09.30:
+    //   - Montag, 12-08-2026 um 09.30:
+    //   - Понедельник, 12-08-2026 в 09.30:
     val DATE_HEADER_REGEX = Regex(
-        """^-\s*(?:Thứ\s+[a-zA-Z\p{L}]+|Chủ\s+nhật|Ngày)(?:,\s*ngày|\s+ngày|,)?\s*\d{1,2}[-/]\d{1,2}[-/]\d{4}(?:\s*lúc|\s+)\s*\d{1,2}[\.:]\d{2}\s*:""",
+        """^-\s*[\p{L}\s]+[,、]\s*(?:ngày\s+)?\d{1,2}[-/]\d{1,2}[-/]\d{4}\s+(?:lúc\s+|at\s+|um\s+|в\s+)?\d{1,2}[.:]\d{2}\s*:""",
         RegexOption.IGNORE_CASE
+    )
+
+    // Extract dd-MM-yyyy and HH.mm from any language header
+    private val DATE_EXTRACT_REGEX = Regex(
+        """(\d{1,2})[-/](\d{1,2})[-/](\d{4})\s+(?:lúc\s+|at\s+|um\s+|в\s+)?(\d{1,2})[.:](\d{2})"""
     )
 
     /**
@@ -54,6 +95,48 @@ object FileHelper {
         val trimmed = line.trimStart()
         val match = DATE_HEADER_REGEX.find(trimmed)
         return match?.value?.trim()
+    }
+
+    /**
+     * Re-format một date header (bất kể ngôn ngữ gốc) sang ngôn ngữ hiện tại.
+     * Input:  "Thứ bảy, ngày 05-09-2026 lúc 15.30"
+     * Output: "Saturday, 05-09-2026 at 15.30" (nếu EN)
+     */
+    fun reformatHeader(rawHeader: String): String {
+        val match = DATE_EXTRACT_REGEX.find(rawHeader) ?: return rawHeader
+        val (dayStr, monthStr, yearStr, hourStr, minStr) = match.destructured
+        val day = dayStr.toIntOrNull() ?: return rawHeader
+        val month = monthStr.toIntOrNull() ?: return rawHeader
+        val year = yearStr.toIntOrNull() ?: return rawHeader
+        val hour = hourStr.toIntOrNull() ?: return rawHeader
+        val min = minStr.toIntOrNull() ?: return rawHeader
+
+        val lang = LanguageManager.currentLanguage.value
+        val dayNames = DAY_NAMES_MAP[lang] ?: DAY_NAMES_MAP[AppLanguage.ENGLISH]!!
+
+        // Tính thứ trong tuần từ dd-MM-yyyy
+        val cal = Calendar.getInstance().apply {
+            set(Calendar.YEAR, year)
+            set(Calendar.MONTH, month - 1) // Calendar.MONTH is 0-indexed
+            set(Calendar.DAY_OF_MONTH, day)
+        }
+        val dayOfWeekName = dayNames[cal.get(Calendar.DAY_OF_WEEK)] ?: "Day"
+        val dayFmt = String.format(Locale.ROOT, "%02d", day)
+        val monthFmt = String.format(Locale.ROOT, "%02d", month)
+        val hourFmt = String.format(Locale.ROOT, "%02d", hour)
+        val minFmt = String.format(Locale.ROOT, "%02d", min)
+
+        val separator = if (lang == AppLanguage.JAPANESE) "、" else ","
+        val datePrefix = if (lang == AppLanguage.VIETNAMESE) " ngày " else " "
+        val timePrefix = when (lang) {
+            AppLanguage.VIETNAMESE -> " lúc "
+            AppLanguage.ENGLISH   -> " at "
+            AppLanguage.GERMAN    -> " um "
+            AppLanguage.RUSSIAN   -> " в "
+            AppLanguage.JAPANESE  -> " "
+        }
+
+        return "$dayOfWeekName$separator$datePrefix$dayFmt-$monthFmt-$year$timePrefix$hourFmt.$minFmt"
     }
 
     // ── Directory ─────────────────────────────────────────────────────────────
@@ -73,7 +156,9 @@ object FileHelper {
     /**
      * Append a new note entry to BOTH raw.txt and fileguidi.txt.
      *
-     * Format: `\n- Thứ ba, ngày 12-08-2026 lúc 09.30: [text]`
+     * Format varies by language, e.g.:
+     *   VI: `\n- Thứ ba, ngày 12-08-2026 lúc 09.30: [text]`
+     *   EN: `\n- Tuesday, 12-08-2026 at 09.30: [text]`
      */
     fun appendNote(context: Context, text: String) {
         val entry = buildEntry(text)
@@ -87,14 +172,27 @@ object FileHelper {
     }
 
     private fun buildEntry(text: String): String {
+        val lang = LanguageManager.currentLanguage.value
+        val dayNames = DAY_NAMES_MAP[lang] ?: DAY_NAMES_MAP[AppLanguage.ENGLISH]!!
         val cal = Calendar.getInstance()
-        val dayName = DAY_NAMES[cal.get(Calendar.DAY_OF_WEEK)] ?: "Ngày"
-        val day   = String.format(Locale.getDefault(), "%02d", cal.get(Calendar.DAY_OF_MONTH))
-        val month = String.format(Locale.getDefault(), "%02d", cal.get(Calendar.MONTH) + 1)
+        val dayName = dayNames[cal.get(Calendar.DAY_OF_WEEK)] ?: "Day"
+        val day   = String.format(Locale.ROOT, "%02d", cal.get(Calendar.DAY_OF_MONTH))
+        val month = String.format(Locale.ROOT, "%02d", cal.get(Calendar.MONTH) + 1)
         val year  = cal.get(Calendar.YEAR)
-        val hour  = String.format(Locale.getDefault(), "%02d", cal.get(Calendar.HOUR_OF_DAY))
-        val min   = String.format(Locale.getDefault(), "%02d", cal.get(Calendar.MINUTE))
-        return "\n\n- $dayName, ngày $day-$month-$year lúc $hour.$min: $text"
+        val hour  = String.format(Locale.ROOT, "%02d", cal.get(Calendar.HOUR_OF_DAY))
+        val min   = String.format(Locale.ROOT, "%02d", cal.get(Calendar.MINUTE))
+
+        val separator = if (lang == AppLanguage.JAPANESE) "、" else ","
+        val datePrefix = if (lang == AppLanguage.VIETNAMESE) " ngày " else " "
+        val timePrefix = when (lang) {
+            AppLanguage.VIETNAMESE -> " lúc "
+            AppLanguage.ENGLISH   -> " at "
+            AppLanguage.GERMAN    -> " um "
+            AppLanguage.RUSSIAN   -> " в "
+            AppLanguage.JAPANESE  -> " "
+        }
+
+        return "\n\n- $dayName$separator$datePrefix$day-$month-$year$timePrefix$hour.$min: $text"
     }
 
     // ── Read / Parse ──────────────────────────────────────────────────────────
@@ -142,7 +240,7 @@ object FileHelper {
                     flush()
                     val matchEnd = match.range.last + 1
                     val rawHeader = match.value.trimStart('-', ' ').trimEnd(':').trim()
-                    currentHeader = rawHeader
+                    currentHeader = reformatHeader(rawHeader)
                     val contentAfter = trimmed.substring(matchEnd).trimStart()
                     if (contentAfter.isNotEmpty()) {
                         currentContent.append(contentAfter)

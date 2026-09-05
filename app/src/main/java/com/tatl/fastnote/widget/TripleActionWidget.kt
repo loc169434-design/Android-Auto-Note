@@ -167,10 +167,20 @@ class OpenNoteViewCallback : ActionCallback {
         glanceId: GlanceId,
         parameters: ActionParameters
     ) {
-        val intent = Intent(context, com.tatl.fastnote.MainActivity::class.java).apply {
-            action = "com.tatl.fastnote.ACTION_VIEW_NOTES"
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
-            putExtra("FROM_WIDGET_NOTE", true)
+        // Nếu chưa có ghi chú nào → mở thẳng Recording thay vì Home trống
+        val guidiFile = com.tatl.fastnote.util.FileHelper.getGuidiFile(context)
+        val hasNotes = guidiFile.exists() && guidiFile.length() > 10
+
+        val intent = if (hasNotes) {
+            Intent(context, com.tatl.fastnote.MainActivity::class.java).apply {
+                action = "com.tatl.fastnote.ACTION_VIEW_NOTES"
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                putExtra("FROM_WIDGET_NOTE", true)
+            }
+        } else {
+            Intent(context, RecordingActivity::class.java).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
         }
         context.startActivity(intent)
     }

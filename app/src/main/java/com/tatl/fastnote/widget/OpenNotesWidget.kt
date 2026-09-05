@@ -1,7 +1,9 @@
-﻿package com.tatl.fastnote.widget
+package com.tatl.fastnote.widget
 
 import android.content.Context
 import androidx.compose.runtime.Composable
+import com.tatl.fastnote.data.user.AppLanguage
+import com.tatl.fastnote.data.user.LanguageManager
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -104,7 +106,13 @@ class OpenNotesWidget : GlanceAppWidget() {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Hôm nay: $todayCount",
+                        text = when (LanguageManager.currentLanguage.value) {
+                            AppLanguage.VIETNAMESE -> "Hôm nay: $todayCount"
+                            AppLanguage.JAPANESE -> "今日: $todayCount"
+                            AppLanguage.GERMAN -> "Heute: $todayCount"
+                            AppLanguage.RUSSIAN -> "Сегодня: $todayCount"
+                            else -> "Today: $todayCount"
+                        },
                         style = TextStyle(
                             color = ColorProvider(
                                 day = Color.White.copy(alpha = 0.85f),
@@ -115,7 +123,13 @@ class OpenNotesWidget : GlanceAppWidget() {
                     )
                     Spacer(modifier = GlanceModifier.width(8.dp))
                     Text(
-                        text = "Tổng: $noteCount",
+                        text = when (LanguageManager.currentLanguage.value) {
+                            AppLanguage.VIETNAMESE -> "Tổng: $noteCount"
+                            AppLanguage.JAPANESE -> "合計: $noteCount"
+                            AppLanguage.GERMAN -> "Gesamt: $noteCount"
+                            AppLanguage.RUSSIAN -> "Всего: $noteCount"
+                            else -> "Total: $noteCount"
+                        },
                         style = TextStyle(
                             color = ColorProvider(
                                 day = Color.White.copy(alpha = 0.7f),

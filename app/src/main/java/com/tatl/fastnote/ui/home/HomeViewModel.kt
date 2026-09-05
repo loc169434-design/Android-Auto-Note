@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.tatl.fastnote.data.db.NoteEntity
 import com.tatl.fastnote.data.repository.NoteRepository
+import com.tatl.fastnote.data.user.LanguageManager
 import com.tatl.fastnote.util.DateUtils
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -24,7 +25,7 @@ import kotlinx.coroutines.launch
 sealed class TimelineItem {
     data class DateHeader(
         val dateKey: String,
-        val displayText: String // "Hôm nay", "Hôm qua", "Thứ Hai, 10/08/2026"
+        val displayText: String // Localized: "Hôm nay" / "Today" / "今日" / "Heute" / "Сегодня"
     ) : TimelineItem()
 
     data class NoteItem(
@@ -77,13 +78,15 @@ class HomeViewModel(private val repository: NoteRepository) : ViewModel() {
 
     /**
      * Notes grouped into a flat timeline list with date headers.
-     * Reacts to search query — shows filtered results.
+     * Reacts to both search query AND language changes — khi đổi ngôn ngữ,
+     * tên thứ/ngày tháng trong timeline header sẽ tự động rebuild.
      */
-    val timelineItems: StateFlow<List<TimelineItem>> = filteredNotes
-        .map { noteList ->
-            buildTimelineList(noteList)
-        }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    val timelineItems: StateFlow<List<TimelineItem>> = combine(
+        filteredNotes,
+        LanguageManager.currentLanguage
+    ) { noteList, _ ->
+        buildTimelineList(noteList)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     private fun buildTimelineList(notes: List<NoteEntity>): List<TimelineItem> {
         if (notes.isEmpty()) return emptyList()
