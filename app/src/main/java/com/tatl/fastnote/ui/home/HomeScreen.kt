@@ -175,7 +175,9 @@ fun HomeScreen(
     val hasPinnedWidget by ThemePreferences.hasPinnedWidget.collectAsState()
     val currentHasPinned by rememberUpdatedState(hasPinnedWidget)
     var showManualPinPrompt by remember { mutableStateOf(false) }
-    var widgetActiveNow by remember { mutableStateOf(true) }
+    var widgetActiveNow by remember {
+        mutableStateOf(PinWidgetHelper.isWidgetActive(context, TripleActionWidgetReceiver::class.java))
+    }
     var refreshKey by remember { mutableIntStateOf(0) }
     var fileEntries by remember { mutableStateOf<List<FileHelper.NoteEntry>>(emptyList()) }
     var searchActive by remember { mutableStateOf(false) }
@@ -502,9 +504,10 @@ fun HomeScreen(
                 // Bug 1.4 fix: reset search box when returning to HomeScreen
                 searchActive = false
                 searchQuery = ""
-                widgetActiveNow = if (currentHasPinned) {
-                    PinWidgetHelper.isWidgetActive(context, TripleActionWidgetReceiver::class.java)
-                } else false
+                widgetActiveNow = PinWidgetHelper.isWidgetActive(context, TripleActionWidgetReceiver::class.java)
+                if (!widgetActiveNow && ThemePreferences.hasPinnedWidget.value) {
+                    ThemePreferences.setWidgetPinned(false)
+                }
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
@@ -520,9 +523,10 @@ fun HomeScreen(
     }
 
     LaunchedEffect(hasPinnedWidget) {
-        widgetActiveNow = if (hasPinnedWidget) {
-            PinWidgetHelper.isWidgetActive(context, TripleActionWidgetReceiver::class.java)
-        } else false
+        widgetActiveNow = PinWidgetHelper.isWidgetActive(context, TripleActionWidgetReceiver::class.java)
+        if (hasPinnedWidget && !widgetActiveNow) {
+            ThemePreferences.setWidgetPinned(false)
+        }
     }
 
     LaunchedEffect(refreshKey) {

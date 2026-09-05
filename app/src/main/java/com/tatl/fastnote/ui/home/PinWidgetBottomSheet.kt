@@ -1,5 +1,6 @@
 package com.tatl.fastnote.ui.home
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -14,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Widgets
@@ -61,6 +63,14 @@ fun PinWidgetBottomSheet(
     val context = LocalContext.current
     val widgetTitle = stringResource(R.string.widget_triple_action_name)
 
+    // Bắt buộc tạo widget: phím Back thoát hẳn app, không cho bỏ qua dialog
+    // Lần sau mở lại sẽ load lại từ đầu, không chiếm tài nguyên nền
+    if (isMandatory) {
+        BackHandler(enabled = true) {
+            (context as? android.app.Activity)?.finishAffinity()
+        }
+    }
+
     fun pinAndDismiss() {
         // KHÔNG set hasPinned=true ở đây — chỉ set sau khi widget
         // thực sự được xác nhận đặt lên màn hình (trong WidgetPlacedReceiver)
@@ -96,6 +106,7 @@ fun PinWidgetBottomSheet(
                 onClick = { pinAndDismiss() },
                 modifier = Modifier
                     .fillMaxWidth()
+                    .widthIn(max = 340.dp)
                     .aspectRatio(1f),
                 shape = RoundedCornerShape(20.dp),
                 color = WidgetCardBg,

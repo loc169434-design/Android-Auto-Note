@@ -133,13 +133,9 @@ class WidgetPlacedReceiver : BroadcastReceiver() {
         }
 
         private fun isWidgetActive(context: Context): Boolean {
-            return try {
-                val manager = android.appwidget.AppWidgetManager.getInstance(context)
-                val provider = android.content.ComponentName(
-                    context, TripleActionWidgetReceiver::class.java
-                )
-                manager.getAppWidgetIds(provider).isNotEmpty()
-            } catch (_: Exception) { false }
+            return com.tatl.fastnote.util.PinWidgetHelper.isWidgetActive(
+                context, TripleActionWidgetReceiver::class.java
+            )
         }
 
         private fun setHighlighted(context: Context, value: Boolean) {

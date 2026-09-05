@@ -21,9 +21,9 @@ class LauncherActivity : Activity() {
         super.onCreate(savedInstanceState)
 
         // Đọc trực tiếp từ SharedPreferences để tránh race condition với StateFlow
+        val isWidgetActive = PinWidgetHelper.isWidgetActive(this, TripleActionWidgetReceiver::class.java)
         val prefs = getSharedPreferences("auto_note_prefs", Context.MODE_PRIVATE)
         val hasPinned = prefs.getBoolean("has_pinned_widget", false)
-        val isWidgetActive = PinWidgetHelper.isWidgetActive(this, TripleActionWidgetReceiver::class.java)
 
         if (hasPinned && isWidgetActive) {
             val recordIntent = Intent(this, RecordingActivity::class.java).apply {
@@ -31,6 +31,10 @@ class LauncherActivity : Activity() {
             }
             startActivity(recordIntent)
         } else {
+            // Nếu widget không còn active trên launcher, đồng bộ lại preference
+            if (hasPinned && !isWidgetActive) {
+                ThemePreferences.setWidgetPinned(false)
+            }
             val mainIntent = Intent(this, MainActivity::class.java).apply {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
             }

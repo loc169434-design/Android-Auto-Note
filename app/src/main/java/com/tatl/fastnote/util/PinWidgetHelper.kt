@@ -66,11 +66,30 @@ object PinWidgetHelper {
      */
     fun isWidgetActive(context: Context, receiverClass: Class<*>): Boolean {
         return try {
-            val manager = AppWidgetManager.getInstance(context)
+            val manager = AppWidgetManager.getInstance(context) ?: return false
             val provider = ComponentName(context, receiverClass)
-            manager.getAppWidgetIds(provider).isNotEmpty()
+            val ids = manager.getAppWidgetIds(provider)
+            if (ids == null || ids.isEmpty()) return false
+
+            // Kiểm tra từng ID: loại bỏ orphan / phantom IDs
+            ids.any { id ->
+                val info = manager.getAppWidgetInfo(id)
+                if (info == null || info.provider != provider) {
+                    return@any false
+                }
+                val options = manager.getAppWidgetOptions(id)
+                if (options != null && !options.isEmpty) {
+                    val minW = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 0)
+                    val minH = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 0)
+                    val category = options.getInt(AppWidgetManager.OPTION_APPWIDGET_HOST_CATEGORY, -1)
+                    if (minW > 0 || minH > 0 || category >= 0) {
+                        return@any true
+                    }
+                }
+                true
+            }
         } catch (e: Exception) {
-            true
+            false
         }
     }
 }

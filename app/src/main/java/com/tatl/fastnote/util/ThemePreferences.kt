@@ -1,4 +1,4 @@
-﻿package com.tatl.fastnote.util
+package com.tatl.fastnote.util
 
 import android.content.Context
 import android.content.SharedPreferences
@@ -17,7 +17,8 @@ object ThemePreferences {
 
     private const val KEY_WIDGET_PINNED = "has_pinned_widget"
     // Bump this version whenever widget layout changes require re-pinning
-    private const val WIDGET_VERSION = 2
+    // v2 → v3: fix phantom widget IDs bug — force reset on upgrade
+    private const val WIDGET_VERSION = 3
     private const val KEY_WIDGET_VERSION = "widget_version"
 
     private lateinit var prefs: SharedPreferences
@@ -36,10 +37,10 @@ object ThemePreferences {
         } catch (e: IllegalArgumentException) {
             AppTheme.OCEAN_BLUE
         }
-        _hasPinnedWidget.value = prefs.getBoolean(KEY_WIDGET_PINNED, false)
 
-        // Migration: if widget version changed, reset pin status so users
-        // are prompted to add the new TripleActionWidget (replacing old widgets).
+        // Migration: nếu widget version thay đổi, reset trạng thái pin để buộc
+        // người dùng thêm lại widget. Chạy TRƯỚC khi check isWidgetActive
+        // để tránh bị phantom widget IDs (ID ảo) ghi đè lại kết quả migration.
         val savedWidgetVersion = prefs.getInt(KEY_WIDGET_VERSION, 0)
         if (savedWidgetVersion < WIDGET_VERSION) {
             _hasPinnedWidget.value = false
@@ -47,6 +48,14 @@ object ThemePreferences {
                 .putBoolean(KEY_WIDGET_PINNED, false)
                 .putInt(KEY_WIDGET_VERSION, WIDGET_VERSION)
                 .apply()
+        } else {
+            // Không migration → đồng bộ trạng thái thực tế từ AppWidgetManager
+            val isActuallyActive = PinWidgetHelper.isWidgetActive(
+                context,
+                com.tatl.fastnote.widget.TripleActionWidgetReceiver::class.java
+            )
+            _hasPinnedWidget.value = isActuallyActive
+            prefs.edit().putBoolean(KEY_WIDGET_PINNED, isActuallyActive).apply()
         }
     }
 

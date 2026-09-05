@@ -142,9 +142,11 @@ class MainActivity : ComponentActivity() {
             showTrialExpiredToast()
         }
         if (!fromWidgetNote && !showTrialExpired) {
-            val hasPinned = ThemePreferences.hasPinnedWidget.value
             val isWidgetActive = PinWidgetHelper.isWidgetActive(this, TripleActionWidgetReceiver::class.java)
-            if (hasPinned && isWidgetActive) {
+            if (!isWidgetActive && ThemePreferences.hasPinnedWidget.value) {
+                ThemePreferences.setWidgetPinned(false)
+            }
+            if (isWidgetActive && ThemePreferences.hasPinnedWidget.value) {
                 val recordIntent = Intent(this, RecordingActivity::class.java).apply {
                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
                 }
@@ -167,9 +169,11 @@ class MainActivity : ComponentActivity() {
         // Nếu mở từ App Icon: Nếu đã có widget đang active -> Biến hình App Icon thành Mic nói
         // Nếu chưa có widget -> Vào Home để hiện màn hình mời tạo Widget
         if (!fromWidgetNote && !showTrialExpired) {
-            val hasPinned = ThemePreferences.hasPinnedWidget.value
             val isWidgetActive = PinWidgetHelper.isWidgetActive(this, TripleActionWidgetReceiver::class.java)
-            if (hasPinned && isWidgetActive) {
+            if (!isWidgetActive && ThemePreferences.hasPinnedWidget.value) {
+                ThemePreferences.setWidgetPinned(false)
+            }
+            if (isWidgetActive && ThemePreferences.hasPinnedWidget.value) {
                 val recordIntent = Intent(this, RecordingActivity::class.java).apply {
                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
                 }
