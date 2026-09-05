@@ -88,6 +88,7 @@
     <string name="str_saving">Wird gespeichert...</string>
     <string name="str_no_notes_empty">Noch keine Notizen</string>
     <string name="str_search_not_found">Nicht gefunden</string>
+    <string name="str_search_zero_results">0 Ergebnisse</string>
     <string name="str_protect_toast">Zeitstempelzeilen können nicht gelöscht werden</string>
 
     <!-- SendPcDialog -->

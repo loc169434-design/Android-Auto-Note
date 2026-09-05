@@ -88,6 +88,7 @@
     <string name="str_saving">Сохранение...</string>
     <string name="str_no_notes_empty">Заметок пока нет</string>
     <string name="str_search_not_found">Не найдено</string>
+    <string name="str_search_zero_results">0 результатов</string>
     <string name="str_protect_toast">Невозможно удалить строки временных меток</string>
 
     <!-- SendPcDialog -->

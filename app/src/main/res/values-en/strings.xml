@@ -94,6 +94,7 @@
     <string name="str_saving">Saving...</string>
     <string name="str_no_notes_empty">No notes yet</string>
     <string name="str_search_not_found">Not found</string>
+    <string name="str_search_zero_results">0 results</string>
     <string name="str_protect_toast">Cannot delete timestamp lines</string>
 
     <!-- SendPcDialog -->

@@ -1252,7 +1252,7 @@ fun HomeScreen(
                                     )
                                 } else {
                                     Text(
-                                        text = "0 kết quả",
+                                        text = stringResource(R.string.str_search_zero_results),
                                         fontFamily = NotoSansFontFamily,
                                         fontSize = 13.sp,
                                         color = HomeTextMuted

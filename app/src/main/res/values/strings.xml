@@ -101,6 +101,7 @@
     <string name="str_saving">Đang lưu...</string>
     <string name="str_no_notes_empty">Chưa có ghi chú nào</string>
     <string name="str_search_not_found">Không tìm thấy</string>
+    <string name="str_search_zero_results">0 kết quả</string>
     <string name="str_protect_toast">Không thể xóa dòng thời gian ghi chú</string>
 
     <!-- SendPcDialog -->

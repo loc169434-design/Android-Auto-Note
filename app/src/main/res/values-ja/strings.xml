@@ -88,6 +88,7 @@
     <string name="str_saving">保存中...</string>
     <string name="str_no_notes_empty">まだメモがありません</string>
     <string name="str_search_not_found">見つかりませんでした</string>
+    <string name="str_search_zero_results">0件</string>
     <string name="str_protect_toast">タイムスタンプ行は削除できません</string>
 
     <!-- SendPcDialog -->
