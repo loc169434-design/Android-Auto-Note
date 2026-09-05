@@ -106,7 +106,7 @@
     <string name="str_premium_title">PREMIUM BENEFITS</string>
     <string name="str_premium_feat_send_pc">Send AES-256 encrypted compressed files securely to your personal computer (Send to PC).</string>
     <string name="str_premium_feat_drive">Automatically back up and securely sync data to your personal Google Drive.</string>
-    <string name="str_premium_upgrade_btn">Upgrade Now - %s / Lifetime</string>
+    <string name="str_premium_upgrade_btn">Upgrade Now - %s/Lifetime</string>
     <string name="str_premium_product_err">Product unavailable. Please try again later.</string>
     <string name="str_premium_no_purchase">No previous purchase found.</string>
     <string name="str_premium_checking">Checking...</string>

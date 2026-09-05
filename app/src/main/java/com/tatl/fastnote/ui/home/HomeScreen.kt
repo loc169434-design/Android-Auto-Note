@@ -1,6 +1,7 @@
 package com.tatl.fastnote.ui.home
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -234,6 +235,10 @@ fun HomeScreen(
     // Offset ký tự cần scroll đến trong Edit Mode (set khi mở, reset khi đóng)
     // Dùng -1 để biểu thị "không cần scroll"
     var pendingScrollToOffset by remember { mutableStateOf(-1) }
+    // Offset đầu header (dấu '-') để scroll cho header nằm ở đầu viewport (đồng bộ với Home)
+    var pendingScrollToHeaderStart by remember { mutableStateOf(-1) }
+    // Số dòng visual đã scroll qua trong entry đang hiển thị trên Home
+    var pendingScrollLineIndex by remember { mutableStateOf(0) }
     // Layout result của BasicTextField để tính tọa độ cursor (phục vụ auto-scroll khi bàn phím bật)
     var editTextLayoutResult by remember { mutableStateOf<androidx.compose.ui.text.TextLayoutResult?>(null) }
     // Flag: edit mode được mở từ search (true) hay từ browse bình thường (false)
@@ -347,11 +352,21 @@ fun HomeScreen(
                     targetOffset = foundIdx
                     selectionLength = query.length
                 }
+                // Search mode: reset browse-mode scroll values
+                pendingScrollLineIndex = 0
+                pendingScrollToHeaderStart = -1
             } else {
                 // Tình huống 1: Cuộn xem ở vị trí B trong danh sách ghi chú
                 val currentList = if (searchQuery.isNotBlank()) filteredEntries else fileEntries
                 val index = (targetEntryIndex ?: listState.firstVisibleItemIndex)
                     .coerceIn(0, (currentList.size - 1).coerceAtLeast(0))
+                val pixelOffset = listState.firstVisibleItemScrollOffset
+                val density = context.resources.displayMetrics.density
+                val fontScale = context.resources.configuration.fontScale
+                val lineHeightPx = 22f * density * fontScale
+                val linesScrolled = if (lineHeightPx > 0) (pixelOffset / lineHeightPx).toInt() else 0
+                pendingScrollLineIndex = linesScrolled
+                android.util.Log.d("EDIT_SCROLL", "HOME → firstVisibleItemIndex=${listState.firstVisibleItemIndex}, entryIndex=$index, pixelOffset=$pixelOffset, linesScrolled=$linesScrolled")
                 if (currentList.isNotEmpty() && index in currentList.indices) {
                     val targetEntry = currentList[index]
                     val headerSearch = targetEntry.header.trim()
@@ -365,6 +380,11 @@ fun HomeScreen(
                     }
 
                     if (entryIdx != -1) {
+                        var lineStart = entryIdx
+                        while (lineStart > 0 && reversed[lineStart - 1] != '\n') lineStart--
+                        pendingScrollToHeaderStart = lineStart
+                        android.util.Log.d("EDIT_SCROLL", "HOME → headerStart=$lineStart, pixelOffset=$pixelOffset")
+
                         val colonIdx = reversed.indexOf(':', entryIdx)
                         if (colonIdx != -1 && colonIdx < entryIdx + 80) {
                             var cursorIdx = colonIdx + 1
@@ -447,39 +467,108 @@ fun HomeScreen(
     // Chờ cho đến khi: layout sẵn sàng (maxValue > 0) và được nhàn focus (layout result != null)
     LaunchedEffect(isEditMode, editScrollState.maxValue) {
         if (!isEditMode || pendingScrollToOffset < 0 || editScrollState.maxValue <= 0) return@LaunchedEffect
-        // Chờ thêm 50ms cho layout render hết, rồi thử dùng getCursorRect
-        kotlinx.coroutines.delay(50L)
-        val layout = editTextLayoutResult
+        // Ưu tiên scroll đến ĐẦU HEADER (đồng bộ với Home) thay vì cursor
+        val scrollTarget = if (pendingScrollToHeaderStart >= 0) pendingScrollToHeaderStart else pendingScrollToOffset
+
+        // Retry chờ layout sẵn sàng (editTextLayoutResult thường chưa có sau 50ms đầu)
+        var layout: androidx.compose.ui.text.TextLayoutResult? = null
+        for (attempt in 1..8) {
+            kotlinx.coroutines.delay(60L)
+            layout = editTextLayoutResult
+            if (layout != null) break
+        }
+
         if (layout != null) {
             try {
-                val cursorIdx = pendingScrollToOffset.coerceIn(0, editTfv.text.length)
-                val cursorRect = layout.getCursorRect(cursorIdx)
-                val viewportH = editScrollState.viewportSize.toFloat()
-                // Scroll cursor vào đầu viewport (bắt đầu từ đây, sau đó LaunchedEffect(selection) sẽ điều chỉnh sau khi keyboard mở)
-                val targetScroll = (cursorRect.top - 40f).coerceAtLeast(0f)
-                editScrollState.animateScrollTo(targetScroll.toInt())
+                if (pendingScrollToHeaderStart >= 0) {
+                    // ── BROWSE MODE: scroll theo linesScrolled từ Home ──
+                    val scrollIdx = pendingScrollToHeaderStart.coerceIn(0, editTfv.text.length)
+                    val headerLine = layout.getLineForOffset(scrollIdx)
+                    val targetLine = (headerLine + pendingScrollLineIndex).coerceAtMost(layout.lineCount - 1)
+                    val targetScroll = layout.getLineTop(targetLine).toInt()
+                    android.util.Log.d("EDIT_SCROLL", "EDIT [BROWSE] → headerLine=$headerLine, pendingLines=$pendingScrollLineIndex, targetLine=$targetLine, targetScroll=$targetScroll, maxValue=${editScrollState.maxValue}")
+                    editScrollState.scrollTo(targetScroll.coerceIn(0, editScrollState.maxValue))
+
+                    // Đặt cursor tại targetLine để keyboard không cuộn lại
+                    val targetCharStart = layout.getLineStart(targetLine)
+                    editTfv = editTfv.copy(selection = androidx.compose.ui.text.TextRange(targetCharStart))
+                    editModeInitialSelection = editTfv.selection
+                } else {
+                    // ── SEARCH MODE: scroll đến vị trí cursor (occurrence đang highlight) ──
+                    val cursorIdx = pendingScrollToOffset.coerceIn(0, editTfv.text.length)
+                    val cursorRect = layout.getCursorRect(cursorIdx)
+                    // Đặt cursor ở 30% viewport từ trên xuống
+                    val viewportHeight = editScrollState.viewportSize
+                    val targetScroll = (cursorRect.top - viewportHeight * 0.3f).coerceAtLeast(0f).toInt()
+                    android.util.Log.d("EDIT_SCROLL", "EDIT [SEARCH] → cursorIdx=$cursorIdx, cursorTop=${cursorRect.top}, targetScroll=$targetScroll, maxValue=${editScrollState.maxValue}")
+                    editScrollState.scrollTo(targetScroll.coerceIn(0, editScrollState.maxValue))
+                    // Giữ nguyên cursor/selection (đã chọn đúng occurrence trong openEditModeAtTarget)
+                }
+
+                val verifyLineIdx = layout.getLineForVerticalPosition(editScrollState.value.toFloat())
+                val vStart = layout.getLineStart(verifyLineIdx)
+                val vEnd = layout.getLineEnd(verifyLineIdx).coerceAtMost(editTfv.text.length)
+                android.util.Log.d("EDIT_SCROLL", "EDIT → topLine: line=$verifyLineIdx, text='${editTfv.text.substring(vStart, vEnd).take(60)}'")
             } catch (_: Exception) {
-                // Fallback: dùng line-fraction nếu getCursorRect thất bại
-                val offset = pendingScrollToOffset.coerceIn(0, editTfv.text.length)
+                val offset = scrollTarget.coerceIn(0, editTfv.text.length)
                 val targetLineIndex = editTfv.text.substring(0, offset).count { it == '\n' }
                 val totalLines = editTfv.text.count { it == '\n' }.coerceAtLeast(1)
                 val scrollFraction = targetLineIndex.toFloat() / totalLines.toFloat()
                 val targetScroll = (editScrollState.maxValue.toFloat() * scrollFraction).toInt()
-                editScrollState.animateScrollTo(targetScroll.coerceIn(0, editScrollState.maxValue))
+                editScrollState.scrollTo(targetScroll.coerceIn(0, editScrollState.maxValue))
             }
         } else {
-            // layout chưa có, dùng line-fraction
-            val offset = pendingScrollToOffset.coerceIn(0, editTfv.text.length)
+            // Fallback line-fraction nếu layout vẫn chưa sẵn sàng
+            val offset = scrollTarget.coerceIn(0, editTfv.text.length)
             val targetLineIndex = editTfv.text.substring(0, offset).count { it == '\n' }
             val totalLines = editTfv.text.count { it == '\n' }.coerceAtLeast(1)
             val scrollFraction = targetLineIndex.toFloat() / totalLines.toFloat()
             val targetScroll = (editScrollState.maxValue.toFloat() * scrollFraction).toInt()
-            editScrollState.animateScrollTo(targetScroll.coerceIn(0, editScrollState.maxValue))
+            editScrollState.scrollTo(targetScroll.coerceIn(0, editScrollState.maxValue))
         }
-        pendingScrollToOffset = -1  // reset
+        pendingScrollToOffset = -1
+        pendingScrollToHeaderStart = -1
     }
 
-    // ── Lifecycle ─────────────────────────────────────────────────────────────
+    // ── DEBUG: Log liên tục khi scroll Home ──────────────────────────────────
+    LaunchedEffect(listState) {
+        snapshotFlow {
+            listState.firstVisibleItemIndex to listState.firstVisibleItemScrollOffset
+        }.collect { (itemIdx, pixelOff) ->
+            if (!isEditMode && fileEntries.isNotEmpty()) {
+                val headerItemCount = if (fileEntries.size < 4) 2 else 1
+                val entryIdx = (itemIdx - headerItemCount).coerceIn(0, fileEntries.size - 1)
+                val entry = fileEntries[entryIdx]
+                val density = context.resources.displayMetrics.density
+                val fontScale = context.resources.configuration.fontScale
+                val lineHeightPx = 22f * density * fontScale
+                val linesScrolled = if (lineHeightPx > 0) (pixelOff / lineHeightPx).toInt() else 0
+                // Tìm text dòng đang ở đầu
+                val entryText = "${entry.header}\n${entry.content}"
+                val lines = entryText.split("\n")
+                val topLine = lines.getOrElse(linesScrolled) { lines.lastOrNull() ?: "" }
+                android.util.Log.d("SCROLL_HOME", "entry=$entryIdx, pixelOff=$pixelOff, linesScrolled=$linesScrolled, topLine='${topLine.take(50)}'")
+            }
+        }
+    }
+
+    // ── DEBUG: Log liên tục khi scroll Edit ──────────────────────────────────
+    LaunchedEffect(editScrollState, isEditMode) {
+        if (!isEditMode) return@LaunchedEffect
+        snapshotFlow { editScrollState.value }.collect { scrollY ->
+            val layout = editTextLayoutResult ?: return@collect
+            try {
+                // Tìm dòng text đang ở đầu viewport bằng cách tìm line tại y = scrollY
+                val lineIdx = layout.getLineForVerticalPosition(scrollY.toFloat())
+                val lineStart = layout.getLineStart(lineIdx)
+                val lineEnd = layout.getLineEnd(lineIdx)
+                val topLineText = editTfv.text.substring(lineStart, lineEnd.coerceAtMost(editTfv.text.length))
+                android.util.Log.d("SCROLL_EDIT", "scrollY=$scrollY, lineIdx=$lineIdx, topLine='${topLineText.take(50)}'")
+            } catch (_: Exception) {}
+        }
+    }
+
+
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_PAUSE || event == Lifecycle.Event.ON_STOP) {
@@ -584,8 +673,13 @@ fun HomeScreen(
         if (!isEditMode) return@LaunchedEffect
         // Bỏ qua nếu mở từ browse và đây là lần mở đầu (selection chưa thay đổi)
         val isInitialOpen = editTfv.selection == editModeInitialSelection
-        if (!editModeOpenedFromSearch && isInitialOpen) return@LaunchedEffect
+        android.util.Log.d("EDIT_SCROLL", "SELECTION_EFFECT → isInitialOpen=$isInitialOpen, editModeOpenedFromSearch=$editModeOpenedFromSearch, selection=${editTfv.selection}, initial=$editModeInitialSelection")
+        if (!editModeOpenedFromSearch && isInitialOpen) {
+            android.util.Log.d("EDIT_SCROLL", "SELECTION_EFFECT → SKIPPED (browse mode, initial selection)")
+            return@LaunchedEffect
+        }
         // Chờ cho bàn phím animate xong và viewport được cập nhật
+        android.util.Log.d("EDIT_SCROLL", "SELECTION_EFFECT → WILL SCROLL after 580ms delay!!")
         kotlinx.coroutines.delay(580L)
         repeat(4) { attempt ->
             val layout = editTextLayoutResult
@@ -596,6 +690,7 @@ fun HomeScreen(
                     // Cursor nằm ở 30% từ đỉnh viewport
                     val viewportH = editScrollState.viewportSize.toFloat()
                     val idealScroll = (cursorRect.bottom - viewportH * 0.30f).coerceAtLeast(0f)
+                    android.util.Log.d("EDIT_SCROLL", "SELECTION_EFFECT → OVERRIDING scroll to ${idealScroll.toInt()} (cursor at 30% viewport)")
                     editScrollState.animateScrollTo(idealScroll.toInt())
                 } catch (_: Exception) {}
                 return@LaunchedEffect
@@ -764,7 +859,49 @@ fun HomeScreen(
                                 // Rule: chỉ block khi user xóa nhầm timestamp header
                                 // KHÔNG block xóa content thông thường dù nhiều dòng
 
-                                editTfv = adjustSelectionOutOfHeaders(newTfv)
+                                // ── Auto-restore khoảng trắng sau ':' của header ──
+                                // Nếu user xoá space ngay sau dấu ':', tự thêm lại
+                                val fixedText = buildString {
+                                    val lines = newText.split("\n")
+                                    for ((i, line) in lines.withIndex()) {
+                                        if (i > 0) append("\n")
+                                        val trimmed = line.trimStart()
+                                        val headerMatch = FileHelper.DATE_HEADER_REGEX.find(trimmed)
+                                        if (headerMatch != null) {
+                                            val colonPos = line.indexOf(':')
+                                            if (colonPos != -1 && colonPos == line.lastIndex) {
+                                                // Header kết thúc bằng ':' mà không có gì sau → thêm space
+                                                append(line)
+                                                append(' ')
+                                            } else if (colonPos != -1 && colonPos + 1 < line.length && line[colonPos + 1] != ' ') {
+                                                // Sau ':' không có space → chèn space
+                                                append(line.substring(0, colonPos + 1))
+                                                append(' ')
+                                                append(line.substring(colonPos + 1))
+                                            } else {
+                                                append(line)
+                                            }
+                                        } else {
+                                            append(line)
+                                        }
+                                    }
+                                }
+
+                                val finalTfv = if (fixedText != newText) {
+                                    // Text bị sửa → điều chỉnh cursor offset (thêm 1 ký tự space)
+                                    val diff = fixedText.length - newText.length
+                                    newTfv.copy(
+                                        text = fixedText,
+                                        selection = TextRange(
+                                            (newTfv.selection.start + diff).coerceIn(0, fixedText.length),
+                                            (newTfv.selection.end + diff).coerceIn(0, fixedText.length)
+                                        )
+                                    )
+                                } else {
+                                    newTfv
+                                }
+
+                                editTfv = adjustSelectionOutOfHeaders(finalTfv)
 
                                 // ── Tự động lưu ngầm mượt mà khi người dùng dừng tay gõ (sau 800ms) ──
                                 autoSaveJob?.cancel()
@@ -1107,7 +1244,7 @@ fun HomeScreen(
                                 if (searchMatchCount > 0) {
                                     val displayIndex = (searchMatchIndex.coerceIn(0, searchMatchCount - 1)) + 1
                                     Text(
-                                        text = "$displayIndex / $searchMatchCount",
+                                        text = "$displayIndex/$searchMatchCount",
                                         fontFamily = NotoSansFontFamily,
                                         fontSize = 13.sp,
                                         color = Color(0xFFFFBF45),
@@ -1278,6 +1415,7 @@ fun HomeScreen(
                                 val activeOccurrenceForThisEntry = if (
                                     searchActive && searchQuery.isNotBlank() && index == activeEntryIdx
                                 ) activeContentOccurrenceRank else -1
+
                                 NoteEntryItem(
                                     entry = entry,
                                     searchQuery = searchQuery,
@@ -1565,6 +1703,7 @@ private fun NoteEntryItem(
                 lineHeight = 22.sp,
                 letterSpacing = 0.1.sp
             ),
+
             modifier = Modifier
                 .fillMaxWidth()
                 .combinedClickable(
@@ -1589,14 +1728,13 @@ private fun buildFormattedNoteEntry(
         // 1. Nhãn ngày giờ
         val cleanHeader = header.trim().trimStart('-', '*').trim()
         if (cleanHeader.isNotEmpty()) {
-            val headerPrefix = "*$cleanHeader: "
+            val headerPrefix = "- $cleanHeader: "
             val startHeader = length
             append(headerPrefix)
             val endHeader = length
             addStyle(
                 SpanStyle(
                     color = HomeHeaderItalic,
-                    fontStyle = FontStyle.Italic,
                     fontWeight = FontWeight.Normal
                 ),
                 startHeader,

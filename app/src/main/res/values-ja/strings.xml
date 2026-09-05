@@ -100,7 +100,7 @@
     <string name="str_premium_title">PREMIUMの特典</string>
     <string name="str_premium_feat_send_pc">AES-256暗号化ファイルをPCに安全に送信。</string>
     <string name="str_premium_feat_drive">Google Driveへ自動バックアップ・同期。</string>
-    <string name="str_premium_upgrade_btn">今すぐアップグレード - %s / 一度きり</string>
+    <string name="str_premium_upgrade_btn">今すぐアップグレード - %s/一度きり</string>
     <string name="str_premium_product_err">商品を読み込めませんでした。後で再試してください。</string>
     <string name="str_premium_no_purchase">以前の購入が見つかりませんでした。</string>
     <string name="str_premium_checking">確認中...</string>

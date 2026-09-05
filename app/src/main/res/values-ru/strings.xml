@@ -100,7 +100,7 @@
     <string name="str_premium_title">ПРЕИМУЩЕСТВА PREMIUM</string>
     <string name="str_premium_feat_send_pc">Отправка зашифрованных AES-256 файлов на персональный ПК.</string>
     <string name="str_premium_feat_drive">Автоматическое резервное копирование и синхронизация в Google Drive.</string>
-    <string name="str_premium_upgrade_btn">Обновить сейчас - %s / Пожизненно</string>
+    <string name="str_premium_upgrade_btn">Обновить сейчас - %s/Пожизненно</string>
     <string name="str_premium_product_err">Продукт недоступен. Попробуйте позже.</string>
     <string name="str_premium_no_purchase">Предыдущая покупка не найдена.</string>
     <string name="str_premium_checking">Проверка...</string>

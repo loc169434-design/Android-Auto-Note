@@ -113,7 +113,7 @@
     <string name="str_premium_title">QUYỀN LỢI BẢN PREMIUM</string>
     <string name="str_premium_feat_send_pc">Gửi tệp tin nén bảo mật mã hóa AES-256 sang máy tính cá nhân (Gửi PC).</string>
     <string name="str_premium_feat_drive">Tự động sao lưu và đồng bộ an toàn dữ liệu lên đám mây cá nhân Google Drive.</string>
-    <string name="str_premium_upgrade_btn">Nâng Cấp Ngay - %s / Trọn Đời</string>
+    <string name="str_premium_upgrade_btn">Nâng Cấp Ngay - %s/Trọn Đời</string>
     <string name="str_premium_product_err">Không tải được sản phẩm. Thử lại sau.</string>
     <string name="str_premium_no_purchase">Không tìm thấy giao dịch trước đó.</string>
     <string name="str_premium_checking">Đang kiểm tra...</string>

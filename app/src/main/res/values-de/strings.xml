@@ -100,7 +100,7 @@
     <string name="str_premium_title">PREMIUM-VORTEILE</string>
     <string name="str_premium_feat_send_pc">AES-256-verschlüsselte Dateien sicher an den PC senden.</string>
     <string name="str_premium_feat_drive">Daten automatisch in Google Drive sichern und synchronisieren.</string>
-    <string name="str_premium_upgrade_btn">Jetzt upgraden - %s / Lebenslang</string>
+    <string name="str_premium_upgrade_btn">Jetzt upgraden - %s/Lebenslang</string>
     <string name="str_premium_product_err">Produkt nicht verfügbar. Später erneut versuchen.</string>
     <string name="str_premium_no_purchase">Kein früherer Kauf gefunden.</string>
     <string name="str_premium_checking">Wird geprüft...</string>
