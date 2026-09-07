@@ -139,7 +139,9 @@ class MainActivity : ComponentActivity() {
                              intent.action == "com.tatl.fastnote.ACTION_VIEW_NOTES"
         val showTrialExpired = intent.getBooleanExtra("SHOW_TRIAL_EXPIRED", false)
         if (showTrialExpired) {
-            showTrialExpiredToast()
+            // Chỉ hiện toast nếu chưa mua Premium
+            val isPrem = com.tatl.fastnote.billing.PremiumManager.isPremiumCached(this)
+            if (!isPrem) showTrialExpiredToast()
         }
         if (!fromWidgetNote && !showTrialExpired) {
             val isWidgetActive = PinWidgetHelper.isWidgetActive(this, TripleActionWidgetReceiver::class.java)
@@ -206,7 +208,9 @@ class MainActivity : ComponentActivity() {
 
         // Từ widget callback khi trial hết hạn
         if (intent?.getBooleanExtra("SHOW_TRIAL_EXPIRED", false) == true) {
-            showTrialExpiredToast()
+            // Chỉ hiện toast nếu chưa mua Premium
+            val isPrem = com.tatl.fastnote.billing.PremiumManager.isPremiumCached(this)
+            if (!isPrem) showTrialExpiredToast()
         }
 
         // ── Cloud sync: chỉ chạy khi isPremium VÀ đã đăng nhập Google thật ─────
@@ -480,9 +484,11 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun showTrialExpiredToast() {
+        // Dùng localizedContext để toast hiển thị đúng ngôn ngữ app đang chọn
+        val localizedCtx = com.tatl.fastnote.data.user.LanguageManager.getLocalizedContext(this)
         Toast.makeText(
-            this,
-            getString(R.string.str_toast_trial_expired_30_days),
+            localizedCtx,
+            localizedCtx.getString(R.string.str_toast_trial_expired_30_days),
             Toast.LENGTH_LONG
         ).show()
     }
