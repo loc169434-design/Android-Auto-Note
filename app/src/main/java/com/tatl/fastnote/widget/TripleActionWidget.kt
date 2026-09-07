@@ -56,7 +56,9 @@ class TripleActionWidget : GlanceAppWidget() {
     override val sizeMode: SizeMode = SizeMode.Exact
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val trialExpired = TrialManager.isTrialExpired(context)
+        // AI button bị khoá chỉ khi trial hết hạn VÀ chưa mua Premium
+        val isPrem = com.tatl.fastnote.billing.PremiumManager.isPremiumCached(context)
+        val trialExpired = !isPrem && TrialManager.isTrialExpired(context)
         provideContent {
             GlanceTheme {
                 WidgetContent(trialExpired = trialExpired)

@@ -25,6 +25,10 @@ object TrialManager {
     private const val KEY_TAMPER_DETECTED = "tamper_detected"
     const val TRIAL_DAYS                  = 30L
 
+    // ⚠️ DEBUG ONLY — đặt true để giả lập hết hạn trial (ngày 31+) trên mọi máy
+    // NHỚ ĐẶT LẠI false TRƯỚC KHI PUSH LÊN STORE!
+    private const val DEBUG_FORCE_EXPIRED = true
+
     private fun prefs(ctx: Context): SharedPreferences =
         ctx.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
@@ -101,6 +105,7 @@ object TrialManager {
     }
 
     fun getDaysUsed(ctx: Context): Long {
+        if (DEBUG_FORCE_EXPIRED) return TRIAL_DAYS  // DEBUG: giả lập hết hạn
         val first = getFirstLaunchDate(ctx) ?: return 0L
         val effectiveDate = getEffectiveDate(ctx)
         return ChronoUnit.DAYS.between(first, effectiveDate).coerceAtLeast(0)
@@ -148,8 +153,9 @@ object TrialManager {
     }
 
     fun getCountdownMessage(ctx: Context): String {
-        val left = getDaysLeft(ctx)
-        return ctx.getString(R.string.str_trial_countdown_1_day)
+        // Dùng đúng logic đếm ngược theo số ngày còn lại (tránh hardcode "01 ngày")
+        return getMicBannerMessage(ctx)
+            ?: ctx.getString(R.string.str_trial_countdown_1_day)
     }
 
     // ── For testing: force-set first launch date ──────────────────────────────

@@ -255,6 +255,16 @@ fun HomeScreen(
     // ── Save Function ─────────────────────────────────────────────────────────
     fun doSave() {
         if (isSaving) return
+
+        // ── Kiểm tra khóa Edit Mode từ ngày 31 (nếu chưa nâng cấp Premium) ──
+        val isPrem = com.tatl.fastnote.billing.PremiumManager.isPremiumCached(context)
+        val isExpired = com.tatl.fastnote.billing.TrialManager.isTrialExpired(context)
+        if (!isPrem && isExpired) {
+            val msg = com.tatl.fastnote.billing.TrialManager.getSaveBlockedMessage(context)
+            android.widget.Toast.makeText(context, msg, android.widget.Toast.LENGTH_LONG).show()
+            return
+        }
+
         isSaving = true
         autoSaveJob?.cancel()
         scope.launch {
@@ -574,19 +584,26 @@ fun HomeScreen(
             if (event == Lifecycle.Event.ON_PAUSE || event == Lifecycle.Event.ON_STOP) {
                 autoSaveJob?.cancel()
                 if (isEditMode) {
-                    val textToSave = reverseEntries(editTfv.text)
-                    FileHelper.saveEditedRaw(context, originalContent, textToSave)
-                    com.tatl.fastnote.sync.GoogleDriveSyncWorker.enqueueOneTimeSync(context)
-                    fileEntries = FileHelper.parseEntries(context)
-                    // Reset toàn bộ state khi tự động lưu khi rời app
-                    searchActive = false
-                    searchQuery = ""
-                    searchMatchIndex = 0
-                    editModeOpenedFromSearch = false
-                    editModeInitialSelection = androidx.compose.ui.text.TextRange.Zero
-                    editTextLayoutResult = null
-                    pendingScrollToOffset = -1
-                    isEditMode = false
+                    // Không auto-save nếu trial hết hạn
+                    val isPrem = com.tatl.fastnote.billing.PremiumManager.isPremiumCached(context)
+                    val isExp  = com.tatl.fastnote.billing.TrialManager.isTrialExpired(context)
+                    if (!isPrem && isExp) {
+                        isEditMode = false
+                    } else {
+                        val textToSave = reverseEntries(editTfv.text)
+                        FileHelper.saveEditedRaw(context, originalContent, textToSave)
+                        com.tatl.fastnote.sync.GoogleDriveSyncWorker.enqueueOneTimeSync(context)
+                        fileEntries = FileHelper.parseEntries(context)
+                        // Reset toàn bộ state khi tự động lưu khi rời app
+                        searchActive = false
+                        searchQuery = ""
+                        searchMatchIndex = 0
+                        editModeOpenedFromSearch = false
+                        editModeInitialSelection = androidx.compose.ui.text.TextRange.Zero
+                        editTextLayoutResult = null
+                        pendingScrollToOffset = -1
+                        isEditMode = false
+                    }
                 }
             } else if (event == Lifecycle.Event.ON_RESUME) {
                 refreshKey++
@@ -604,9 +621,14 @@ fun HomeScreen(
             lifecycleOwner.lifecycle.removeObserver(observer)
             autoSaveJob?.cancel()
             if (isEditMode) {
-                val textToSave = reverseEntries(editTfv.text)
-                FileHelper.saveEditedRaw(context, originalContent, textToSave)
-                com.tatl.fastnote.sync.GoogleDriveSyncWorker.enqueueOneTimeSync(context)
+                // Không auto-save nếu trial hết hạn
+                val isPrem = com.tatl.fastnote.billing.PremiumManager.isPremiumCached(context)
+                val isExp  = com.tatl.fastnote.billing.TrialManager.isTrialExpired(context)
+                if (!isPrem && !isExp) {
+                    val textToSave = reverseEntries(editTfv.text)
+                    FileHelper.saveEditedRaw(context, originalContent, textToSave)
+                    com.tatl.fastnote.sync.GoogleDriveSyncWorker.enqueueOneTimeSync(context)
+                }
             }
         }
     }
@@ -907,6 +929,10 @@ fun HomeScreen(
                                 autoSaveJob?.cancel()
                                 autoSaveJob = scope.launch(Dispatchers.IO) {
                                     kotlinx.coroutines.delay(800L)
+                                    // Không auto-save nếu trial hết hạn
+                                    val isPrem = com.tatl.fastnote.billing.PremiumManager.isPremiumCached(context)
+                                    val isExp  = com.tatl.fastnote.billing.TrialManager.isTrialExpired(context)
+                                    if (!isPrem && isExp) return@launch
                                     val textToSave = reverseEntries(newText)
                                     FileHelper.saveEditedRaw(context, originalContent, textToSave)
                                 }
@@ -1422,13 +1448,20 @@ fun HomeScreen(
                                     isActiveMatch = searchActive && searchQuery.isNotBlank() && index == activeEntryIdx,
                                     activeOccurrenceInEntry = activeOccurrenceForThisEntry,
                                     onLongClick = {
-                                        openEditModeAtTarget(
-                                            targetEntryIndex = index,
-                                            searchKeyword = if (searchActive && searchQuery.isNotBlank()) searchQuery else null,
-                                            searchOccurrenceRank = if (searchActive && searchQuery.isNotBlank() && index == activeEntryIdx)
-                                                activeContentOccurrenceRank.coerceAtLeast(0)
-                                            else 0
-                                        )
+                                        // Khóa Edit Mode từ ngày 31
+                                        val isPrem = com.tatl.fastnote.billing.PremiumManager.isPremiumCached(context)
+                                        val isExp  = com.tatl.fastnote.billing.TrialManager.isTrialExpired(context)
+                                        if (!isPrem && isExp) {
+                                            onPremiumClick()
+                                        } else {
+                                            openEditModeAtTarget(
+                                                targetEntryIndex = index,
+                                                searchKeyword = if (searchActive && searchQuery.isNotBlank()) searchQuery else null,
+                                                searchOccurrenceRank = if (searchActive && searchQuery.isNotBlank() && index == activeEntryIdx)
+                                                    activeContentOccurrenceRank.coerceAtLeast(0)
+                                                else 0
+                                            )
+                                        }
                                     }
                                 )
                                 Spacer(Modifier.height(18.dp))
@@ -1460,26 +1493,33 @@ fun HomeScreen(
                         horizontalArrangement = Arrangement.spacedBy(90.dp, Alignment.CenterHorizontally),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // Nút SỬA dạng Icon bên trái (UI 2.3: nền nổi bật)
+                        // Nút SỬa dạng Icon bên trái (UI 2.3: nền nổi bật)
                         Surface(
                             onClick = {
-                                openEditModeAtTarget(
-                                    targetEntryIndex = if (searchActive && searchQuery.isNotBlank()) {
-                                        activeEntryIdx
-                                    } else {
-                                        // LazyColumn item layout:
-                                        //   index 0 = top Spacer
-                                        //   index 1 = tip text (chỉ khi fileEntries.size < 4 && searchQuery.isBlank)
-                                        //   index 1 hoặc 2 = entry đầu tiên (entry index 0)
-                                        val headerItemCount = if (fileEntries.size < 4 && searchQuery.isBlank()) 2 else 1
-                                        val rawIdx = listState.firstVisibleItemIndex
-                                        (rawIdx - headerItemCount).coerceIn(0, (fileEntries.size - 1).coerceAtLeast(0))
-                                    },
-                                    searchKeyword = if (searchActive && searchQuery.isNotBlank()) searchQuery else null,
-                                    searchOccurrenceRank = if (searchActive && searchQuery.isNotBlank())
-                                        activeContentOccurrenceRank.coerceAtLeast(0)
-                                    else 0
-                                )
+                                // Khóa Edit Mode từ ngày 31
+                                val isPrem = com.tatl.fastnote.billing.PremiumManager.isPremiumCached(context)
+                                val isExp  = com.tatl.fastnote.billing.TrialManager.isTrialExpired(context)
+                                if (!isPrem && isExp) {
+                                    onPremiumClick()
+                                } else {
+                                    openEditModeAtTarget(
+                                        targetEntryIndex = if (searchActive && searchQuery.isNotBlank()) {
+                                            activeEntryIdx
+                                        } else {
+                                            // LazyColumn item layout:
+                                            //   index 0 = top Spacer
+                                            //   index 1 = tip text (chỉ khi fileEntries.size < 4 && searchQuery.isBlank)
+                                            //   index 1 hoặc 2 = entry đầu tiên (entry index 0)
+                                            val headerItemCount = if (fileEntries.size < 4 && searchQuery.isBlank()) 2 else 1
+                                            val rawIdx = listState.firstVisibleItemIndex
+                                            (rawIdx - headerItemCount).coerceIn(0, (fileEntries.size - 1).coerceAtLeast(0))
+                                        },
+                                        searchKeyword = if (searchActive && searchQuery.isNotBlank()) searchQuery else null,
+                                        searchOccurrenceRank = if (searchActive && searchQuery.isNotBlank())
+                                            activeContentOccurrenceRank.coerceAtLeast(0)
+                                        else 0
+                                    )
+                                }
                             },
                             shape = RoundedCornerShape(10.dp),
                             color = Color(0xFF1A2C3D).copy(alpha = 0.85f),
