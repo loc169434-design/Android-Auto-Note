@@ -1725,16 +1725,17 @@ private fun buildFormattedNoteEntry(
     activeOccurrenceInEntry: Int = -1   // thứ tự occurrence trong content đang active (≥ 0), -1 = không có
 ): AnnotatedString {
     return buildAnnotatedString {
-        // 1. Nhãn ngày giờ
+        // 1. Nhãn ngày giờ — hiển thị * thay - , luôn in nghiêng
         val cleanHeader = header.trim().trimStart('-', '*').trim()
         if (cleanHeader.isNotEmpty()) {
-            val headerPrefix = "- $cleanHeader: "
+            val headerPrefix = "* $cleanHeader: "
             val startHeader = length
             append(headerPrefix)
             val endHeader = length
             addStyle(
                 SpanStyle(
                     color = HomeHeaderItalic,
+                    fontStyle = FontStyle.Italic,
                     fontWeight = FontWeight.Normal
                 ),
                 startHeader,
@@ -1898,11 +1899,17 @@ private class NoteEditorVisualTransformation : VisualTransformation {
                 val trimmed = line.trimStart()
                 val match = FileHelper.DATE_HEADER_REGEX.find(trimmed)
                 val start = length
-                append(line)
+                // Trong edit mode: đổi dấu '-' đầu dòng header thành '*' để hiển thị
+                // (cùng 1 ký tự nên OffsetMapping.Identity vẫn đúng)
+                val displayLine = if (match != null) {
+                    val dashIdx = line.indexOf('-')
+                    if (dashIdx != -1) line.replaceRange(dashIdx, dashIdx + 1, "*") else line
+                } else line
+                append(displayLine)
                 val end = length
 
                 if (match != null) {
-                    val colonIdx = line.indexOf(':')
+                    val colonIdx = displayLine.indexOf(':')
                     val headerEnd = if (colonIdx != -1) start + colonIdx + 1 else end
                     addStyle(
                         SpanStyle(
