@@ -264,7 +264,6 @@ fun HomeScreen(
         val isExpired = com.tatl.fastnote.billing.TrialManager.isTrialExpired(context)
         if (!isPrem && isExpired) {
             val msg = com.tatl.fastnote.billing.TrialManager.getSaveBlockedMessage(context)
-            android.widget.Toast.makeText(context, msg, android.widget.Toast.LENGTH_LONG).show()
             return
         }
 
@@ -784,7 +783,6 @@ fun HomeScreen(
                             } else {
                                 "🔒 Đã bật lại bảo mật Lớp 1 (Che số *** khi gửi AI)"
                             }
-                            android.widget.Toast.makeText(context, msg, android.widget.Toast.LENGTH_LONG).show()
                         }
                     },
                     onLongClick = {
@@ -794,7 +792,6 @@ fun HomeScreen(
                         } else {
                             "🔒 Đã bật lại bảo mật Lớp 1 (Che số *** khi gửi AI)"
                         }
-                        android.widget.Toast.makeText(context, msg, android.widget.Toast.LENGTH_LONG).show()
                     }
                 ),
             contentAlignment = Alignment.TopEnd

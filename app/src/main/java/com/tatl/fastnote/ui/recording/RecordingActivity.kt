@@ -1,34 +1,5 @@
 package com.tatl.fastnote.ui.recording
 
-import android.Manifest
-import android.content.ComponentName
-import android.content.Context
-import android.content.Intent
-import android.content.ServiceConnection
-import android.content.pm.PackageManager
-import android.os.Build
-import android.os.Bundle
-import android.os.IBinder
-import android.util.Log
-import android.view.WindowManager
-import android.widget.Toast
-import androidx.activity.ComponentActivity
-import androidx.activity.OnBackPressedCallback
-import androidx.activity.compose.setContent
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
-import androidx.core.content.ContextCompat
-import androidx.lifecycle.lifecycleScope
-import com.tatl.fastnote.AutoNoteApplication
-import com.tatl.fastnote.service.VoiceRecordingService
-import com.tatl.fastnote.ui.theme.AndroidAutoNoteTheme
-import com.tatl.fastnote.util.FileHelper
-import com.tatl.fastnote.widget.WidgetUpdater
-import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.launch
-
 /**
  * Transparent Activity that displays a floating recording dialog.
  *
@@ -41,14 +12,41 @@ import kotlinx.coroutines.launch
  *  1. note_{timestamp}.txt    — raw single-session file
  *  2. fileguidi.txt           — cumulative backup (append, never erased)
  */
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalConfiguration
+import android.Manifest
+import android.content.ComponentName
+import android.content.Context
+import android.content.Intent
+import android.content.ServiceConnection
+import android.content.pm.PackageManager
 import android.content.res.Configuration
-import java.util.Locale
+import android.os.Build
+import android.os.Bundle
+import android.os.IBinder
+import android.util.Log
+import android.view.WindowManager
+import androidx.activity.ComponentActivity
+import androidx.activity.OnBackPressedCallback
+import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
+import androidx.lifecycle.lifecycleScope
+import com.tatl.fastnote.AutoNoteApplication
 import com.tatl.fastnote.data.user.LanguageManager
+import com.tatl.fastnote.service.VoiceRecordingService
+import com.tatl.fastnote.ui.theme.AndroidAutoNoteTheme
+import com.tatl.fastnote.util.FileHelper
+import com.tatl.fastnote.widget.WidgetUpdater
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
+import java.util.Locale
 
 class RecordingActivity : ComponentActivity() {
 
