@@ -3,7 +3,6 @@ package com.tatl.fastnote.auth
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
-import android.widget.Toast
 import com.tatl.fastnote.R
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -95,7 +94,6 @@ class OnboardingActivity : ComponentActivity() {
             val account = task.getResult(ApiException::class.java)
             val idToken  = account.idToken
             if (idToken == null) {
-                showToast("Google idToken is null — check OAuth config")
                 return@registerForActivityResult
             }
             val credential = GoogleAuthProvider.getCredential(idToken, null)
@@ -105,15 +103,12 @@ class OnboardingActivity : ComponentActivity() {
                     Log.d(TAG, "Firebase sign-in OK uid=${user.uid}")
                     goToMain()
                 } else {
-                    showToast(getString(R.string.str_toast_firebase_signin_failed))
                 }
             }
         } catch (e: ApiException) {
             Log.e(TAG, "Google sign-in ApiException: ${e.statusCode}", e)
-            showToast("Lỗi Google: ${e.statusCode} — ${e.message}")
         } catch (e: Exception) {
             Log.e(TAG, "Google sign-in failed", e)
-            showToast("Lỗi: ${e.javaClass.simpleName}")
         }
     }
 
@@ -160,11 +155,9 @@ class OnboardingActivity : ComponentActivity() {
                 if (ok) {
                     goToMain()
                 } else {
-                    showToast("Chế độ khách thất bại — bật Anonymous Auth trong Firebase Console")
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Anonymous exception", e)
-                showToast("Lỗi khách: ${e.javaClass.simpleName} — ${e.message?.take(60)}")
             }
         }
     }
@@ -185,11 +178,9 @@ class OnboardingActivity : ComponentActivity() {
                 }
                 override fun onVerificationFailed(e: com.google.firebase.FirebaseException) {
                     Log.e(TAG, "OTP verification failed", e)
-                    showToast("Gửi OTP thất bại: ${e.message}")
                 }
                 override fun onCodeSent(id: String, token: PhoneAuthProvider.ForceResendingToken) {
                     verificationId = id
-                    showToast("OTP đã gửi")
                 }
             })
             .build()
@@ -197,11 +188,8 @@ class OnboardingActivity : ComponentActivity() {
     }
 
     private fun verifyOtp(otp: String) {
-        val vid = verificationId ?: run { showToast("Gửi OTP trước"); return }
-        val credential = PhoneAuthProvider.getCredential(vid, otp)
+        val vid = verificationId ?: run {  }
         lifecycleScope.launch {
-            val user = AuthManager.signInWithCredential(credential)
-            if (user != null) goToMain() else showToast("Mã OTP không đúng")
         }
     }
 
@@ -212,8 +200,6 @@ class OnboardingActivity : ComponentActivity() {
         finish()
     }
 
-    private fun showToast(msg: String) =
-        Toast.makeText(this, msg, Toast.LENGTH_LONG).show()
 }
 
 // ══════════════════════════════════════════════════════════════════════════════

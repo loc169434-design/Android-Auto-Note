@@ -366,28 +366,28 @@ object FileHelper {
 
     // ── Lớp 2: Từ khóa nhạy cảm đa ngôn ngữ (VN, EN, JA, DE, RU) ─────────────
     // Cứ xuất hiện bất kỳ từ khóa nào dưới đây trong câu ghi chú -> XÓA SẠCH TOÀN BỘ DÒNG ĐÓ
-    // Chỉ giữ từ khóa chuyên ngành rõ ràng, bỏ các từ đơn phổ thông dễ nhầm lẫn.
     private val SENSITIVE_LINE_KEYWORDS_REGEX = Regex(
         """(?i)(""" +
-        // --- 1. TIẾNG VIỆT (có ranh giới từ) ---
+        // --- 1. TIẾNG VIỆT, TIẾNG ANH, TIẾNG ĐỨC, TIẾNG NGA (Có ranh giới từ) ---
         """(?<![\p{L}\p{N}])(?:""" +
-        // Giữ: từ ghép rõ nghĩa bảo mật; bỏ: "mk" ("ã nghĩa mình không" trong chat)
-        """m[aật]\s*kh[aẩ]u|mat\s*khau|m[aật]\s*m[aã]|mat\s*ma|""" +
+        """m[aậ]t\s*kh[aẩ]u|mat\s*khau|m[aậ]t\s*m[aã]|mat\s*ma|mk|""" +
         """m[aã]\s*pin|ma\s*pin|m[aã]\s*puk|ma\s*puk|m[aã]\s*otp|ma\s*otp|""" +
         """m[aã]\s*x[aá]c\s*th[uự]c|ma\s*xac\s*thuc|m[aã]\s*x[aá]c\s*nh[aậ]n|ma\s*xac\s*nhan|""" +
         """m[aã]\s*b[aả]o\s*m[aậ]t|ma\s*bao\s*mat|m[aã]\s*b[aả]o\s*v[eệ]|ma\s*bao\s*ve|""" +
         """t[aà]i\s*kho[aả]n\s*ng[aâ]n\s*h[aà]ng|tai\s*khoan\s*ngan\s*hang|""" +
         """s[oố]\s*t[aà]i\s*kho[aả]n|so\s*tai\s*khoan|stk|s[oố]\s*th[eẻ]|so\s*the|""" +
-        """password|passwd|passcode|pwd|""" +
-        """pin\s*code|puk\s*code|otp\s*code|otp|""" +
-        """secret\s*key|auth\s*code|authentication\s*code|verification\s*code|security\s*code|""" +
-        """access\s*code|credentials|login\s*info|2fa|mfa|""" +
-        """passwort|kennwort|geheimzahl|sicherheitscode|bestätigungscode|verifizierungscode|einmalpasswort|zugangscode|geheimschlüssel|""" +
-        """пароль|пвд|пин-код|пин\s*код|пук-код|пук\s*код|отп|одноразовый\s*пароль|""" +
-        """код\s*подтверждения|код\s*проверки|код\s*безопасности|секретный\s*код|код\s*доступа""" +
+        // Bỏ: "mã" đơn và "ma" đơn → false positive ("gặp ma", "quét mã QR")
+        // Các từ ghép mã pin, mã otp, mật khẩu... vẫn còn ở trên
+        """password|passwd|passcode|pass|pwd|pw|""" +
+        """pin\\s*code|pin|puk\\s*code|puk|otp\\s*code|otp|""" +
+        """secret\\s*key|secret|auth\\s*code|authentication\\s*code|verification\\s*code|security\\s*code|""" +
+        """access\\s*code|credentials|login\\s*info|2fa|mfa|token|cvv|""" +
+        """passwort|kennwort|geheimzahl|geheimcode|sicherheitscode|sicherheitsschlüssel|bestätigungscode|verifizierungscode|einmalpasswort|zugangscode|geheimschlüssel|freigabecode|""" +
+        """пароль|пас|пак|пар|пвд|пин-код|пин\\s*код|пин|пук-код|пук\\s*код|пук|отп|одноразовый\\s*пароль|одноразовый\\s*код|""" +
+        """код\\s*подтверждения|код\\s*проверки|код\\s*безопасности|секретный\\s*код|код\\s*доступа|шифр|ключ\\s*безопасности""" +
         """)(?![\p{L}\p{N}])|""" +
-        // --- 5. TIẾNG NHẬT (bỏ: "パス" đơn, "暗号" có dùng thông thường)
-        """パスワード|暗証番号|認証コード|確認コード|ワンタイムパスワード|合言葉|セキュリティコード|PINコード|PUKコード|秘密鍵""" +
+        // --- 2. TIẾNG NHẬT (Không dùng khoảng trắng giữa từ và trợ từ ngữ pháp) ---
+        """パスワード|パス|暗証番号|暗証|暗号|認証コード|確認コード|ワンタイムパスワード|合言葉|セキュリティコード|PINコード|PUKコード|秘密鍵|解除コード|アクセスコード""" +
         """)"""
     )
 

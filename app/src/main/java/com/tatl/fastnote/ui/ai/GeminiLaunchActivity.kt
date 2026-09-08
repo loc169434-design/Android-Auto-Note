@@ -113,7 +113,6 @@ class GeminiLaunchActivity : ComponentActivity() {
             com.tatl.fastnote.data.user.AppLanguage.RUSSIAN    -> "Нет заметок. Сначала запишите!"
             else -> "No notes yet. Please record first!"
         }
-        Toast.makeText(this, noNotesMsg, Toast.LENGTH_SHORT).show()
 
         // Mở Recording thay vì Gemini
         val recordIntent = Intent(this, com.tatl.fastnote.ui.recording.RecordingActivity::class.java).apply {
@@ -157,7 +156,6 @@ class GeminiLaunchActivity : ComponentActivity() {
                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 })
             } catch (ex: Exception) {
-                Toast.makeText(this, getString(com.tatl.fastnote.R.string.str_toast_cannot_open_gemini), Toast.LENGTH_SHORT).show()
             }
         }
     }

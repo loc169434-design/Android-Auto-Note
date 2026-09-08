@@ -376,14 +376,6 @@ fun FileViewerScreen(
                 }
             }
         }
-
-        // -- AppToast: cảnh báo khi có gắng xóa dòng thời gian --
-        AppToast(
-            visible = showProtectToast,
-            message = stringResource(R.string.str_protect_toast),
-            durationMs = 2000L,
-            onDismiss = { showProtectToast = false }
-        )
     }
 }
 

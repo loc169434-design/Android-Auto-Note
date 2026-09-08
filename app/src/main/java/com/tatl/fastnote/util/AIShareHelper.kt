@@ -96,11 +96,6 @@ object AIShareHelper {
             } else {
                 "No notes available to share with AI."
             }
-            android.widget.Toast.makeText(
-                context,
-                msg,
-                android.widget.Toast.LENGTH_SHORT
-            ).show()
             return
         }
 
@@ -145,11 +140,6 @@ object AIShareHelper {
                         com.tatl.fastnote.data.user.AppLanguage.RUSSIAN    -> "AI-приложение не найдено. Установите Gemini или ChatGPT."
                         else -> "No AI app found. Please install Gemini or ChatGPT."
                     }
-                    android.widget.Toast.makeText(
-                        context,
-                        msg,
-                    android.widget.Toast.LENGTH_LONG
-                ).show()
             }
         }
     }

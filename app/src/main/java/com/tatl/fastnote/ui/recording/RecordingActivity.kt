@@ -92,12 +92,6 @@ class RecordingActivity : ComponentActivity() {
         if (audioGranted) {
             startRecordingService()
         } else {
-            Toast.makeText(
-                this,
-                "Cần quyền ghi âm để sử dụng tính năng này",
-                Toast.LENGTH_LONG
-            ).show()
-            finish()
         }
     }
 
@@ -238,7 +232,6 @@ class RecordingActivity : ComponentActivity() {
         val isExpired = com.tatl.fastnote.billing.TrialManager.isTrialExpired(this)
         if (!isPrem && isExpired) {
             val blockedMsg = com.tatl.fastnote.billing.TrialManager.getSaveBlockedMessage(this)
-            Toast.makeText(this, blockedMsg, Toast.LENGTH_LONG).show()
             stopRecordingService()
             finishAndRemoveTask()
             return

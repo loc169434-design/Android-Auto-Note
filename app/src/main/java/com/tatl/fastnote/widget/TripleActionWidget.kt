@@ -56,18 +56,16 @@ class TripleActionWidget : GlanceAppWidget() {
     override val sizeMode: SizeMode = SizeMode.Exact
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        // AI button bị khoá chỉ khi trial hết hạn VÀ chưa mua Premium
-        val isPrem = com.tatl.fastnote.billing.PremiumManager.isPremiumCached(context)
-        val trialExpired = !isPrem && TrialManager.isTrialExpired(context)
+        // AI share luôn cho phép, không phụ thuộc trial
         provideContent {
             GlanceTheme {
-                WidgetContent(trialExpired = trialExpired)
+                WidgetContent()
             }
         }
     }
 
     @Composable
-    private fun WidgetContent(trialExpired: Boolean) {
+    private fun WidgetContent() {
         val size = LocalSize.current
 
         // Tính toán kích thước icon linh hoạt theo kích thước thực tế của widget trên launcher
@@ -119,7 +117,7 @@ class TripleActionWidget : GlanceAppWidget() {
 
                 Spacer(modifier = GlanceModifier.width(spacerWidth))
 
-                // ── 3. Não (AI) — nút pill bên phải ──────────────────────────
+                // ── 3. Não (AI) — luôn cho phép share, không block trial ────
                 PillIconButton(
                     iconRes            = R.drawable.ic_ai,
                     contentDescription = "AI",
@@ -127,12 +125,7 @@ class TripleActionWidget : GlanceAppWidget() {
                     modifier           = GlanceModifier
                         .defaultWeight()
                         .fillMaxHeight()
-                        .clickable(
-                            if (trialExpired)
-                                actionRunCallback<TrialExpiredCallback>()
-                            else
-                                actionStartActivity<GeminiLaunchActivity>()
-                        )
+                        .clickable(actionStartActivity<GeminiLaunchActivity>())
                 )
             }
         }

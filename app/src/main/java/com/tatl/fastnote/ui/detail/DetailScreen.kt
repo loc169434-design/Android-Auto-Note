@@ -86,11 +86,7 @@ fun DetailScreen(
                                 chooser.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
                                 context.startActivity(chooser)
                             } catch (e: Exception) {
-                                android.widget.Toast.makeText(
-                                    context,
-                                    "Không thể chia sẻ. Vui lòng thử lại.",
-                                    android.widget.Toast.LENGTH_SHORT
-                                ).show()
+
                             }
                         }
                     }) {

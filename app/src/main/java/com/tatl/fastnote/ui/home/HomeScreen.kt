@@ -180,6 +180,9 @@ fun HomeScreen(
         mutableStateOf(PinWidgetHelper.isWidgetActive(context, TripleActionWidgetReceiver::class.java))
     }
     var refreshKey by remember { mutableIntStateOf(0) }
+    // ── Scroll về đầu mỗi khi vào lại từ ngoài (ON_RESUME) ─────────────────────
+    // Tách bạch hoàn toàn với refreshKey (reload data) và fileEntries (nội dung thay đổi)
+    var scrollToTopKey by remember { mutableIntStateOf(0) }
     var fileEntries by remember { mutableStateOf<List<FileHelper.NoteEntry>>(emptyList()) }
     var searchActive by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
@@ -607,6 +610,9 @@ fun HomeScreen(
                 }
             } else if (event == Lifecycle.Event.ON_RESUME) {
                 refreshKey++
+                // Trường hợp 1: Vào từ ngoài (từ RecordingActivity, Settings, widget...)
+                // → Luôn scroll về đầu danh sách, không phụ thuộc fileEntries có thay đổi không
+                scrollToTopKey++
                 // Bug 1.4 fix: reset search box when returning to HomeScreen
                 searchActive = false
                 searchQuery = ""
@@ -659,9 +665,17 @@ fun HomeScreen(
     }
 
 
-    // Bug 1.3: cuộn về đầu mỗi khi fileEntries được reload
+    // Trường hợp 2: fileEntries reload có thay đổi nội dung → cũng scroll về đầu (nếu không search)
     LaunchedEffect(fileEntries) {
         if (fileEntries.isNotEmpty() && !searchActive) {
+            listState.scrollToItem(0)
+        }
+    }
+
+    // Trường hợp 1: Vào từ ngoài (ON_RESUME) → LUÔN scroll về đầu, bất kể nội dung có đổi không
+    // Tách khỏi LaunchedEffect(fileEntries) để đảm bảo chạy kể cả khi danh sách không đổi
+    LaunchedEffect(scrollToTopKey) {
+        if (scrollToTopKey > 0 && !searchActive) {
             listState.scrollToItem(0)
         }
     }

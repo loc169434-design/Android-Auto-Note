@@ -2,7 +2,6 @@ package com.tatl.fastnote
 
 import android.content.Intent
 import android.os.Bundle
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
@@ -90,19 +89,9 @@ class MainActivity : ComponentActivity() {
             val account = task.getResult(ApiException::class.java)
             Log.d(TAG, "Google sign-in OK: ${account.email}")
             com.tatl.fastnote.data.user.UserManager.updateProfileFromGoogle(account)
-            Toast.makeText(
-                this@MainActivity,
-                getString(R.string.str_toast_drive_connected, account.email ?: ""),
-                Toast.LENGTH_SHORT
-            ).show()
             lifecycleScope.launch {
                 val ok = com.tatl.fastnote.sync.GoogleDriveSyncManager.sync(applicationContext)
                 if (ok) {
-                    Toast.makeText(
-                        this@MainActivity,
-                        getString(R.string.str_toast_drive_sync_success),
-                        Toast.LENGTH_SHORT
-                    ).show()
                 }
                 kotlinx.coroutines.delay(600L)
                 // Chỉ khi đã đồng bộ Google Drive hoàn tất thì mới mở popup chờ (Send PC)
@@ -112,11 +101,6 @@ class MainActivity : ComponentActivity() {
         } catch (e: Exception) {
             Log.e(TAG, "Google sign-in failed", e)
             val code = if (e is ApiException) " (Mã: ${e.statusCode})" else if (e.cause is ApiException) " (Mã: ${(e.cause as ApiException).statusCode})" else ""
-            Toast.makeText(
-                this@MainActivity,
-                getString(R.string.str_toast_google_signin_incomplete, code),
-                Toast.LENGTH_LONG
-            ).show()
             pendingActionAfterPremium = null
         }
     }
@@ -199,11 +183,7 @@ class MainActivity : ComponentActivity() {
         // ── Trial: record first launch + show countdown toast ─────────────────
         TrialManager.initFirstLaunch(applicationContext)
         if (TrialManager.shouldShowCountdown(applicationContext)) {
-            Toast.makeText(
-                this,
-                TrialManager.getCountdownMessage(applicationContext),
-                Toast.LENGTH_LONG
-            ).show()
+
         }
 
         // Từ widget callback khi trial hết hạn
@@ -295,11 +275,6 @@ class MainActivity : ComponentActivity() {
                                     finish()
                                 } else {
                                     lastBackMs = now
-                                    Toast.makeText(
-                                        this@MainActivity,
-                                        getString(R.string.str_toast_press_back_again_to_exit),
-                                        Toast.LENGTH_SHORT
-                                    ).show()
                                 }
                             }
 
@@ -313,12 +288,7 @@ class MainActivity : ComponentActivity() {
                                 },
                                 onAIShareClick = {
                                     lifecycleScope.launch {
-                                        val isPrem = isPremiumUser || com.tatl.fastnote.billing.PremiumManager.isPremium(this@MainActivity)
-                                        val isExpired = com.tatl.fastnote.billing.TrialManager.isTrialExpired(this@MainActivity)
-                                        if (!isPrem && isExpired) {
-                                            showPremiumDialog = true
-                                            return@launch
-                                        }
+                                        // Share AI luôn cho phép dù hết hạn trial
                                         val todayText = viewModel.getTodayNotesText()
                                         AIShareHelper.launchAIShare(this@MainActivity, todayText)
                                     }
@@ -334,11 +304,6 @@ class MainActivity : ComponentActivity() {
                                         if (isPrem) {
                                             val googleAccount = GoogleSignIn.getLastSignedInAccount(this@MainActivity)
                                             if (googleAccount == null) {
-                                                Toast.makeText(
-                                                    this@MainActivity,
-                                                    getString(R.string.str_toast_select_google_for_send_pc),
-                                                    Toast.LENGTH_SHORT
-                                                ).show()
                                                 pendingActionAfterPremium = { showSendPcDialog = true }
                                                 launchGoogleSignInForDrive()
                                             } else {
@@ -371,21 +336,11 @@ class MainActivity : ComponentActivity() {
                                 onSyncClick = {
                                     val googleAccount = GoogleSignIn.getLastSignedInAccount(this@MainActivity)
                                     if (googleAccount == null) {
-                                        Toast.makeText(
-                                            this@MainActivity,
-                                            getString(R.string.str_toast_select_google_for_backup),
-                                            Toast.LENGTH_SHORT
-                                        ).show()
                                         launchGoogleSignInForDrive()
                                     } else {
                                         lifecycleScope.launch {
                                             val ok = com.tatl.fastnote.sync.GoogleDriveSyncManager.sync(applicationContext)
                                             if (ok) {
-                                                Toast.makeText(
-                                                    this@MainActivity,
-                                                    getString(R.string.str_toast_drive_sync_success),
-                                                    Toast.LENGTH_SHORT
-                                                ).show()
                                             }
                                         }
                                     }
@@ -397,11 +352,6 @@ class MainActivity : ComponentActivity() {
                                         GoogleSignInOptions.DEFAULT_SIGN_IN
                                     ).signOut()
                                     com.tatl.fastnote.data.user.UserManager.init(this@MainActivity)
-                                    Toast.makeText(
-                                        this@MainActivity,
-                                        getString(R.string.str_toast_logged_out_google),
-                                        Toast.LENGTH_SHORT
-                                    ).show()
                                 },
                                 onBack = { navController.popBackStack() }
                             )
@@ -427,20 +377,10 @@ class MainActivity : ComponentActivity() {
                                     com.tatl.fastnote.billing.PremiumManager.setPremium(context = this@MainActivity)
                                     val googleAccount = GoogleSignIn.getLastSignedInAccount(this@MainActivity)
                                     if (googleAccount == null) {
-                                        Toast.makeText(
-                                            this@MainActivity,
-                                            getString(R.string.str_toast_select_google_for_drive_activation),
-                                            Toast.LENGTH_LONG
-                                        ).show()
                                         launchGoogleSignInForDrive()
                                     } else {
                                         com.tatl.fastnote.sync.GoogleDriveSyncManager.sync(applicationContext)
                                         com.tatl.fastnote.sync.CloudSyncManager.syncFromCloud(applicationContext)
-                                        Toast.makeText(
-                                            this@MainActivity,
-                                            getString(R.string.str_toast_premium_and_drive_unlocked),
-                                            Toast.LENGTH_SHORT
-                                        ).show()
                                         pendingActionAfterPremium?.invoke()
                                         pendingActionAfterPremium = null
                                     }
@@ -467,11 +407,6 @@ class MainActivity : ComponentActivity() {
                                         this@MainActivity, pwd
                                     )
                                     if (err != null) {
-                                        Toast.makeText(
-                                            this@MainActivity,
-                                            err,
-                                            Toast.LENGTH_LONG
-                                        ).show()
                                     }
                                 }
                             }
@@ -486,10 +421,5 @@ class MainActivity : ComponentActivity() {
     private fun showTrialExpiredToast() {
         // Dùng localizedContext để toast hiển thị đúng ngôn ngữ app đang chọn
         val localizedCtx = com.tatl.fastnote.data.user.LanguageManager.getLocalizedContext(this)
-        Toast.makeText(
-            localizedCtx,
-            localizedCtx.getString(R.string.str_toast_trial_expired_30_days),
-            Toast.LENGTH_LONG
-        ).show()
     }
 }
