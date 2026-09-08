@@ -615,10 +615,10 @@ fun HomeScreen(
                 // Bug 1.4 fix: reset search box when returning to HomeScreen
                 searchActive = false
                 searchQuery = ""
+                // Chỉ cập nhật state local, không reset hasPinnedWidget ở đây
+                // Tránh race condition: AppWidgetManager chưa load IDs kịp khi Activity resume
+                // → việc set hasPinnedWidget=false do widget bị xoá đã có TripleActionWidgetReceiver lo
                 widgetActiveNow = PinWidgetHelper.isWidgetActive(context, TripleActionWidgetReceiver::class.java)
-                if (!widgetActiveNow && ThemePreferences.hasPinnedWidget.value) {
-                    ThemePreferences.setWidgetPinned(false)
-                }
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
@@ -639,10 +639,8 @@ fun HomeScreen(
     }
 
     LaunchedEffect(hasPinnedWidget) {
+        // Chỉ sync local state, không ghi ngược vào ThemePreferences
         widgetActiveNow = PinWidgetHelper.isWidgetActive(context, TripleActionWidgetReceiver::class.java)
-        if (hasPinnedWidget && !widgetActiveNow) {
-            ThemePreferences.setWidgetPinned(false)
-        }
     }
 
     LaunchedEffect(refreshKey) {
