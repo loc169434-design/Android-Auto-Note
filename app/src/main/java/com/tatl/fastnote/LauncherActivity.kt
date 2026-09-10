@@ -20,19 +20,24 @@ class LauncherActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Đọc trực tiếp từ SharedPreferences để tránh race condition với StateFlow
+        // Kiểm tra thực tế xem widget có đang tồn tại trên màn hình chính của launcher hay không
         val isWidgetActive = PinWidgetHelper.isWidgetActive(this, TripleActionWidgetReceiver::class.java)
         val prefs = getSharedPreferences("auto_note_prefs", Context.MODE_PRIVATE)
         val hasPinned = prefs.getBoolean("has_pinned_widget", false)
 
-        if (hasPinned && isWidgetActive) {
+        if (isWidgetActive) {
+            // Widget đang active trên launcher (kể cả vừa xoá dữ liệu app)
+            // -> Đồng bộ lại preference và mở thẳng Mic
+            if (!hasPinned) {
+                ThemePreferences.setWidgetPinned(true)
+            }
             val recordIntent = Intent(this, RecordingActivity::class.java).apply {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
             }
             startActivity(recordIntent)
         } else {
             // Nếu widget không còn active trên launcher, đồng bộ lại preference
-            if (hasPinned && !isWidgetActive) {
+            if (hasPinned) {
                 ThemePreferences.setWidgetPinned(false)
             }
             val mainIntent = Intent(this, MainActivity::class.java).apply {

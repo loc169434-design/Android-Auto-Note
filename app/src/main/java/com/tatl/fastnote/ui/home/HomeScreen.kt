@@ -617,8 +617,12 @@ fun HomeScreen(
                 searchQuery = ""
                 // Chỉ cập nhật state local, không reset hasPinnedWidget ở đây
                 // Tránh race condition: AppWidgetManager chưa load IDs kịp khi Activity resume
-                // → việc set hasPinnedWidget=false do widget bị xoá đã có TripleActionWidgetReceiver lo
                 widgetActiveNow = PinWidgetHelper.isWidgetActive(context, TripleActionWidgetReceiver::class.java)
+                if (widgetActiveNow && !ThemePreferences.hasPinnedWidget.value) {
+                    ThemePreferences.setWidgetPinned(true)
+                } else if (!widgetActiveNow && ThemePreferences.hasPinnedWidget.value) {
+                    ThemePreferences.setWidgetPinned(false)
+                }
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
@@ -732,9 +736,8 @@ fun HomeScreen(
         }
     }
 
-    val widgetWasRemoved = hasPinnedWidget && !widgetActiveNow
-    val shouldShowWidgetPrompt = !hasPinnedWidget || widgetWasRemoved || showManualPinPrompt
-    val isPromptMandatory = !hasPinnedWidget || widgetWasRemoved
+    val shouldShowWidgetPrompt = !widgetActiveNow || showManualPinPrompt
+    val isPromptMandatory = !widgetActiveNow
 
     // ─────────────────────────────────────────────────────────────────────────
     //  ROOT: Nền Slate-Blue gradient mượt mà theo ảnh thiết kế

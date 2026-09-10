@@ -129,16 +129,18 @@ class MainActivity : ComponentActivity() {
         }
         if (!fromWidgetNote && !showTrialExpired) {
             val isWidgetActive = PinWidgetHelper.isWidgetActive(this, TripleActionWidgetReceiver::class.java)
-            if (!isWidgetActive && ThemePreferences.hasPinnedWidget.value) {
-                ThemePreferences.setWidgetPinned(false)
-            }
-            if (isWidgetActive && ThemePreferences.hasPinnedWidget.value) {
+            if (isWidgetActive) {
+                if (!ThemePreferences.hasPinnedWidget.value) {
+                    ThemePreferences.setWidgetPinned(true)
+                }
                 val recordIntent = Intent(this, RecordingActivity::class.java).apply {
                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
                 }
                 startActivity(recordIntent)
                 finishAffinity()
                 finishAndRemoveTask()
+            } else if (ThemePreferences.hasPinnedWidget.value) {
+                ThemePreferences.setWidgetPinned(false)
             }
         }
     }
@@ -156,10 +158,10 @@ class MainActivity : ComponentActivity() {
         // Nếu chưa có widget -> Vào Home để hiện màn hình mời tạo Widget
         if (!fromWidgetNote && !showTrialExpired) {
             val isWidgetActive = PinWidgetHelper.isWidgetActive(this, TripleActionWidgetReceiver::class.java)
-            if (!isWidgetActive && ThemePreferences.hasPinnedWidget.value) {
-                ThemePreferences.setWidgetPinned(false)
-            }
-            if (isWidgetActive && ThemePreferences.hasPinnedWidget.value) {
+            if (isWidgetActive) {
+                if (!ThemePreferences.hasPinnedWidget.value) {
+                    ThemePreferences.setWidgetPinned(true)
+                }
                 val recordIntent = Intent(this, RecordingActivity::class.java).apply {
                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
                 }
@@ -167,6 +169,8 @@ class MainActivity : ComponentActivity() {
                 finishAffinity()
                 finishAndRemoveTask()
                 return
+            } else if (ThemePreferences.hasPinnedWidget.value) {
+                ThemePreferences.setWidgetPinned(false)
             }
         }
 

@@ -38,24 +38,27 @@ object ThemePreferences {
             AppTheme.OCEAN_BLUE
         }
 
-        // Migration: nếu widget version thay đổi, reset trạng thái pin để buộc
-        // người dùng thêm lại widget. Chạy TRƯỚC khi check isWidgetActive
-        // để tránh bị phantom widget IDs (ID ảo) ghi đè lại kết quả migration.
-        val savedWidgetVersion = prefs.getInt(KEY_WIDGET_VERSION, 0)
-        if (savedWidgetVersion < WIDGET_VERSION) {
+        // Kiểm tra trạng thái thực tế từ AppWidgetManager trên hệ thống
+        val isActuallyActive = PinWidgetHelper.isWidgetActive(
+            context,
+            com.tatl.fastnote.widget.TripleActionWidgetReceiver::class.java
+        )
+
+        if (isActuallyActive) {
+            // Nếu widget đang active trên launcher (kể cả sau khi người dùng xóa data app hoặc fresh update)
+            // -> Giữ nguyên trạng thái đã ghim, không bắt người dùng tạo lại widget
+            _hasPinnedWidget.value = true
+            prefs.edit()
+                .putBoolean(KEY_WIDGET_PINNED, true)
+                .putInt(KEY_WIDGET_VERSION, WIDGET_VERSION)
+                .apply()
+        } else {
+            // Widget không active trên launcher
             _hasPinnedWidget.value = false
             prefs.edit()
                 .putBoolean(KEY_WIDGET_PINNED, false)
                 .putInt(KEY_WIDGET_VERSION, WIDGET_VERSION)
                 .apply()
-        } else {
-            // Không migration → đồng bộ trạng thái thực tế từ AppWidgetManager
-            val isActuallyActive = PinWidgetHelper.isWidgetActive(
-                context,
-                com.tatl.fastnote.widget.TripleActionWidgetReceiver::class.java
-            )
-            _hasPinnedWidget.value = isActuallyActive
-            prefs.edit().putBoolean(KEY_WIDGET_PINNED, isActuallyActive).apply()
         }
     }
 
