@@ -29,6 +29,10 @@ object TrialManager {
     // NHỚ ĐẶT LẠI false TRƯỚC KHI PUSH LÊN STORE!
     private const val DEBUG_FORCE_EXPIRED = false
 
+    // ⚠️ DEBUG ONLY — đặt true để giả lập ngày 29 (daysUsed=28, còn 2 ngày) → test banner nhắc nhở
+    // NHỚ ĐẶT LẠI false TRƯỚC KHI PUSH LÊN STORE!
+    private const val DEBUG_FORCE_DAY_28 = false
+
     private fun prefs(ctx: Context): SharedPreferences =
         ctx.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
@@ -105,7 +109,8 @@ object TrialManager {
     }
 
     fun getDaysUsed(ctx: Context): Long {
-        if (DEBUG_FORCE_EXPIRED) return TRIAL_DAYS  // DEBUG: giả lập hết hạn
+        if (DEBUG_FORCE_EXPIRED) return TRIAL_DAYS      // DEBUG: giả lập ngày 31+ (hết hạn)
+        if (DEBUG_FORCE_DAY_28)  return 28L             // DEBUG: giả lập ngày 29 (còn 2 ngày, hiện banner nhắc)
         val first = getFirstLaunchDate(ctx) ?: return 0L
         val effectiveDate = getEffectiveDate(ctx)
         return ChronoUnit.DAYS.between(first, effectiveDate).coerceAtLeast(0)

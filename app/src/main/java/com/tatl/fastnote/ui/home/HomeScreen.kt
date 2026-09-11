@@ -1458,23 +1458,7 @@ fun HomeScreen(
                                     entry = entry,
                                     searchQuery = searchQuery,
                                     isActiveMatch = searchActive && searchQuery.isNotBlank() && index == activeEntryIdx,
-                                    activeOccurrenceInEntry = activeOccurrenceForThisEntry,
-                                    onLongClick = {
-                                        // Khóa Edit Mode từ ngày 31
-                                        val isPrem = com.tatl.fastnote.billing.PremiumManager.isPremiumCached(context)
-                                        val isExp  = com.tatl.fastnote.billing.TrialManager.isTrialExpired(context)
-                                        if (!isPrem && isExp) {
-                                            onPremiumClick()
-                                        } else {
-                                            openEditModeAtTarget(
-                                                targetEntryIndex = index,
-                                                searchKeyword = if (searchActive && searchQuery.isNotBlank()) searchQuery else null,
-                                                searchOccurrenceRank = if (searchActive && searchQuery.isNotBlank() && index == activeEntryIdx)
-                                                    activeContentOccurrenceRank.coerceAtLeast(0)
-                                                else 0
-                                            )
-                                        }
-                                    }
+                                    activeOccurrenceInEntry = activeOccurrenceForThisEntry
                                 )
                                 Spacer(Modifier.height(18.dp))
                             }
@@ -1720,8 +1704,7 @@ private fun NoteEntryItem(
     entry: FileHelper.NoteEntry,
     searchQuery: String,
     isActiveMatch: Boolean = false,
-    activeOccurrenceInEntry: Int = -1,
-    onLongClick: () -> Unit = {}
+    activeOccurrenceInEntry: Int = -1
 ) {
     val annotatedString = remember(entry.header, entry.content, searchQuery, activeOccurrenceInEntry) {
         buildFormattedNoteEntry(entry.header, entry.content, searchQuery, activeOccurrenceInEntry)
@@ -1755,15 +1738,7 @@ private fun NoteEntryItem(
                 lineHeight = 22.sp,
                 letterSpacing = 0.1.sp
             ),
-
-            modifier = Modifier
-                .fillMaxWidth()
-                .combinedClickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null,
-                    onClick = {}, // Chạm thường hoặc vuốt cuộn màn hình không bị ảnh hưởng
-                    onLongClick = onLongClick // Tính năng ẩn: Nhấn giữ (long press) để sửa ngay tại dòng này
-                )
+            modifier = Modifier.fillMaxWidth()
         )
     }
 }
