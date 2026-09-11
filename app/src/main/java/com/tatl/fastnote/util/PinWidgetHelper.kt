@@ -49,11 +49,19 @@ object PinWidgetHelper {
                 val successCallback = PendingIntent.getBroadcast(
                     context, 0, callbackIntent, pendingFlags
                 )
-                appWidgetManager.requestPinAppWidget(myProvider, null, successCallback)
 
-                // Strategy B: Polling fallback (handles MIUI, OnePlus, etc.)
-                // Runs in parallel — whichever fires first wins via KEY_HANDLED flag.
-                WidgetPlacedReceiver.startWatching(context)
+                try {
+                    // requestPinAppWidget yêu cầu app đang ở foreground.
+                    // Nếu user kịp nhấn Home trước khi dialog hiện → IllegalStateException → bỏ qua
+                    appWidgetManager.requestPinAppWidget(myProvider, null, successCallback)
+
+                    // Strategy B: Polling fallback (handles MIUI, OnePlus, etc.)
+                    // Runs in parallel — whichever fires first wins via KEY_HANDLED flag.
+                    WidgetPlacedReceiver.startWatching(context)
+                } catch (e: IllegalStateException) {
+                    // App không còn foreground khi gọi requestPinAppWidget — bỏ qua, không crash
+                    android.util.Log.w("PinWidgetHelper", "requestPinAppWidget failed: app not in foreground", e)
+                }
             }
             // else: launcher không hỗ trợ pin tự động — im lặng, không toast
         }
