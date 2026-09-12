@@ -275,8 +275,11 @@ fun RecordingScreenContent(
                 // -- Dòng thông báo đếm ngược / Khóa App (Từ ngày 29 trở đi) --
                 val shouldShowBanner = com.tatl.fastnote.billing.TrialManager.shouldShowMicBanner(localizedContext, isPremiumUser)
                 val bannerText = com.tatl.fastnote.billing.TrialManager.getMicBannerMessage(localizedContext)
+                val isExpired = com.tatl.fastnote.billing.TrialManager.isTrialExpired(localizedContext)
 
                 if (shouldShowBanner && bannerText != null) {
+                    // Ngày 29-30 (warning): chữ xanh — Ngày 31+ (hết hạn): chữ vàng
+                    val bannerTextColor = if (isExpired) Color(0xFFFFD700) else Color(0xFF38BDF8)
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -292,7 +295,7 @@ fun RecordingScreenContent(
                             fontFamily = InterFontFamily,
                             fontWeight = FontWeight.Medium,
                             fontSize = 13.sp,
-                            color = Color(0xFFFFD700), // Màu vàng sang trọng, nổi bật
+                            color = bannerTextColor,
                             textAlign = TextAlign.Center,
                             lineHeight = 19.sp
                         )

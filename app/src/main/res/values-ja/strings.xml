@@ -105,7 +105,7 @@
     <string name="str_premium_product_err">商品を読み込めませんでした。後で再試してください。</string>
     <string name="str_premium_no_purchase">以前の購入が見つかりませんでした。</string>
     <string name="str_premium_checking">確認中...</string>
-    <string name="str_premium_restore_hint">購入済みですか？タップして復元</string>
+    <string name="str_premium_restore_hint">購入済みですか？タップして復元!</string>
     <string name="str_premium_later">後で</string>
     <string name="str_btn_share">シェア</string>
 

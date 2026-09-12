@@ -111,7 +111,7 @@
     <string name="str_premium_product_err">Product unavailable. Please try again later.</string>
     <string name="str_premium_no_purchase">No previous purchase found.</string>
     <string name="str_premium_checking">Checking...</string>
-    <string name="str_premium_restore_hint">Previously purchased? Tap to restore</string>
+    <string name="str_premium_restore_hint">Previously purchased? Tap to restore!</string>
     <string name="str_premium_later">LATER</string>
     <string name="str_btn_share">Share</string>
     <!-- PinWidgetBottomSheet -->

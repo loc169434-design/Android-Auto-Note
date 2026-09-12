@@ -105,7 +105,7 @@
     <string name="str_premium_product_err">Produkt nicht verfügbar. Später erneut versuchen.</string>
     <string name="str_premium_no_purchase">Kein früherer Kauf gefunden.</string>
     <string name="str_premium_checking">Wird geprüft...</string>
-    <string name="str_premium_restore_hint">Bereits gekauft? Tippen zum Wiederherstellen</string>
+    <string name="str_premium_restore_hint">Bereits gekauft? Tippen zum Wiederherstellen!</string>
     <string name="str_premium_later">SPÄTER</string>
     <string name="str_btn_share">Teilen</string>
 

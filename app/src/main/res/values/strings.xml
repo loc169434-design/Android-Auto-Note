@@ -118,7 +118,7 @@
     <string name="str_premium_product_err">Không tải được sản phẩm. Thử lại sau.</string>
     <string name="str_premium_no_purchase">Không tìm thấy giao dịch trước đó.</string>
     <string name="str_premium_checking">Đang kiểm tra...</string>
-    <string name="str_premium_restore_hint">Đã mua trước đó? Chạm để khôi phục</string>
+    <string name="str_premium_restore_hint">Đã mua trước đó? Chạm để khôi phục!</string>
     <string name="str_premium_later">ĐỂ SAU</string>
     <string name="str_btn_share">Chia sẻ</string>
 

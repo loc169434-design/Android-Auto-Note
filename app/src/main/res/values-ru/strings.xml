@@ -105,7 +105,7 @@
     <string name="str_premium_product_err">Продукт недоступен. Попробуйте позже.</string>
     <string name="str_premium_no_purchase">Предыдущая покупка не найдена.</string>
     <string name="str_premium_checking">Проверка...</string>
-    <string name="str_premium_restore_hint">Уже купили? Нажмите для восстановления</string>
+    <string name="str_premium_restore_hint">Уже купили? Нажмите для восстановления!</string>
     <string name="str_premium_later">ПОТОМ</string>
     <string name="str_btn_share">Отправить</string>
 
