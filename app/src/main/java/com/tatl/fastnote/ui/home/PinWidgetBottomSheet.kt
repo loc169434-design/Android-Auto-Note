@@ -8,6 +8,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
@@ -30,6 +31,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -47,7 +49,7 @@ private val BgTop          = Color(0xFF1A2B39)
 private val BgMid          = Color(0xFF12202C)
 private val BgBottom       = Color(0xFF0C161F)
 private val WidgetCardBg   = Color(0xFF142433).copy(alpha = 0.9f)
-private val WidgetCardBorder = Color(0xFF38BDF8)
+private val WidgetCardBorder = Color(0xFF2E5470)  // slate-blue trầm, hợp nền tối
 private val TextTitle      = Color(0xFFF8FAFC)
 private val TextMuted      = Color(0xFF94A3B8)
 
@@ -120,13 +122,91 @@ fun PinWidgetBottomSheet(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
-                    // Icon Widget nổi bật
-                    Icon(
-                        imageVector = Icons.Default.Widgets,
-                        contentDescription = stringResource(R.string.str_widget_icon_desc),
-                        tint = Color(0xFF38BDF8),
-                        modifier = Modifier.size(48.dp)
-                    )
+                    // Preview widget thực tế: pill container + 3 icon như widget ngoài màn hình
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(72.dp)
+                            .background(
+                                color = Color(0xFF0D1B27).copy(alpha = 0.85f),
+                                shape = RoundedCornerShape(36.dp)
+                            )
+                            .then(
+                                Modifier.background(
+                                    brush = androidx.compose.ui.graphics.Brush.horizontalGradient(
+                                        colors = listOf(Color(0x1538BDF8), Color(0x0A38BDF8), Color(0x1538BDF8))
+                                    ),
+                                    shape = RoundedCornerShape(36.dp)
+                                )
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        // Viền glow nhẹ giả lập bằng border
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(72.dp)
+                                .background(Color.Transparent, RoundedCornerShape(36.dp))
+                                .then(
+                                    Modifier.background(
+                                        Color.Transparent,
+                                        RoundedCornerShape(36.dp)
+                                    )
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 20.dp),
+                                horizontalArrangement = Arrangement.SpaceEvenly,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                // Mic pill
+                                Box(
+                                    modifier = Modifier
+                                        .size(48.dp)
+                                        .background(Color(0x1AFFFFFF), RoundedCornerShape(14.dp)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        painter = painterResource(R.drawable.ic_mic),
+                                        contentDescription = "Mic",
+                                        tint = Color(0xFFBAC4CE),
+                                        modifier = Modifier.size(26.dp)
+                                    )
+                                }
+                                // Note pill — nổi bật hơn (icon trung tâm)
+                                Box(
+                                    modifier = Modifier
+                                        .size(48.dp)
+                                        .background(Color(0x1AFFFFFF), RoundedCornerShape(14.dp)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        painter = painterResource(R.drawable.ic_note),
+                                        contentDescription = "Note",
+                                        tint = Color(0xFFBAC4CE),
+                                        modifier = Modifier.size(26.dp)
+                                    )
+                                }
+                                // AI pill
+                                Box(
+                                    modifier = Modifier
+                                        .size(48.dp)
+                                        .background(Color(0x1AFFFFFF), RoundedCornerShape(14.dp)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        painter = painterResource(R.drawable.ic_ai),
+                                        contentDescription = "AI",
+                                        tint = Color(0xFFBAC4CE),
+                                        modifier = Modifier.size(26.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
 
                     Spacer(Modifier.height(18.dp))
 
@@ -177,4 +257,30 @@ fun PinWidgetBottomSheet(
             }
         }
     }
+}
+
+// ── Preview ───────────────────────────────────────────────────────────────────
+
+@androidx.compose.ui.tooling.preview.Preview(
+    name = "Widget Screen — Mandatory",
+    showBackground = true,
+    backgroundColor = 0xFF0C161F,
+    widthDp = 390,
+    heightDp = 844
+)
+@Composable
+private fun PreviewPinWidgetMandatory() {
+    PinWidgetBottomSheet(isMandatory = true, onDismiss = {})
+}
+
+@androidx.compose.ui.tooling.preview.Preview(
+    name = "Widget Screen — Optional (nút Để Sau)",
+    showBackground = true,
+    backgroundColor = 0xFF0C161F,
+    widthDp = 390,
+    heightDp = 844
+)
+@Composable
+private fun PreviewPinWidgetOptional() {
+    PinWidgetBottomSheet(isMandatory = false, onDismiss = {})
 }

@@ -27,7 +27,7 @@ object TrialManager {
 
     // ⚠️ DEBUG ONLY — đặt true để giả lập hết hạn trial (ngày 31+) trên mọi máy
     // NHỚ ĐẶT LẠI false TRƯỚC KHI PUSH LÊN STORE!
-    private const val DEBUG_FORCE_EXPIRED = false
+    private const val DEBUG_FORCE_EXPIRED = true
 
     // ⚠️ DEBUG ONLY — đặt true để giả lập ngày 29 (daysUsed=28, còn 2 ngày) → test banner nhắc nhở
     // NHỚ ĐẶT LẠI false TRƯỚC KHI PUSH LÊN STORE!
@@ -35,7 +35,7 @@ object TrialManager {
 
     // ⚠️ DEBUG ONLY — đặt true để giả lập ngày 30 (daysUsed=29, còn 1 ngày) → test banner nhắc nhở
     // NHỚ ĐẶT LẠI false TRƯỚC KHI PUSH LÊN STORE!
-    private const val DEBUG_FORCE_DAY_29 = true
+    private const val DEBUG_FORCE_DAY_29 = false
 
     private fun prefs(ctx: Context): SharedPreferences =
         ctx.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
