@@ -35,7 +35,8 @@
         android:localeConfig="@xml/locale_config"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.AndroidAutoNote">
+        android:theme="@style/Theme.AndroidAutoNote"
+        tools:targetApi="33">
 
         <!-- Trampoline Router for App Icon Launcher (Zero-flash routing) -->
         <activity

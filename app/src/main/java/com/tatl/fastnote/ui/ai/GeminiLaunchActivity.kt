@@ -5,8 +5,33 @@ import android.net.Uri
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.Icon
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
+import androidx.lifecycle.lifecycleScope
+import com.tatl.fastnote.R
 import com.tatl.fastnote.util.FileHelper
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * Transparent activity triggered from TripleActionWidget's Gemini button.
@@ -32,11 +57,50 @@ class GeminiLaunchActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        openGemini()
-        finish()
+
+        // Overlay pulse animation — hiện trong khi IO đang chạy nền
+        setContent {
+            val pulse by rememberInfiniteTransition(label = "ai_pulse").animateFloat(
+                initialValue = 0.85f,
+                targetValue = 1.15f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(600, easing = FastOutSlowInEasing),
+                    repeatMode = RepeatMode.Reverse
+                ),
+                label = "ai_scale"
+            )
+
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color(0x55000000)), // nền tối mờ nhẹ
+                contentAlignment = Alignment.Center
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(80.dp)
+                        .scale(pulse)
+                        .background(Color(0xFF0D1B27).copy(alpha = 0.92f), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_ai),
+                        contentDescription = "AI đang chuẩn bị",
+                        tint = Color(0xFF38BDF8),
+                        modifier = Modifier.size(38.dp)
+                    )
+                }
+            }
+        }
+
+        // Chạy IO nền, finish khi xong → overlay tự mất
+        lifecycleScope.launch {
+            openGemini()
+            finish()
+        }
     }
 
-    private fun openGemini() {
+    private suspend fun openGemini() {
         val pm = packageManager
         val launchIntent = pm.getLaunchIntentForPackage(GEMINI_PACKAGE)
 
@@ -46,7 +110,11 @@ class GeminiLaunchActivity : ComponentActivity() {
         }
 
         val isBypass = com.tatl.fastnote.util.SecretDevModeManager.isBypassSecurityLayer1(this)
-        val aiSharedFile = FileHelper.getAiSharedFile(this, bypassLayer1 = isBypass)
+
+        // ⚡ Đọc file + lọc regex trên IO thread — tránh freeze Main Thread
+        val aiSharedFile = withContext(Dispatchers.IO) {
+            FileHelper.getAiSharedFile(this@GeminiLaunchActivity, bypassLayer1 = isBypass)
+        }
 
         if (aiSharedFile.exists() && aiSharedFile.length() > 0) {
             // Build a content:// URI via FileProvider so Gemini can read the file

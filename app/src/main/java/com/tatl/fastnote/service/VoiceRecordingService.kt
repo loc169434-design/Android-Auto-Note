@@ -162,16 +162,23 @@ class VoiceRecordingService : Service() {
         _isPaused.value = false
         _autoSaveTriggered.value = false
 
-        speechRecognizer?.destroy()
-        speechRecognizer = SpeechRecognizer.createSpeechRecognizer(this).apply {
-            setRecognitionListener(createRecognitionListener())
+        try {
+            speechRecognizer?.destroy()
+            speechRecognizer = SpeechRecognizer.createSpeechRecognizer(this).apply {
+                setRecognitionListener(createRecognitionListener())
+            }
+
+            val recognizerIntent = createRecognizerIntent()
+            speechRecognizer?.startListening(recognizerIntent)
+            _isListening.value = true
+
+            Log.d(TAG, "Started listening")
+        } catch (e: Exception) {
+            // Một số máy Android 9/10 OEM có SpeechRecognizer bị lỗi nội bộ
+            // dù isRecognitionAvailable() = true → bắt để tránh crash app
+            Log.e(TAG, "SpeechRecognizer init failed: ${e.message}", e)
+            _isListening.value = false
         }
-
-        val recognizerIntent = createRecognizerIntent()
-        speechRecognizer?.startListening(recognizerIntent)
-        _isListening.value = true
-
-        Log.d(TAG, "Started listening")
     }
 
     private fun createSpeechRecognizerInstance(): SpeechRecognizer {
