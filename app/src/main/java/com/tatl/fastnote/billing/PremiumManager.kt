@@ -73,6 +73,8 @@ object PremiumManager {
         if (context != null) {
             context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
                 .edit().putBoolean(KEY_IS_PREMIUM, true).apply()
+            // Ghi nhận thời điểm nâng cấp để đếm 72h trước khi hỏi đánh giá
+            RatingManager.recordPremiumActivation(context)
         }
         val uid = AuthManager.uid ?: return
         try {

@@ -1,6 +1,6 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Zero-Friction Notes</string>
+    <string name="app_name">Z-FN</string>
 
     <string name="widget_quick_record_desc">音声によるクイックメモ録音</string>
     <string name="widget_recent_notes_desc">最近のメモを表示</string>
@@ -159,4 +159,10 @@
     <string name="str_toast_cannot_open_gemini">Gemini を開けません</string>
     <string name="str_toast_firebase_signin_failed">Firebase サインインに失敗しました</string>
 
+
+    <!-- Rating Dialog -->
+    <string name="str_rating_message">Z-FNは時間を節約するアプリです。このお知らせは一度だけ表示されます。アプリを評価してください！</string>
+    <string name="str_rating_btn_rate">アプリを評価する</string>
+    <string name="str_rating_btn_skip">スキップ</string>
 </resources>
+

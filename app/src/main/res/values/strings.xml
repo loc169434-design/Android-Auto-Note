@@ -1,6 +1,6 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Ghi Chú Lưu Vết Siêu Tốc</string>
+    <string name="app_name">Z-FN</string>
 
     <!-- Widget descriptions -->
     <string name="widget_quick_record_desc">Ghi chú nhanh bằng giọng nói</string>
@@ -172,4 +172,10 @@
     <string name="str_toast_cannot_open_gemini">Không thể mở Gemini</string>
     <string name="str_toast_firebase_signin_failed">Đăng nhập Firebase thất bại</string>
 
+
+    <!-- Rating Dialog -->
+    <string name="str_rating_message">Z-FN là một ứng dụng tiết kiệm thời gian, vì vậy bảng thông báo này sẽ chỉ xuất hiện duy nhất một lần. Xin hãy đánh giá ứng dụng!</string>
+    <string name="str_rating_btn_rate">Đánh giá ứng dụng</string>
+    <string name="str_rating_btn_skip">Bỏ qua</string>
 </resources>
+

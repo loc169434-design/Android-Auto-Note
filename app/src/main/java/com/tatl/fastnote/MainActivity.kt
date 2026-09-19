@@ -259,6 +259,10 @@ class MainActivity : ComponentActivity() {
 
                     LaunchedEffect(Unit) {
                         isPremiumUser = com.tatl.fastnote.billing.PremiumManager.isPremium(this@MainActivity)
+                        // Seed rating timer cho người dùng Premium cũ (trước khi RatingManager tồn tại)
+                        if (isPremiumUser) {
+                            com.tatl.fastnote.billing.RatingManager.seedForExistingPremium(this@MainActivity)
+                        }
                     }
 
                     NavHost(

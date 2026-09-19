@@ -1,6 +1,6 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Zero-Friction Notes</string>
+    <string name="app_name">Z-FN</string>
 
     <string name="widget_quick_record_desc">Schnelle Sprachaufnahme</string>
     <string name="widget_recent_notes_desc">Neueste Notizen anzeigen</string>
@@ -159,4 +159,10 @@
     <string name="str_toast_cannot_open_gemini">Gemini kann nicht geöffnet werden</string>
     <string name="str_toast_firebase_signin_failed">Firebase-Anmeldung fehlgeschlagen</string>
 
+
+    <!-- Rating Dialog -->
+    <string name="str_rating_message">Z-FN ist eine zeitsparende App, daher erscheint dieser Hinweis nur einmal. Bitte bewerten Sie die App!</string>
+    <string name="str_rating_btn_rate">App bewerten</string>
+    <string name="str_rating_btn_skip">Überspringen</string>
 </resources>
+

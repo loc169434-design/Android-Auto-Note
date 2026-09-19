@@ -1,6 +1,6 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Zero-Friction Notes</string>
+    <string name="app_name">Z-FN</string>
 
     <string name="widget_quick_record_desc">Быстрая голосовая запись</string>
     <string name="widget_recent_notes_desc">Показать последние заметки</string>
@@ -159,4 +159,10 @@
     <string name="str_toast_cannot_open_gemini">Не удалось открыть Gemini</string>
     <string name="str_toast_firebase_signin_failed">Ошибка входа в Firebase</string>
 
+
+    <!-- Rating Dialog -->
+    <string name="str_rating_message">Z-FN — приложение, экономящее время. Это уведомление появится только один раз. Пожалуйста, оцените приложение!</string>
+    <string name="str_rating_btn_rate">Оценить приложение</string>
+    <string name="str_rating_btn_skip">Пропустить</string>
 </resources>
+

@@ -234,6 +234,7 @@ fun HomeScreen(
     var originalContent by remember { mutableStateOf("") }
     var isSaving by remember { mutableStateOf(false) }
     var showProtectToast by remember { mutableStateOf(false) }
+    var showRatingDialog by remember { mutableStateOf(false) }
     var autoSaveJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
     // Offset ký tự cần scroll đến trong Edit Mode (set khi mở, reset khi đóng)
     // Dùng -1 để biểu thị "không cần scroll"
@@ -291,6 +292,10 @@ fun HomeScreen(
                 }
                 com.tatl.fastnote.sync.GoogleDriveSyncWorker.enqueueOneTimeSync(context)
                 isEditMode = false
+                // Kiểm tra có nên hiển thị dialog đánh giá không (1 lần, sau 72h Premium)
+                if (com.tatl.fastnote.billing.RatingManager.shouldShowRatingDialog(context)) {
+                    showRatingDialog = true
+                }
             } else {
                 showProtectToast = true
             }
@@ -1633,6 +1638,14 @@ fun HomeScreen(
             durationMs = 2000L,
             onDismiss = { showProtectToast = false }
         )
+
+        // ── Dialog đánh giá 1 lần (sau 72h Premium) ───────────────────────────
+        if (showRatingDialog) {
+            RatingDialog(
+                context   = context,
+                onDismiss = { showRatingDialog = false }
+            )
+        }
     } // end Box
     } // end key(currentLanguage)
 }
