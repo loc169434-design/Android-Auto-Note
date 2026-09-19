@@ -894,7 +894,17 @@ fun HomeScreen(
                                 if (newText.length < oldText.length) {
                                     val oldSeps = oldText.windowed(2).count { it == "\n\n" }
                                     val newSeps = newText.windowed(2).count { it == "\n\n" }
-                                    if (newSeps < oldSeps) return@BasicTextField
+                                    if (newSeps < oldSeps) {
+                                        showProtectToast = true
+                                        return@BasicTextField
+                                    }
+                                }
+
+                                // Rule: không cho phép xóa quá 100 ký tự một lần (bôi đen hàng loạt)
+                                val deletedCount = oldText.length - newText.length
+                                if (deletedCount > 150) {
+                                    showProtectToast = true
+                                    return@BasicTextField
                                 }
 
                                 // ── Auto-restore khoảng trắng sau ':' của header ──
@@ -949,7 +959,7 @@ fun HomeScreen(
                                     val isPrem = com.tatl.fastnote.billing.PremiumManager.isPremiumCached(context)
                                     val isExp  = com.tatl.fastnote.billing.TrialManager.isTrialExpired(context)
                                     if (!isPrem && isExp) return@launch
-                                    val textToSave = reverseEntries(newText)
+                                    val textToSave = reverseEntries(finalTfv.text)
                                     FileHelper.saveEditedRaw(context, originalContent, textToSave)
                                 }
                             },
