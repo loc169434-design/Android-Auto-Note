@@ -24,6 +24,8 @@ enum class AppLanguage(
     val flagEmoji: String,
     val speechTag: String,
     val promptText: String,
+    val listeningText: String,
+    val firstNotePromptText: String,
     val aiJournalPrompt: String
 ) {
     VIETNAMESE(
@@ -33,6 +35,8 @@ enum class AppLanguage(
         flagEmoji = "🇻🇳",
         speechTag = "vi-VN",
         promptText = "HÃY NÓI ĐIỀU BẠN MUỐN GHI CHÚ",
+        listeningText = "ĐANG LẮNG NGHE…",
+        firstNotePromptText = "NÓI BẤT KỲ CÂU GÌ ĐỂ KÍCH HOẠT SỔ GHI CHÚ CỦA BẠN",
         aiJournalPrompt = "Đây là sổ nhật ký của tôi. Bạn hãy đọc, nắm rõ dữ liệu và chờ yêu cầu tiếp theo."
     ),
     ENGLISH(
@@ -42,6 +46,8 @@ enum class AppLanguage(
         flagEmoji = "🇬🇧",
         speechTag = "en-US",
         promptText = "PLEASE SAY WHAT YOU WANT TO NOTE",
+        listeningText = "LISTENING…",
+        firstNotePromptText = "SAY ANYTHING TO ACTIVATE YOUR NOTEBOOK",
         aiJournalPrompt = "This is my journal. Please read, understand the data, and wait for my next request."
     ),
     JAPANESE(
@@ -51,6 +57,8 @@ enum class AppLanguage(
         flagEmoji = "🇯🇵",
         speechTag = "ja-JP",
         promptText = "メモしたい内容を話してください",
+        listeningText = "聞いています…",
+        firstNotePromptText = "何でも話してノートを起動させましょう",
         aiJournalPrompt = "これは私の日記です。データをよく読み、理解した上で次の指示をお待ちください。"
     ),
     GERMAN(
@@ -60,6 +68,8 @@ enum class AppLanguage(
         flagEmoji = "🇩🇪",
         speechTag = "de-DE",
         promptText = "BITTE SPRECHEN SIE, WAS SIE NOTIEREN MÖCHTEN",
+        listeningText = "HÖRE ZU…",
+        firstNotePromptText = "SAGEN SIE ETWAS, UM IHR NOTIZBUCH ZU AKTIVIEREN",
         aiJournalPrompt = "Dies ist mein Tagebuch. Bitte lesen und verstehen Sie die Daten und warten Sie auf meine nächste Anfrage."
     ),
     RUSSIAN(
@@ -69,6 +79,8 @@ enum class AppLanguage(
         flagEmoji = "🇷🇺",
         speechTag = "ru-RU",
         promptText = "ПОЖАЛУЙСТA, СКАЖИТЕ, ЧТО ВЫ ХОТИТЕ ЗАПИСАТЬ",
+        listeningText = "СЛУШАЮ…",
+        firstNotePromptText = "СКАЖИТЕ ЧТО-НИБУДЬ, ЧТОБЫ АКТИВИРОВАТЬ БЛОКНОТ",
         aiJournalPrompt = "Это мой дневник. Пожалуйста, прочитайте, усвойте данные и ожидайте следующего запроса."
     );
 

@@ -59,6 +59,8 @@ class RecordingActivity : ComponentActivity() {
     private var isPremiumUser by mutableStateOf(false)
     private var hasSaved = false    // Guard: prevent double-save
     private var showSavedToast by mutableStateOf(false)
+    // true khi file ghi chú đã có nội dung trước phiên này
+    private var hasExistingNotes by mutableStateOf(false)
 
     private val serviceConnection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, binder: IBinder?) {
@@ -101,6 +103,12 @@ class RecordingActivity : ComponentActivity() {
         lifecycleScope.launch {
             isPremiumUser = com.tatl.fastnote.billing.PremiumManager.isPremium(this@RecordingActivity)
         }
+        // Kiểm tra có ghi chú cũ chưa — chạy trên IO tránh block Main
+        lifecycleScope.launch {
+            hasExistingNotes = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                FileHelper.readRawFile(this@RecordingActivity).isNotBlank()
+            }
+        }
 
         if (hasRequiredPermissions()) {
             startRecordingService()
@@ -130,6 +138,7 @@ class RecordingActivity : ComponentActivity() {
                         isBound = isBound,
                         isPremiumUser = isPremiumUser,
                         showSavedToast = showSavedToast,
+                        hasExistingNotes = hasExistingNotes,
                         onCancel = { cancelRecording() },
                         onSaveAndExit = { autoSaveNote() },
                         onUpgradeClick = { openPremiumFlow() }

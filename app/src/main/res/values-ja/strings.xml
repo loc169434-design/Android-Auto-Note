@@ -67,7 +67,7 @@
 
     <string name="str_search_hint">検索...</string>
     <string name="str_empty_notes">メモがありません。\nウィジェットから話しかけてみて 🎙️</string>
-    <string name="str_create_widget">ウィジェットを作成してください</string>
+    <string name="str_create_widget">ウィジェットを作成</string>
     <string name="str_settings">設定</string>
     <string name="str_appearance">外観</string>
 
@@ -98,9 +98,9 @@
     <string name="str_send_pc_err_chars">英字数字のみ使用可能（a-z、A-Z、0-9）</string>
 
     <!-- PremiumGateDialog -->
-    <string name="str_premium_title">PREMIUMの特典</string>
-    <string name="str_premium_feat_send_pc">AES-256暗号化ファイルをPCに安全に送信。</string>
-    <string name="str_premium_feat_drive">Google Driveへ自動バックアップ・同期。</string>
+    <string name="str_premium_title">30日間の無料期間が終了しました。選んでください：</string>
+    <string name="str_premium_feat_send_pc">1回のアップグレード（%s）：Mic速記、AIアシスタント、Google Drive自動バックアップを永久解放。</string>
+    <string name="str_premium_feat_drive">アップグレードしない場合：既存のメモはデバイスに永久保存され、いつでも確認できます。</string>
     <string name="str_premium_upgrade_btn">今すぐアップグレード - %s/一度きり</string>
     <string name="str_premium_product_err">商品を読み込めませんでした。後で再試してください。</string>
     <string name="str_premium_no_purchase">以前の購入が見つかりませんでした。</string>
@@ -141,7 +141,8 @@
     <!-- Trial Countdown & Lock (Day 29+) -->
     <string name="str_trial_countdown_2_days">無料トライアルは残り02日です。生涯無制限で利用するにはアップグレードしてください！</string>
     <string name="str_trial_countdown_1_day">無料トライアルは残り01日です。生涯無制限で利用するにはアップグレードしてください！</string>
-    <string name="str_trial_expired_permanent">引き続きご利用いただくにはアップグレードしてください！</string>
+    <string name="str_trial_expired_permanent">30日間の無料期間が終了しました。選んでください：</string>
+    <string name="str_trial_expired_upgrade_hint">・ 1回のアップグレード：Mic速記、AIアシスタント、Google Drive自動バックアップを永久解放。</string>
     <string name="str_trial_expired_save_blocked">無料トライアルが終了しました。保存するにはアップグレードしてください！</string>
 
     <!-- Drive & Billing & App Toasts -->

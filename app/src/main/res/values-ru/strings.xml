@@ -67,7 +67,7 @@
 
     <string name="str_search_hint">Поиск...</string>
     <string name="str_empty_notes">Заметок нет.\nГоворите через виджет 🎙️</string>
-    <string name="str_create_widget">СОЗДАЙТЕ ВИДЖЕТ</string>
+    <string name="str_create_widget">СОЗДАТЬ ВИДЖЕТ</string>
     <string name="str_settings">НАСТРОЙКИ</string>
     <string name="str_appearance">Внешний вид</string>
 
@@ -98,9 +98,9 @@
     <string name="str_send_pc_err_chars">Только буквы и цифры (a-z, A-Z, 0-9)</string>
 
     <!-- PremiumGateDialog -->
-    <string name="str_premium_title">ПРЕИМУЩЕСТВА PREMIUM</string>
-    <string name="str_premium_feat_send_pc">Отправка зашифрованных AES-256 файлов на персональный ПК.</string>
-    <string name="str_premium_feat_drive">Автоматическое резервное копирование и синхронизация в Google Drive.</string>
+    <string name="str_premium_title">30 ДНЕЙ ПРОБНОГО ПЕРИОДА ИСТЕКЛИ. ВЫБЕРИТЕ:</string>
+    <string name="str_premium_feat_send_pc">Единовременное обновление (%s): разблокировать навсегда Mic, ИИ-ассистент и резервное копирование Google Drive.</string>
+    <string name="str_premium_feat_drive">Без обновления: все ваши заметки навсегда останутся на устройстве, вы сможете просматривать их в любое время.</string>
     <string name="str_premium_upgrade_btn">Обновить сейчас - %s/Пожизненно</string>
     <string name="str_premium_product_err">Продукт недоступен. Попробуйте позже.</string>
     <string name="str_premium_no_purchase">Предыдущая покупка не найдена.</string>
@@ -141,7 +141,8 @@
     <!-- Trial Countdown & Lock (Day 29+) -->
     <string name="str_trial_countdown_2_days">Осталось 02 дня бесплатного периода. Обновитесь для бессрочного доступа!</string>
     <string name="str_trial_countdown_1_day">Осталось 01 день бесплатного периода. Обновитесь для бессрочного доступа!</string>
-    <string name="str_trial_expired_permanent">Пожалуйста, обновитесь для продолжения использования!</string>
+    <string name="str_trial_expired_permanent">30 ДНЕЙ ПРОБНОГО ПЕРИОДА ИСТЕКЛИ. ВЫБЕРИТЕ:</string>
+    <string name="str_trial_expired_upgrade_hint">· Единовременное обновление: разблокировать навсегда Mic, ИИ-ассистент и резервное копирование Google Drive.</string>
     <string name="str_trial_expired_save_blocked">Пробный период истек. Обновитесь для сохранения новых заметок!</string>
 
     <!-- Drive & Billing & App Toasts -->

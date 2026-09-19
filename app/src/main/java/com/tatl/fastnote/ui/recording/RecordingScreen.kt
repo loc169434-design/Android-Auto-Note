@@ -88,6 +88,7 @@ fun RecordingScreen(
     isBound: Boolean,
     isPremiumUser: Boolean = false,
     showSavedToast: Boolean = false,
+    hasExistingNotes: Boolean = false,
     onCancel: () -> Unit,
     onSaveAndExit: () -> Unit,
     onUpgradeClick: () -> Unit = {}
@@ -112,6 +113,7 @@ fun RecordingScreen(
         isBound = isBound,
         isPremiumUser = isPremiumUser,
         showSavedToast = showSavedToast,
+        hasExistingNotes = hasExistingNotes,
         currentLanguage = currentLanguage,
         onLanguageSelect = { lang ->
             LanguageManager.setLanguage(baseContext, lang)
@@ -137,6 +139,7 @@ fun RecordingScreenContent(
     isBound: Boolean = true,
     isPremiumUser: Boolean = false,
     showSavedToast: Boolean = false,
+    hasExistingNotes: Boolean = false,
     currentLanguage: AppLanguage = AppLanguage.VIETNAMESE,
     onLanguageSelect: (AppLanguage) -> Unit = {},
     onCancel: () -> Unit = {},
@@ -225,20 +228,44 @@ fun RecordingScreenContent(
 
                 Spacer(Modifier.height(20.dp))
 
-                // -- Dong chu huong dan --
-                Text(
-                    text = when {
-                        isPaused -> pausedText
-                        !isBound -> connectingText
-                        else     -> currentLanguage.promptText
-                    },
-                    fontFamily = InterFontFamily,
-                    fontWeight = FontWeight.Normal,
-                    fontSize = 15.sp,
-                    letterSpacing = 0.4.sp,
-                    color = TextPrimary,
-                    textAlign = TextAlign.Center
-                )
+                // -- Text block: ĐANG LẮNG NGHE + subtitle --
+                if (isPaused || !isBound) {
+                    // Trạng thái đặc biệt: tạm dừng hoặc chưa kết nối
+                    Text(
+                        text = if (isPaused) pausedText else connectingText,
+                        fontFamily = InterFontFamily,
+                        fontWeight = FontWeight.Normal,
+                        fontSize = 15.sp,
+                        letterSpacing = 0.4.sp,
+                        color = TextPrimary,
+                        textAlign = TextAlign.Center
+                    )
+                } else {
+                    // Header: ĐANG LẮNG NGHE…
+                    Text(
+                        text = currentLanguage.listeningText,
+                        fontFamily = InterFontFamily,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp,
+                        letterSpacing = 1.5.sp,
+                        color = Color(0xFF94A3B8),
+                        textAlign = TextAlign.Center
+                    )
+                    Spacer(Modifier.height(6.dp))
+                    // Subtitle: thay đổi theo lần đầu hay không
+                    Text(
+                        text = if (!hasExistingNotes)
+                            currentLanguage.firstNotePromptText
+                        else
+                            currentLanguage.promptText,
+                        fontFamily = InterFontFamily,
+                        fontWeight = FontWeight.Normal,
+                        fontSize = 13.sp,
+                        letterSpacing = 0.3.sp,
+                        color = Color(0xFF94A3B8),
+                        textAlign = TextAlign.Center
+                    )
+                }
 
                 // -- Transcript cuon duoc --
                 if (displayText.isNotBlank()) {
@@ -278,27 +305,77 @@ fun RecordingScreenContent(
                 val isExpired = com.tatl.fastnote.billing.TrialManager.isTrialExpired(localizedContext)
 
                 if (shouldShowBanner && bannerText != null) {
-                    // Ngày 29-30 (warning): chữ xanh — Ngày 31+ (hết hạn): chữ vàng
-                    val bannerTextColor = if (isExpired) Color(0xFFFFD700) else Color(0xFF38BDF8)
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(Color(0xFF1E1E1E))
-                            .border(BorderStroke(1.dp, Color(0xFF333333)), RoundedCornerShape(10.dp))
-                            .clickable { onUpgradeClick() }
-                            .padding(horizontal = 16.dp, vertical = 12.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = bannerText,
-                            fontFamily = InterFontFamily,
-                            fontWeight = FontWeight.Medium,
-                            fontSize = 13.sp,
-                            color = bannerTextColor,
-                            textAlign = TextAlign.Center,
-                            lineHeight = 19.sp
-                        )
+                    if (isExpired) {
+                        // Ngày 31+: Card 3 dòng đầy đủ thông tin
+                        val upgradeHint = localizedContext.resources.getString(R.string.str_trial_expired_upgrade_hint)
+                        val noUpgradeHint = localizedContext.resources.getString(R.string.str_premium_feat_drive)
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(Color(0xFF1A1A1A))
+                                .border(BorderStroke(1.dp, Color(0xFFFFD700).copy(alpha = 0.35f)), RoundedCornerShape(12.dp))
+                                .clickable { onUpgradeClick() }
+                                .padding(horizontal = 16.dp, vertical = 14.dp)
+                        ) {
+                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                // Tiêu đề vàng
+                                Text(
+                                    text = bannerText,
+                                    fontFamily = InterFontFamily,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 13.sp,
+                                    color = Color(0xFFFFD700),
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                                // Bullet 1: Nâng cấp
+                                Text(
+                                    text = upgradeHint,
+                                    fontFamily = NotoSansFontFamily,
+                                    fontWeight = FontWeight.Normal,
+                                    fontSize = 12.sp,
+                                    lineHeight = 18.sp,
+                                    color = Color(0xFF38BDF8),
+                                )
+                                // Divider mờ
+                                androidx.compose.material3.HorizontalDivider(
+                                    color = Color(0xFF333333),
+                                    thickness = 0.5.dp
+                                )
+                                // Bullet 2: Nếu không nâng cấp
+                                Text(
+                                    text = noUpgradeHint,
+                                    fontFamily = NotoSansFontFamily,
+                                    fontWeight = FontWeight.Normal,
+                                    fontSize = 12.sp,
+                                    lineHeight = 18.sp,
+                                    color = Color(0xFF94A3B8),
+                                )
+                            }
+                        }
+                    } else {
+                        // Ngày 29–30: banner đơn giản màu xanh
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(Color(0xFF1E1E1E))
+                                .border(BorderStroke(1.dp, Color(0xFF333333)), RoundedCornerShape(10.dp))
+                                .clickable { onUpgradeClick() }
+                                .padding(horizontal = 16.dp, vertical = 12.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = bannerText,
+                                fontFamily = InterFontFamily,
+                                fontWeight = FontWeight.Medium,
+                                fontSize = 13.sp,
+                                color = Color(0xFF38BDF8),
+                                textAlign = TextAlign.Center,
+                                lineHeight = 19.sp
+                            )
+                        }
                     }
                     Spacer(Modifier.height(24.dp))
                 }
@@ -368,49 +445,92 @@ fun RecordingScreenContent(
     }
 }
 
-// -- Vong tron mic -- trang lon, pulse hao quang khi active --
+// -- Vòng tròn mic -- hiệu ứng "thở" chậm + 2 vòng ripple lệch pha --
 
 @Composable
 private fun MicCircle(isActive: Boolean, isPaused: Boolean) {
-    val infiniteTransition = rememberInfiniteTransition(label = "mic_pulse")
-    val pulseScale by infiniteTransition.animateFloat(
-        initialValue = 1f,
-        targetValue = if (isActive) 1.20f else 1f,
+    val infiniteTransition = rememberInfiniteTransition(label = "mic_breath")
+
+    // Nhịp thở của vòng tròn chính: chậm, organic
+    val breathScale by infiniteTransition.animateFloat(
+        initialValue = 0.96f,
+        targetValue = if (isActive) 1.04f else 1f,
         animationSpec = infiniteRepeatable(
-            animation = tween(1200, easing = EaseInOutSine),
+            animation = tween(800, easing = EaseInOutSine),
             repeatMode = RepeatMode.Reverse
         ),
-        label = "mic_halo_scale"
+        label = "mic_breath_scale"
     )
-    val pulseAlpha by infiniteTransition.animateFloat(
-        initialValue = if (isActive) 0.30f else 0f,
-        targetValue = if (isActive) 0.05f else 0f,
+
+    // Hào quang 1: nhanh hơn, gần
+    val halo1Scale by infiniteTransition.animateFloat(
+        initialValue = 1f,
+        targetValue = if (isActive) 1.28f else 1f,
         animationSpec = infiniteRepeatable(
-            animation = tween(1200, easing = EaseInOutSine),
+            animation = tween(1400, easing = EaseInOutSine),
             repeatMode = RepeatMode.Reverse
         ),
-        label = "mic_halo_alpha"
+        label = "halo1_scale"
+    )
+    val halo1Alpha by infiniteTransition.animateFloat(
+        initialValue = if (isActive) 0.28f else 0f,
+        targetValue = if (isActive) 0.04f else 0f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1400, easing = EaseInOutSine),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "halo1_alpha"
+    )
+
+    // Hào quang 2: chậm hơn, xa hơn, lệch pha
+    val halo2Scale by infiniteTransition.animateFloat(
+        initialValue = 1.10f,
+        targetValue = if (isActive) 1.50f else 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1800, easing = EaseInOutSine, delayMillis = 600),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "halo2_scale"
+    )
+    val halo2Alpha by infiniteTransition.animateFloat(
+        initialValue = if (isActive) 0.14f else 0f,
+        targetValue = 0f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1800, easing = EaseInOutSine, delayMillis = 600),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "halo2_alpha"
     )
 
     Box(
-        modifier = Modifier.size(126.dp),
+        modifier = Modifier.size(140.dp),
         contentAlignment = Alignment.Center
     ) {
-        // Outer glowing pulse ring
+        // Vòng ripple xa (halo 2)
         if (isActive) {
             Box(
                 modifier = Modifier
-                    .size(106.dp)
-                    .scale(pulseScale)
+                    .size(100.dp)
+                    .scale(halo2Scale)
                     .clip(CircleShape)
-                    .background(Color(0xFF3B82F6).copy(alpha = pulseAlpha))
+                    .background(Color(0xFF38BDF8).copy(alpha = halo2Alpha))
             )
         }
-
-        // Main white circle
+        // Vòng ripple gần (halo 1)
+        if (isActive) {
+            Box(
+                modifier = Modifier
+                    .size(100.dp)
+                    .scale(halo1Scale)
+                    .clip(CircleShape)
+                    .background(Color(0xFF3B82F6).copy(alpha = halo1Alpha))
+            )
+        }
+        // Vòng tròn chính — thở theo breathScale
         Box(
             modifier = Modifier
                 .size(100.dp)
+                .scale(breathScale)
                 .clip(CircleShape)
                 .background(MicCircleBg),
             contentAlignment = Alignment.Center

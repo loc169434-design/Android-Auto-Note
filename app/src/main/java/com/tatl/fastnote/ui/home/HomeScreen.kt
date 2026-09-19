@@ -890,8 +890,12 @@ fun HomeScreen(
                                     return@BasicTextField
                                 }
 
-                                // Rule: chỉ block khi user xóa nhầm timestamp header
-                                // KHÔNG block xóa content thông thường dù nhiều dòng
+                                // Rule: không cho phép xóa dòng trống phân cách giữa các ghi chú
+                                if (newText.length < oldText.length) {
+                                    val oldSeps = oldText.windowed(2).count { it == "\n\n" }
+                                    val newSeps = newText.windowed(2).count { it == "\n\n" }
+                                    if (newSeps < oldSeps) return@BasicTextField
+                                }
 
                                 // ── Auto-restore khoảng trắng sau ':' của header ──
                                 // Nếu user xoá space ngay sau dấu ':', tự thêm lại
@@ -1660,34 +1664,58 @@ private fun getProtectedHeaderRanges(text: String): List<IntRange> {
 }
 
 /**
- * Điều chỉnh vị trí con trỏ / vùng chọn để KHÔNG BAO GIỜ chạm hay đứng trong khu vực tiêu đề ngày giờ.
- * Nếu con trỏ rơi vào tiêu đề ngày giờ, tự động đẩy ra vị trí bắt đầu nội dung ghi chú (sau dấu ':').
+ * Trả về ranges của ký tự \n tạo nên dòng trống phân cách giữa các ghi chú.
+ * Con trỏ không được đứng tại những vị trí này.
+ */
+private fun getBlankLineRanges(text: String): List<IntRange> {
+    val ranges = mutableListOf<IntRange>()
+    var offset = 0
+    val lines  = text.split("\n")
+    for ((idx, line) in lines.withIndex()) {
+        if (line.isBlank() && idx < lines.size - 1) {
+            val nlPos = offset + line.length
+            if (nlPos < text.length) ranges.add(nlPos..nlPos)
+        }
+        offset += line.length + 1
+    }
+    return ranges
+}
+
+/**
+ * Điều chỉnh vị trí con trỏ / vùng chọn để KHÔNG BAO GIỜ chạm hay đứng trong:
+ *  - Khu vực tiêu đề ngày giờ (header) → đẩy về sau dấu ': '
+ *  - Dòng trống phân cách giữa các ghi chú → đẩy về cuối nội dung ghi chú phía trên
  */
 private fun adjustSelectionOutOfHeaders(tfv: TextFieldValue): TextFieldValue {
     val text = tfv.text
     if (text.isEmpty()) return tfv
-    val ranges = getProtectedHeaderRanges(text)
-    if (ranges.isEmpty()) return tfv
+    val headerRanges    = getProtectedHeaderRanges(text)
+    val blankLineRanges = getBlankLineRanges(text)
+    if (headerRanges.isEmpty() && blankLineRanges.isEmpty()) return tfv
 
     var start = tfv.selection.start
-    var end = tfv.selection.end
+    var end   = tfv.selection.end
 
-    // Đẩy start nếu nằm trong range
-    for (range in ranges) {
-        if (start in range) {
-            start = (range.last + 1).coerceAtMost(text.length)
-        }
+    // 1. Đẩy ra khỏi header → về phía sau (sau dấu ': ')
+    for (range in headerRanges) {
+        if (start in range) start = (range.last + 1).coerceAtMost(text.length)
+        if (end   in range) end   = (range.last + 1).coerceAtMost(text.length)
     }
 
-    // Đẩy end nếu nằm trong range
-    for (range in ranges) {
-        if (end in range) {
-            end = (range.last + 1).coerceAtMost(text.length)
-        }
+    // 2. Đẩy ra khỏi dòng trống → về phía trước (cuối nội dung ghi chú trên)
+    for (range in blankLineRanges) {
+        if (start in range) start = (range.first - 1).coerceAtLeast(0)
+        if (end   in range) end   = (range.first - 1).coerceAtLeast(0)
+    }
+
+    // 3. Kiểm tra lại: sau khi đẩy lui có thể lọt vào header khác → đẩy tiếp
+    for (range in headerRanges) {
+        if (start in range) start = (range.last + 1).coerceAtMost(text.length)
+        if (end   in range) end   = (range.last + 1).coerceAtMost(text.length)
     }
 
     start = start.coerceIn(0, text.length)
-    end = end.coerceIn(0, text.length)
+    end   = end.coerceIn(0, text.length)
 
     return if (start != tfv.selection.start || end != tfv.selection.end) {
         tfv.copy(selection = TextRange(start, end))

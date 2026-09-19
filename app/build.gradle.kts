@@ -16,7 +16,7 @@ android {
         applicationId = "com.tatl.fastnote"
         minSdk = 26
         targetSdk = 36
-        versionCode = 26
+        versionCode = 27
         versionName = "1.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"

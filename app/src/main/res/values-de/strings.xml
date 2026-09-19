@@ -98,9 +98,9 @@
     <string name="str_send_pc_err_chars">Nur Buchstaben und Ziffern (a-z, A-Z, 0-9)</string>
 
     <!-- PremiumGateDialog -->
-    <string name="str_premium_title">PREMIUM-VORTEILE</string>
-    <string name="str_premium_feat_send_pc">AES-256-verschlüsselte Dateien sicher an den PC senden.</string>
-    <string name="str_premium_feat_drive">Daten automatisch in Google Drive sichern und synchronisieren.</string>
+    <string name="str_premium_title">30 TESTTAGE ABGELAUFEN. WÄHLEN SIE:</string>
+    <string name="str_premium_feat_send_pc">Einmaliges Upgrade (%s): Mic, KI-Assistent &amp; Google Drive-Backup dauerhaft freischalten.</string>
+    <string name="str_premium_feat_drive">Ohne Upgrade: Alle bisherigen Notizen bleiben dauerhaft gespeichert und sind jederzeit abrufbar.</string>
     <string name="str_premium_upgrade_btn">Jetzt upgraden - %s/Lebenslang</string>
     <string name="str_premium_product_err">Produkt nicht verfügbar. Später erneut versuchen.</string>
     <string name="str_premium_no_purchase">Kein früherer Kauf gefunden.</string>
@@ -141,7 +141,8 @@
     <!-- Trial Countdown & Lock (Day 29+) -->
     <string name="str_trial_countdown_2_days">Sie haben noch 02 Tage kostenlose Testversion. Upgraden Sie für lebenslangen Zugriff!</string>
     <string name="str_trial_countdown_1_day">Sie haben noch 01 Tag kostenlose Testversion. Upgraden Sie für lebenslangen Zugriff!</string>
-    <string name="str_trial_expired_permanent">Bitte upgraden Sie, um fortzufahren!</string>
+    <string name="str_trial_expired_permanent">30 TESTTAGE ABGELAUFEN. WÄHLEN SIE:</string>
+    <string name="str_trial_expired_upgrade_hint">· Einmaliges Upgrade: Mic, KI-Assistent &amp; Google Drive-Backup dauerhaft freischalten.</string>
     <string name="str_trial_expired_save_blocked">Testversion abgelaufen. Bitte upgraden, um Notizen zu speichern!</string>
 
     <!-- Drive & Billing & App Toasts -->
