@@ -503,7 +503,9 @@ fun HomeScreen(
 
                     // Đặt cursor tại targetLine để keyboard không cuộn lại
                     val targetCharStart = layout.getLineStart(targetLine)
-                    editTfv = editTfv.copy(selection = androidx.compose.ui.text.TextRange(targetCharStart))
+                    editTfv = adjustSelectionOutOfHeaders(
+                        editTfv.copy(selection = androidx.compose.ui.text.TextRange(targetCharStart))
+                    )
                     editModeInitialSelection = editTfv.selection
                 } else {
                     // ── SEARCH MODE: scroll đến vị trí cursor (occurrence đang highlight) ──
