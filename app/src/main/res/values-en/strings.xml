@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Z-FN</string>
 
@@ -10,7 +10,7 @@
     <string name="widget_ai_title">AI Summary</string>
     <string name="widget_ai_desc">Summarize today\'s notes with AI</string>
     <string name="widget_triple_action_title">Triple Action</string>
-    <string name="widget_triple_action_desc">Voice recorder, Notes &amp; Gemini widget</string>
+    <string name="widget_triple_action_desc">Voice recorder, Notes &amp; AI widget</string>
 
     <string name="recording_notification_title">Recording</string>
     <string name="recording_notification_text">Zero-Friction Notes is recording voice</string>
@@ -105,8 +105,8 @@
 
     <!-- PremiumGateDialog -->
     <string name="str_premium_title">30-DAY TRIAL ENDED. CHOOSE:</string>
-    <string name="str_premium_feat_send_pc">One-time upgrade (%s): Unlock lifetime Mic, AI Assistant &amp; personal Google Drive auto-backup.</string>
-    <string name="str_premium_feat_drive">If you skip: All existing notes remain saved forever on your device. You can view them anytime.</string>
+    <string name="str_premium_feat_send_pc">- <b>One-time upgrade</b> (%s): Unlock lifetime Mic, AI Assistant &amp; personal Google Drive auto-backup.</string>
+    <string name="str_premium_feat_drive">- If you skip: All existing notes remain saved forever on your device. You can view them anytime.</string>
     <string name="str_premium_upgrade_btn">Upgrade Now - %s/Lifetime</string>
     <string name="str_premium_product_err">Product unavailable. Please try again later.</string>
     <string name="str_premium_no_purchase">No previous purchase found.</string>
@@ -114,6 +114,9 @@
     <string name="str_premium_restore_hint">Previously purchased? Tap to restore!</string>
     <string name="str_premium_later">LATER</string>
     <string name="str_btn_share">Share</string>
+    <string name="str_premium_feat_drive_record">: All existing notes remain saved forever on your device. You can view them anytime.</string>
+    <string name="str_premium_feat_drive_record_title">- If you skip</string>
+
     <!-- PinWidgetBottomSheet -->
     <string name="str_tap_to_create_widget">(Tap here to add widget to Home screen)</string>
     <string name="btn_later">LATER</string>
@@ -147,8 +150,9 @@
     <string name="str_trial_countdown_2_days">You have 02 days of free trial left. Upgrade for lifetime access!</string>
     <string name="str_trial_countdown_1_day">You have 01 day of free trial left. Upgrade for lifetime access!</string>
     <string name="str_trial_expired_permanent">30-DAY TRIAL ENDED. CHOOSE:</string>
-    <string name="str_trial_expired_upgrade_hint">· One-time upgrade: Unlock lifetime Mic, AI Assistant &amp; personal Google Drive auto-backup.</string>
+    <string name="str_trial_expired_upgrade_hint">: Unlock lifetime Mic, AI Assistant &amp; personal Google Drive auto-backup.</string>
     <string name="str_trial_expired_save_blocked">Free trial expired. Please upgrade to save new notes!</string>
+    <string name="str_trial_expired_upgrade_title">- One-time upgrade</string>
 
     <!-- Drive & Billing & App Toasts -->
     <string name="str_toast_drive_connected">Connected to Google Drive: %1$s</string>

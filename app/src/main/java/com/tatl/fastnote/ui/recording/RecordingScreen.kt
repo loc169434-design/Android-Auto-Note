@@ -49,7 +49,14 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.PlatformTextStyle
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -159,6 +166,7 @@ fun RecordingScreenContent(
 
     val baseContext = LocalContext.current
     var showLangMenu by remember { mutableStateOf(false) }
+    val boldRegex = Regex("\\*\\*.*\\*\\*")
 
     // 5 ngon ngu chuan
     val languages = listOf(
@@ -249,9 +257,19 @@ fun RecordingScreenContent(
                         fontSize = 14.sp,
                         letterSpacing = 1.5.sp,
                         color = Color(0xFF94A3B8),
-                        textAlign = TextAlign.Center
+                        textAlign = TextAlign.Center,
+                        style = TextStyle(
+                            platformStyle = PlatformTextStyle(
+                                includeFontPadding = false // Removes the system font padding
+                            ),
+                            lineHeightStyle = LineHeightStyle(
+                                alignment = LineHeightStyle.Alignment.Center,
+                                trim = LineHeightStyle.Trim.Both // Trims extra space from top and bottom
+                            )
+                        )
                     )
-                    Spacer(Modifier.height(6.dp))
+                    Spacer(Modifier.height(7.dp))
+
                     // Subtitle: thay đổi theo lần đầu hay không
                     Text(
                         text = if (!hasExistingNotes)
@@ -261,9 +279,20 @@ fun RecordingScreenContent(
                         fontFamily = InterFontFamily,
                         fontWeight = FontWeight.Normal,
                         fontSize = 13.sp,
-                        letterSpacing = 0.3.sp,
                         color = Color(0xFF94A3B8),
-                        textAlign = TextAlign.Center
+                        textAlign = TextAlign.Center,
+                        lineHeight = 19.sp,
+                        style = TextStyle(
+                            // 2. Remove the legacy Android font padding
+                            platformStyle = PlatformTextStyle(
+                                includeFontPadding = false
+                            ),
+                            // 3. Trim the remaining line height behavior whitespace
+                            lineHeightStyle = LineHeightStyle(
+                                alignment = LineHeightStyle.Alignment.Center,
+                                trim = LineHeightStyle.Trim.Both
+                            )
+                        )
                     )
                 }
 
@@ -309,6 +338,9 @@ fun RecordingScreenContent(
                         // Ngày 31+: Card 3 dòng đầy đủ thông tin
                         val upgradeHint = localizedContext.resources.getString(R.string.str_trial_expired_upgrade_hint)
                         val noUpgradeHint = localizedContext.resources.getString(R.string.str_premium_feat_drive)
+                        val titleHint = localizedContext.resources.getString(R.string.str_trial_expired_upgrade_title)
+                        val titleHint1 = localizedContext.resources.getString(R.string.str_premium_feat_drive_record_title)
+                        val cancelText = localizedContext.resources.getString(R.string.str_premium_feat_drive_record)
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -329,28 +361,96 @@ fun RecordingScreenContent(
                                     textAlign = TextAlign.Center,
                                     modifier = Modifier.fillMaxWidth()
                                 )
-                                // Bullet 1: Nâng cấp
+                                // Bullet 1: Nâng cấp (1 dòng luông tuồng liền mạch, phần nâng cấp 1 lần auto bold + italic)
+                                val (bullet1Prefix, bullet1Suffix) = remember(titleHint, upgradeHint) {
+                                    if (upgradeHint.startsWith(": ") || upgradeHint.startsWith("：")) {
+                                        val colonIndex = if (upgradeHint.startsWith(": ")) 2 else 1
+                                        Pair(titleHint + upgradeHint.substring(0, colonIndex), upgradeHint.substring(colonIndex))
+                                    } else if (upgradeHint.startsWith(":")) {
+                                        Pair(titleHint + ": ", upgradeHint.substring(1).trimStart())
+                                    } else {
+                                        Pair(titleHint, upgradeHint)
+                                    }
+                                }
+                                val bullet1Annotated = remember(bullet1Prefix, bullet1Suffix) {
+                                    buildAnnotatedString {
+                                        withStyle(
+                                            SpanStyle(
+                                                fontWeight = FontWeight.Bold,
+                                                fontStyle = FontStyle.Italic,
+                                                fontFamily = NotoSansFontFamily,
+                                                fontSize = 12.sp,
+                                                color = Color(0xFF38BDF8)
+                                            )
+                                        ) {
+                                            append(bullet1Prefix)
+                                        }
+                                        withStyle(
+                                            SpanStyle(
+                                                fontWeight = FontWeight.Normal,
+                                                fontStyle = FontStyle.Normal,
+                                                fontFamily = NotoSansFontFamily,
+                                                fontSize = 12.sp,
+                                                color = Color(0xFF38BDF8)
+                                            )
+                                        ) {
+                                            append(bullet1Suffix)
+                                        }
+                                    }
+                                }
                                 Text(
-                                    text = upgradeHint,
-                                    fontFamily = NotoSansFontFamily,
-                                    fontWeight = FontWeight.Normal,
-                                    fontSize = 12.sp,
+                                    text = bullet1Annotated,
                                     lineHeight = 18.sp,
-                                    color = Color(0xFF38BDF8),
+                                    modifier = Modifier.fillMaxWidth()
                                 )
+
                                 // Divider mờ
                                 androidx.compose.material3.HorizontalDivider(
                                     color = Color(0xFF333333),
                                     thickness = 0.5.dp
                                 )
-                                // Bullet 2: Nếu không nâng cấp
+
+                                // Bullet 2: Nếu không nâng cấp (1 dòng luông tuồng liền mạch, in đậm titleHint1)
+                                val (bullet2Prefix, bullet2Suffix) = remember(titleHint1, cancelText) {
+                                    if (cancelText.startsWith(": ") || cancelText.startsWith("：")) {
+                                        val colonIndex = if (cancelText.startsWith(": ")) 2 else 1
+                                        Pair(titleHint1 + cancelText.substring(0, colonIndex), cancelText.substring(colonIndex))
+                                    } else if (cancelText.startsWith(":")) {
+                                        Pair(titleHint1 + ": ", cancelText.substring(1).trimStart())
+                                    } else {
+                                        Pair(titleHint1, cancelText)
+                                    }
+                                }
+                                val bullet2Annotated = remember(bullet2Prefix, bullet2Suffix) {
+                                    buildAnnotatedString {
+                                        withStyle(
+                                            SpanStyle(
+                                                fontWeight = FontWeight.Bold,
+                                                fontStyle = FontStyle.Italic,
+                                                fontFamily = NotoSansFontFamily,
+                                                fontSize = 12.sp,
+                                                color = Color(0xFF38BDF8)
+                                            )
+                                        ) {
+                                            append(bullet2Prefix)
+                                        }
+                                        withStyle(
+                                            SpanStyle(
+                                                fontWeight = FontWeight.Normal,
+                                                fontStyle = FontStyle.Normal,
+                                                fontFamily = NotoSansFontFamily,
+                                                fontSize = 12.sp,
+                                                color = Color(0xFF38BDF8)
+                                            )
+                                        ) {
+                                            append(bullet2Suffix)
+                                        }
+                                    }
+                                }
                                 Text(
-                                    text = noUpgradeHint,
-                                    fontFamily = NotoSansFontFamily,
-                                    fontWeight = FontWeight.Normal,
-                                    fontSize = 12.sp,
+                                    text = bullet2Annotated,
                                     lineHeight = 18.sp,
-                                    color = Color(0xFF94A3B8),
+                                    modifier = Modifier.fillMaxWidth()
                                 )
                             }
                         }
@@ -444,6 +544,7 @@ fun RecordingScreenContent(
         }
     }
 }
+
 
 // -- Vòng tròn mic -- hiệu ứng "thở" chậm + 2 vòng ripple lệch pha --
 

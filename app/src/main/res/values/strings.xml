@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Z-FN</string>
 
@@ -11,7 +11,7 @@
     <string name="widget_ai_title">AI Tóm tắt</string>
     <string name="widget_ai_desc">Tóm tắt ghi chú hôm nay qua AI</string>
     <string name="widget_triple_action_title">Bộ 3 tính năng</string>
-    <string name="widget_triple_action_desc">Micro ghi âm, Sổ ghi chú và Gemini trong một widget</string>
+    <string name="widget_triple_action_desc">Micro ghi âm, Sổ ghi chú và AI trong một widget</string>
 
     <!-- Recording -->
     <string name="recording_notification_title">Đang ghi âm</string>
@@ -112,8 +112,8 @@
 
     <!-- PremiumGateDialog -->
     <string name="str_premium_title">ĐÃ HẾT 30 NGÀY DÙNG THỬ, HÃY:</string>
-    <string name="str_premium_feat_send_pc">Nâng cấp 1 lần (%s): Mở khóa trọn đời Mic tốc ký, Trợ lý AI và Tự động sao lưu Google Drive cá nhân.</string>
-    <string name="str_premium_feat_drive">Nếu không nâng cấp: Mọi ghi chú cũ vẫn lưu vĩnh viễn trên máy, bạn vẫn có thể xem lại bất cứ lúc nào.</string>
+    <string name="str_premium_feat_send_pc">- <b>Nâng cấp 1 lần</b> (%s): Mở khóa trọn đời Mic tốc ký, Trợ lý AI và Tự động sao lưu Google Drive cá nhân.</string>
+    <string name="str_premium_feat_drive">- Nếu không nâng cấp: Mọi ghi chú cũ vẫn lưu vĩnh viễn trên máy bạn, bạn vẫn có thể xem lại bất cứ lúc nào.</string>
     <string name="str_premium_upgrade_btn">Nâng cấp ngay - %s/Trọn đời</string>
     <string name="str_premium_product_err">Không tải được sản phẩm. Thử lại sau.</string>
     <string name="str_premium_no_purchase">Không tìm thấy giao dịch trước đó.</string>
@@ -121,6 +121,9 @@
     <string name="str_premium_restore_hint">Đã mua trước đó? Chạm để khôi phục!</string>
     <string name="str_premium_later">ĐỂ SAU</string>
     <string name="str_btn_share">Chia sẻ</string>
+    <string name="str_premium_feat_drive_record">: Mọi ghi chú cũ vẫn lưu vĩnh viễn trên máy bạn, bạn vẫn có thể xem lại bất cứ lúc nào.</string>
+    <string name="str_premium_feat_drive_record_title">- Nếu không nâng cấp</string>
+
 
     <!-- PinWidgetBottomSheet -->
     <string name="str_tap_to_create_widget">(Chạm vào đây để tạo widget ra màn hình chính)</string>
@@ -155,8 +158,9 @@
     <string name="str_trial_countdown_2_days">Bạn còn 02 ngày để sử dụng miễn phí. Hãy nâng cấp để sử dụng trọn đời!</string>
     <string name="str_trial_countdown_1_day">Bạn còn 01 ngày để sử dụng miễn phí. Hãy nâng cấp để sử dụng trọn đời!</string>
     <string name="str_trial_expired_permanent">ĐÃ HẾT 30 NGÀY DÙNG THỬ, HÃY:</string>
-    <string name="str_trial_expired_upgrade_hint">· Nâng cấp 1 lần: Mở khóa trọn đời Mic tốc ký, Trợ lý AI và Tự động sao lưu Google Drive cá nhân.</string>
+    <string name="str_trial_expired_upgrade_hint">: Mở khóa trọn đời Mic tốc ký, Trợ lý AI và Tự động sao lưu Google Drive cá nhân.</string>
     <string name="str_trial_expired_save_blocked">Đã hết hạn dùng thử. Vui lòng nâng cấp để lưu ghi chú mới!</string>
+    <string name="str_trial_expired_upgrade_title">- Nâng cấp 1 lần</string>
 
     <!-- Drive & Billing & App Toasts -->
     <string name="str_toast_drive_connected">Đã kết nối Google Drive: %1$s</string>

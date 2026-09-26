@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Z-FN</string>
 
@@ -10,7 +10,7 @@
     <string name="widget_ai_title">AI要約</string>
     <string name="widget_ai_desc">AIで今日のメモを要約</string>
     <string name="widget_triple_action_title">トリプルアクション</string>
-    <string name="widget_triple_action_desc">録音マイク、メモ、Geminiウィジェット</string>
+    <string name="widget_triple_action_desc">録音マイク、メモ、AIウィジェット</string>
 
     <string name="recording_notification_title">録音中</string>
     <string name="recording_notification_text">Zero-Friction Notesが音声を録音しています</string>
@@ -99,8 +99,8 @@
 
     <!-- PremiumGateDialog -->
     <string name="str_premium_title">30日間の無料期間が終了しました。選んでください：</string>
-    <string name="str_premium_feat_send_pc">1回のアップグレード（%s）：Mic速記、AIアシスタント、Google Drive自動バックアップを永久解放。</string>
-    <string name="str_premium_feat_drive">アップグレードしない場合：既存のメモはデバイスに永久保存され、いつでも確認できます。</string>
+    <string name="str_premium_feat_send_pc">- <b>1回のアップグレード</b>（%s）：Mic速記、AIアシスタント、Google Drive自動バックアップを永久解放。</string>
+    <string name="str_premium_feat_drive">- アップグレードしない場合：既存のメモはデバイスに永久保存され、いつでも確認できます。</string>
     <string name="str_premium_upgrade_btn">今すぐアップグレード - %s/一度きり</string>
     <string name="str_premium_product_err">商品を読み込めませんでした。後で再試してください。</string>
     <string name="str_premium_no_purchase">以前の購入が見つかりませんでした。</string>
@@ -108,6 +108,8 @@
     <string name="str_premium_restore_hint">購入済みですか？タップして復元!</string>
     <string name="str_premium_later">後で</string>
     <string name="str_btn_share">シェア</string>
+    <string name="str_premium_feat_drive_record">：既存のメモはデバイスに永久保存され、いつでも確認できます。</string>
+    <string name="str_premium_feat_drive_record_title">- アップグレードしない場合</string>
 
     <!-- PinWidgetBottomSheet -->
     <string name="str_tap_to_create_widget">(タップしてホーム画面にウィジェットを追加)</string>
@@ -142,8 +144,9 @@
     <string name="str_trial_countdown_2_days">無料トライアルは残り02日です。生涯無制限で利用するにはアップグレードしてください！</string>
     <string name="str_trial_countdown_1_day">無料トライアルは残り01日です。生涯無制限で利用するにはアップグレードしてください！</string>
     <string name="str_trial_expired_permanent">30日間の無料期間が終了しました。選んでください：</string>
-    <string name="str_trial_expired_upgrade_hint">・ 1回のアップグレード：Mic速記、AIアシスタント、Google Drive自動バックアップを永久解放。</string>
+    <string name="str_trial_expired_upgrade_hint">：Mic速記、AIアシスタント、Google Drive自動バックアップを永久解放。</string>
     <string name="str_trial_expired_save_blocked">無料トライアルが終了しました。保存するにはアップグレードしてください！</string>
+    <string name="str_trial_expired_upgrade_title">- 1回のアップグレード</string>
 
     <!-- Drive & Billing & App Toasts -->
     <string name="str_toast_drive_connected">Google ドライブに接続しました: %1$s</string>
