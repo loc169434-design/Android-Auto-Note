@@ -56,6 +56,61 @@ object GoogleDriveSyncManager {
     private const val DRIVE_API_FILES_URL = "https://www.googleapis.com/drive/v3/files"
     private const val DRIVE_UPLOAD_URL = "https://www.googleapis.com/upload/drive/v3/files"
 
+    // ── Blacklist: header đã xóa cố ý (mini tombstone — lưu trong SharedPreferences) ──────
+    private const val PREFS_NAME = "sync_prefs"
+    private const val KEY_BLACKLIST = "deleted_headers_v1"   // JSON: [{"h":"...","t":123}]
+    private const val BLACKLIST_TTL_MS = 30L * 24 * 60 * 60 * 1000  // 30 ngày
+
+    /**
+     * Thêm các header đã bị xóa vào blacklist.
+     * Gọi từ doSave() sau khi stripOrphanHeaders trả về có strippedHeaders.
+     */
+    fun addToBlacklist(context: android.content.Context, headers: List<String>) {
+        if (headers.isEmpty()) return
+        val prefs = context.getSharedPreferences(PREFS_NAME, android.content.Context.MODE_PRIVATE)
+        val existing = parseBlacklistJson(prefs.getString(KEY_BLACKLIST, "[]") ?: "[]")
+        val now = System.currentTimeMillis()
+        val updated = existing.toMutableList()
+        for (h in headers) {
+            if (updated.none { it.first == h }) updated.add(Pair(h, now))
+        }
+        prefs.edit().putString(KEY_BLACKLIST, serializeBlacklistJson(updated)).apply()
+        Log.d(TAG, "Blacklisted ${headers.size} deleted header(s)")
+    }
+
+    private fun getBlacklist(context: android.content.Context): Set<String> {
+        val prefs = context.getSharedPreferences(PREFS_NAME, android.content.Context.MODE_PRIVATE)
+        return parseBlacklistJson(prefs.getString(KEY_BLACKLIST, "[]") ?: "[]").map { it.first }.toSet()
+    }
+
+    private fun cleanupBlacklist(context: android.content.Context) {
+        val prefs = context.getSharedPreferences(PREFS_NAME, android.content.Context.MODE_PRIVATE)
+        val all = parseBlacklistJson(prefs.getString(KEY_BLACKLIST, "[]") ?: "[]")
+        val cutoff = System.currentTimeMillis() - BLACKLIST_TTL_MS
+        val fresh = all.filter { it.second > cutoff }
+        if (fresh.size < all.size) {
+            prefs.edit().putString(KEY_BLACKLIST, serializeBlacklistJson(fresh)).apply()
+            Log.d(TAG, "Cleaned up ${all.size - fresh.size} expired blacklist entries")
+        }
+    }
+
+    private fun parseBlacklistJson(json: String): List<Pair<String, Long>> {
+        return try {
+            val arr = org.json.JSONArray(json)
+            (0 until arr.length()).mapNotNull {
+                val obj = arr.optJSONObject(it) ?: return@mapNotNull null
+                Pair(obj.optString("h", ""), obj.optLong("t", 0L))
+            }.filter { it.first.isNotBlank() }
+        } catch (e: Exception) { emptyList() }
+    }
+
+    private fun serializeBlacklistJson(list: List<Pair<String, Long>>): String {
+        val arr = org.json.JSONArray()
+        for ((h, t) in list) arr.put(org.json.JSONObject().put("h", h).put("t", t))
+        return arr.toString()
+    }
+
+
     private val httpClient by lazy {
         OkHttpClient.Builder()
             .connectTimeout(15, TimeUnit.SECONDS)
@@ -364,61 +419,55 @@ object GoogleDriveSyncManager {
                 return@withContext true
             }
 
-            // 5. Hợp nhất danh sách tất cả các ghi chú (Loại bỏ trùng lặp theo header)
+            // 5. Lọc missingOnLocal qua blacklist — header đã xóa cố ý không được restore
+            cleanupBlacklist(context)
+            val deletedBlacklist = getBlacklist(context)
+            val trulyMissingOnLocal = missingOnLocal.filter { it.header !in deletedBlacklist }
+
+            // 6. Hợp nhất: Drive (genuine) + Local (wins on conflict)
             val mergedMap = LinkedHashMap<String, FileHelper.NoteEntry>()
-
-            // Đưa bản ghi từ Drive vào trước
-            for (entry in driveEntries) {
+            for (entry in trulyMissingOnLocal) {
                 val key = entry.header.ifBlank { entry.content }
-                if (key.isNotBlank()) {
-                    mergedMap[key] = entry
-                }
+                if (key.isNotBlank()) mergedMap[key] = entry
             }
-
-            // Đưa bản ghi từ Local vào (sẽ ghi đè bản ghi Drive nếu trùng key để ưu tiên nội dung mới sửa trên máy)
             for (entry in localEntries) {
                 val key = entry.header.ifBlank { entry.content }
-                if (key.isNotBlank()) {
-                    mergedMap[key] = entry
-                }
+                if (key.isNotBlank()) mergedMap[key] = entry
             }
 
-            // Sắp xếp các ghi chú theo thứ tự thời gian TĂNG DẦN (Cũ nhất ở trên cùng file, Mới nhất ở dưới cùng file)
-            // Khi FileHelper.parseEntries đọc và reverse(), ghi chú mới nhất trên máy sẽ hiển thị ở ĐẦU danh sách UI, ghi chú cũ trên đám mây sẽ nằm ở DƯỚI.
+            // Sắp xếp theo thời gian tăng dần (cũ nhất ở trên, mới nhất ở dưới)
             val sortedEntries = mergedMap.values.sortedWith(
                 compareBy { parseTimestampFromHeader(it.header) }
             )
 
-            // Xây dựng lại văn bản phẳng chuẩn (theo thứ tự thời gian tăng dần)
             val mergedText = sortedEntries.joinToString("\n\n") { entry ->
                 if (entry.header.isNotBlank()) "- ${entry.header}: ${entry.content}" else entry.content
             }
 
-            // 6. Ghi đè file local nếu có bản ghi mới từ Drive (đồng bộ cả raw.txt và ghichu_clean.txt)
-            if (missingOnLocal.isNotEmpty()) {
+            // 7. Ghi đè local nếu có entry mới thật sự từ Drive (không nằm trong blacklist)
+            if (trulyMissingOnLocal.isNotEmpty()) {
                 FileHelper.getRawFile(context).writeText(mergedText, Charsets.UTF_8)
                 FileHelper.getGuidiFile(context).writeText(mergedText, Charsets.UTF_8)
 
-                // Cập nhật Room DB
                 val app = context.applicationContext as? AutoNoteApplication
                 if (app != null) {
-                    for (entry in missingOnLocal) {
+                    for (entry in trulyMissingOnLocal) {
                         val title = entry.content.split(" ").take(10).joinToString(" ")
                             .let { if (it.length > 50) it.take(50) + "..." else it }
                         app.noteRepository.insertNote(title = title, content = entry.content)
                     }
                 }
-                Log.d(TAG, "Merged ${missingOnLocal.size} new entries from Drive into Local")
+                Log.d(TAG, "Restored ${trulyMissingOnLocal.size} entries from Drive (skipped ${missingOnLocal.size - trulyMissingOnLocal.size} blacklisted)")
             }
 
-            // 7. Cập nhật Drive nếu local có bản ghi mới, có ghi chú sửa đổi, hoặc file Drive khác với file máy
+            // 8. Cập nhật Drive nếu local có bản ghi mới, sửa đổi, hoặc file Drive khác
             if (missingOnDrive.isNotEmpty() || contentModifiedEntries.isNotEmpty() || driveRaw.trim() != mergedText.trim()) {
                 updateDriveFile(token, fileId, mergedText)
-                Log.d(TAG, "Uploaded merged/updated notes to Drive appDataFolder (modified=${contentModifiedEntries.size}, missingOnDrive=${missingOnDrive.size})")
+                Log.d(TAG, "Uploaded merged/updated notes to Drive (modified=${contentModifiedEntries.size}, missingOnDrive=${missingOnDrive.size})")
             }
 
-            val successResId = if (missingOnLocal.isNotEmpty()) com.tatl.fastnote.R.string.str_sync_restored else com.tatl.fastnote.R.string.str_sync_success
-            _syncStatus.value = SyncStatus.Success(successResId, missingOnLocal.size, System.currentTimeMillis())
+            val successResId = if (trulyMissingOnLocal.isNotEmpty()) com.tatl.fastnote.R.string.str_sync_restored else com.tatl.fastnote.R.string.str_sync_success
+            _syncStatus.value = SyncStatus.Success(successResId, trulyMissingOnLocal.size, System.currentTimeMillis())
             scheduleResetSyncStatus()
             true
         } catch (e: Exception) {

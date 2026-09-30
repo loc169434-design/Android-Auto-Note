@@ -103,6 +103,7 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.TransformedText
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -272,8 +273,13 @@ fun HomeScreen(
         autoSaveJob?.cancel()
         scope.launch {
             val textToSave = reverseEntries(editTfv.text)
+            // Strip orphan headers và lấy danh sách header đã bị xóa
+            val stripResult = FileHelper.stripOrphanHeaders(textToSave)
+            val textClean = stripResult.cleanedText
             val error = withContext(Dispatchers.IO) {
-                FileHelper.saveEditedRaw(context, originalContent, textToSave)
+                // Validate chống textToSave (chưa strip) — tránh false-fail khi orphan vẫn có dòng
+                // Ghi file textClean (đã xóa orphan)
+                FileHelper.saveEditedRawWithClean(context, originalContent, textToSave, textClean)
             }
             isSaving = false
             if (error == null) {
@@ -289,6 +295,12 @@ fun HomeScreen(
                 pendingScrollToOffset = -1
                 withContext(Dispatchers.IO) {
                     fileEntries = FileHelper.parseEntries(context)
+                }
+                // Lưu blacklist các header đã bị xóa — sync sẽ không restore chúng từ Drive
+                if (stripResult.strippedHeaders.isNotEmpty()) {
+                    com.tatl.fastnote.sync.GoogleDriveSyncManager.addToBlacklist(
+                        context, stripResult.strippedHeaders
+                    )
                 }
                 com.tatl.fastnote.sync.GoogleDriveSyncWorker.enqueueOneTimeSync(context)
                 isEditMode = false
@@ -1660,6 +1672,112 @@ private fun reverseEntries(raw: String): String {
 }
 
 /**
+ * VisualTransformation hiển thị header ngày giờ trong Editor:
+ *   - Header bình thường : in nghiêng, màu xanh
+ *   - Orphan header (không có content) : gạch ngang đỏ mờ — báo hiệu sẽ bị xóa khi lưu
+ */
+private class NoteEditorVisualTransformation : androidx.compose.ui.text.input.VisualTransformation {
+    override fun filter(text: androidx.compose.ui.text.AnnotatedString): androidx.compose.ui.text.input.TransformedText {
+        val rawStr = text.text
+        if (rawStr.isEmpty()) {
+            return androidx.compose.ui.text.input.TransformedText(
+                text, androidx.compose.ui.text.input.OffsetMapping.Identity
+            )
+        }
+
+        // Bước 1: Tìm tập hợp index dòng là orphan header
+        val lines = rawStr.lines()
+        val orphanLineIndices = mutableSetOf<Int>()
+        var i = 0
+        while (i < lines.size) {
+            val trimmed = lines[i].trimStart()
+            val match = FileHelper.DATE_HEADER_REGEX.find(trimmed)
+            if (match != null) {
+                // Kiểm tra có content sau ':' không
+                val afterColon = trimmed.substring(match.range.last + 1).trim()
+                var hasContent = afterColon.isNotEmpty()
+                if (!hasContent) {
+                    // Kiểm tra các dòng tiếp theo (trong cùng block)
+                    var j = i + 1
+                    while (j < lines.size) {
+                        val nextTrimmed = lines[j].trimStart()
+                        if (FileHelper.DATE_HEADER_REGEX.containsMatchIn(nextTrimmed)) break
+                        if (nextTrimmed.isNotEmpty()) { hasContent = true; break }
+                        j++
+                    }
+                }
+                if (!hasContent) orphanLineIndices.add(i)
+            }
+            i++
+        }
+
+        // Bước 2: Xây dựng AnnotatedString
+        val annotated = androidx.compose.ui.text.buildAnnotatedString {
+            for (lineIdx in lines.indices) {
+                val line = lines[lineIdx]
+                val trimmed = line.trimStart()
+                val match = FileHelper.DATE_HEADER_REGEX.find(trimmed)
+                val start = length
+                val isOrphan = lineIdx in orphanLineIndices
+
+                // Trong edit mode đổi dấu '-' header thành '*' (cùng 1 ky tự → OffsetMapping.Identity)
+                val displayLine = if (match != null) {
+                    val dashIdx = line.indexOf('-')
+                    if (dashIdx != -1) line.replaceRange(dashIdx, dashIdx + 1, "*") else line
+                } else line
+                append(displayLine)
+                val end = length
+
+                if (match != null) {
+                    val colonIdx = displayLine.indexOf(':')
+                    val headerEnd = if (colonIdx != -1) start + colonIdx + 1 else end
+                    if (isOrphan) {
+                        // Orphan: gạch ngang đỏ mờ
+                        addStyle(
+                            androidx.compose.ui.text.SpanStyle(
+                                color = androidx.compose.ui.graphics.Color(0xFFEF4444).copy(alpha = 0.80f),
+                                fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
+                                textDecoration = TextDecoration.LineThrough
+                            ),
+                            start, headerEnd
+                        )
+                    } else {
+                        // Header bình thường: xanh nhạt, in nghiêng
+                        addStyle(
+                            androidx.compose.ui.text.SpanStyle(
+                                color = androidx.compose.ui.graphics.Color(0xFF7DD3FC),
+                                fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
+                            ),
+                            start, headerEnd
+                        )
+                    }
+                    // Content sau ':'
+                    if (headerEnd < end) {
+                        addStyle(
+                            androidx.compose.ui.text.SpanStyle(
+                                color = androidx.compose.ui.graphics.Color(0xFFF1F5F9)
+                            ),
+                            headerEnd, end
+                        )
+                    }
+                } else {
+                    addStyle(
+                        androidx.compose.ui.text.SpanStyle(
+                            color = androidx.compose.ui.graphics.Color(0xFFF1F5F9)
+                        ),
+                        start, end
+                    )
+                }
+                if (lineIdx < lines.size - 1) append("\n")
+            }
+        }
+        return androidx.compose.ui.text.input.TransformedText(
+            annotated, androidx.compose.ui.text.input.OffsetMapping.Identity
+        )
+    }
+}
+
+/**
  * Tìm tất cả các dải chỉ số (IntRange) của tiêu đề ngày giờ bất biến (bắt đầu bằng "- Thứ..., ngày...:" hoặc tương đương)
  */
 private fun getProtectedHeaderRanges(text: String): List<IntRange> {
@@ -1965,70 +2083,6 @@ private fun AnnotatedString.Builder.parseMarkdownContent(content: String) {
     }
 }
 
-// ── Visual Transformation định dạng dòng ghi chú trong khung soạn thảo giống hệt Home ──
-private class NoteEditorVisualTransformation : VisualTransformation {
-    override fun filter(text: AnnotatedString): TransformedText {
-        val rawStr = text.text
-        if (rawStr.isEmpty()) {
-            return TransformedText(text, OffsetMapping.Identity)
-        }
-        val annotated = buildAnnotatedString {
-            val lines = rawStr.lines()
-            for (i in lines.indices) {
-                val line = lines[i]
-                val trimmed = line.trimStart()
-                val match = FileHelper.DATE_HEADER_REGEX.find(trimmed)
-                val start = length
-                // Trong edit mode: đổi dấu '-' đầu dòng header thành '*' để hiển thị
-                // (cùng 1 ký tự nên OffsetMapping.Identity vẫn đúng)
-                val displayLine = if (match != null) {
-                    val dashIdx = line.indexOf('-')
-                    if (dashIdx != -1) line.replaceRange(dashIdx, dashIdx + 1, "*") else line
-                } else line
-                append(displayLine)
-                val end = length
-
-                if (match != null) {
-                    val colonIdx = displayLine.indexOf(':')
-                    val headerEnd = if (colonIdx != -1) start + colonIdx + 1 else end
-                    addStyle(
-                        SpanStyle(
-                            color = HomeHeaderItalic,
-                            fontStyle = FontStyle.Italic,
-                            fontWeight = FontWeight.Normal
-                        ),
-                        start,
-                        headerEnd
-                    )
-                    if (headerEnd < end) {
-                        addStyle(
-                            SpanStyle(
-                                color = Color(0xFFF1F5F9),
-                                fontWeight = FontWeight.Normal
-                            ),
-                            headerEnd,
-                            end
-                        )
-                    }
-                } else {
-                    addStyle(
-                        SpanStyle(
-                            color = Color(0xFFF1F5F9),
-                            fontWeight = FontWeight.Normal
-                        ),
-                        start,
-                        end
-                    )
-                }
-
-                if (i < lines.size - 1) {
-                    append("\n")
-                }
-            }
-        }
-        return TransformedText(annotated, OffsetMapping.Identity)
-    }
-}
 
 // ── PREVIEWS CHO ANDROID STUDIO COMPOSE ──────────────────────────────────────
 

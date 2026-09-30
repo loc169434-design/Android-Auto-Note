@@ -225,7 +225,10 @@ object FileHelper {
                 val h = currentHeader ?: ""
                 val c = currentContent.toString().trim()
                 val f = currentFull.toString().trim()
-                if (h.isNotEmpty() || c.isNotEmpty() || f.isNotEmpty()) {
+                // Chỉ thêm entry vào danh sách nếu có content (tránh hiển thị orphan header trên Home)
+                val hasContent = c.isNotEmpty()
+                val isFreeText = h.isEmpty() && hasContent   // ghi chú tự do không có header
+                if ((h.isNotEmpty() && hasContent) || isFreeText) {
                     entries.add(NoteEntry(h, c, f))
                 }
                 currentHeader = null
@@ -271,6 +274,80 @@ object FileHelper {
     }
 
     /**
+     * Kết quả của stripOrphanHeaders.
+     * [cleanedText]      : text đã xóa orphan header
+     * [strippedHeaders]  : danh sách header string đã bị xóa (dùng để lưu blacklist sync)
+     */
+    data class StripResult(val cleanedText: String, val strippedHeaders: List<String>)
+
+    /**
+     * Xóa các orphan header (header ngày tháng không có content) ra khỏi text.
+     * Được gọi khi user bấm nút Lưu chủ động.
+     *
+     * Floating content ngay trước orphan header → gộp vào orphan header
+     * (tránh mất nội dung khi user gõ vào vùng blank-line rồi lưu).
+     *
+     * Ví dụ 1: "- A: content\n\n- B:\n\n- C: content" → "- A: content\n\n- C: content"
+     * Ví dụ 2: "- A: content\n\nnew text\n\n- B:"   → "- A: content\n\n- B:\nnew text"
+     */
+    fun stripOrphanHeaders(text: String): StripResult {
+        if (text.isBlank()) return StripResult(text, emptyList())
+        val rawBlocks = text.split("\n\n")
+            .map { it.trim() }
+            .filter { it.isNotBlank() }
+        if (rawBlocks.isEmpty()) return StripResult("", emptyList())
+
+        // Bước 1: Phân loại từng block
+        data class Block(val raw: String, val isHeader: Boolean, val isOrphan: Boolean, val headerStr: String = "")
+        val parsed = rawBlocks.map { block ->
+            val firstLine = block.lines().firstOrNull()?.trim() ?: ""
+            val match = DATE_HEADER_REGEX.find(firstLine)
+            if (match != null) {
+                val headerStr = match.value.trimStart('-', ' ').trimEnd(':').trim()
+                val afterColon = firstLine.substring(match.range.last + 1).trim()
+                val restContent = block.lines().drop(1).joinToString("\n").trim()
+                Block(block, isHeader = true,
+                    isOrphan = afterColon.isEmpty() && restContent.isEmpty(),
+                    headerStr = headerStr)
+            } else {
+                Block(block, isHeader = false, isOrphan = false)
+            }
+        }
+
+        // Bước 2: Xây dựng kết quả
+        val result = mutableListOf<String>()
+        val skipSet = mutableSetOf<Int>()
+        val strippedHeaders = mutableListOf<String>()
+
+        for (i in parsed.indices) {
+            if (i in skipSet) continue
+            val cur = parsed[i]
+            when {
+                !cur.isHeader -> {
+                    // Floating content: block tiếp theo là orphan header → gộp vào
+                    val next = parsed.getOrNull(i + 1)
+                    if (next != null && next.isHeader && next.isOrphan) {
+                        result.add("${next.raw}\n${cur.raw}")
+                        skipSet.add(i + 1)   // bỏ qua orphan header (cũng thêm vào)
+                    } else {
+                        result.add(cur.raw)
+                    }
+                }
+                cur.isOrphan -> {
+                    // Orphan header thực sự → xóa, ghi nhớ header string
+                    strippedHeaders.add(cur.headerStr)
+                }
+                else -> result.add(cur.raw)
+            }
+        }
+
+        return StripResult(
+            cleanedText = result.joinToString("\n\n"),
+            strippedHeaders = strippedHeaders
+        )
+    }
+
+    /**
      * Save edited content to raw.txt AND overwrite fileguidi.txt with the same content.
      * Returns error message on validation failure, null on success.
      */
@@ -284,6 +361,29 @@ object FileHelper {
             return "Lỗi ghi file: ${e.message}"
         }
         return null
+    }
+
+    /**
+     * Save với 2 text riêng biệt:
+     *   [textForValidation] : dùng validate (chưa strip — có header orphan vẫn còn dòng)
+     *   [textForSave]       : dùng ghi file (có thể đã strip orphan)
+     * Trả về null nếu thành công, thông báo lỗi nếu không.
+     */
+    fun saveEditedRawWithClean(
+        context: Context,
+        original: String,
+        textForValidation: String,
+        textForSave: String
+    ): String? {
+        val err = validateEdit(original, textForValidation)
+        if (err != null) return err
+        return try {
+            getRawFile(context).writeText(textForSave, Charsets.UTF_8)
+            getGuidiFile(context).writeText(textForSave, Charsets.UTF_8)
+            null
+        } catch (e: Exception) {
+            "Lỗi ghi file: ${e.message}"
+        }
     }
 
     /**
@@ -306,19 +406,23 @@ object FileHelper {
 
     /**
      * Validate edit constraints:
-     * - Date header lines (bắt bằng DATE_HEADER_REGEX) không được bị xóa hoặc sửa đổi nội dung bên trong tiền tố cũ
-     * - Người dùng được phép tự gõ/chèn thêm header ngày tháng mới
-     * - Chỉ phần tiền tố (trước và gồm dấu ':') được bảo vệ; nội dung sau dấu ':' được tự do xóa/sửa
-     * - Nếu ban đầu chưa có header nào (file trống/note tự do) -> cho phép lưu tự do
+     * - Header có content trong original → phải tồn tại trong edited (có thể orphan tạm thời)
+     * - Orphan header trong original (không có content) → có thể bỏ qua
+     * - editHeaders lấy TẤT CẢ headers (không strip) — orphan trong edited vẫn được tính
      */
     private fun validateEdit(original: String, edited: String): String? {
         val origLines = original.lines()
-        val editLines = edited.lines()
-
         val origHeaders = origLines.mapNotNull { extractDateHeader(it) }
-        val editHeaders = editLines.mapNotNull { extractDateHeader(it) }
 
-        if (!isValidHeaderPreservation(origHeaders, editHeaders)) {
+        // Tìm header nào có content trong original (không orphan)
+        // Bằng cách: chạy stripOrphanHeaders trên original, các header còn lại là non-orphan
+        val origStrippedLines = stripOrphanHeaders(original).cleanedText.lines()
+        val nonOrphanOrigHeaders = origStrippedLines.mapNotNull { extractDateHeader(it) }
+
+        // editHeaders: lấy tất cả (không strip) — orphan tạm thời vẫn tính là hợp lệ
+        val editHeaders = edited.lines().mapNotNull { extractDateHeader(it) }
+
+        if (!isValidHeaderPreservation(nonOrphanOrigHeaders, editHeaders)) {
             return "Không được xóa hoặc sửa dòng ngày tháng cố định"
         }
         return null
