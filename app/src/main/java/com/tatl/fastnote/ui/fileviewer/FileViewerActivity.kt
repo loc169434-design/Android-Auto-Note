@@ -2,7 +2,9 @@ package com.tatl.fastnote.ui.fileviewer
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import com.tatl.fastnote.ui.theme.AndroidAutoNoteTheme
 
 /**
@@ -37,6 +39,11 @@ class FileViewerActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Edge-to-edge (đồng bộ với MainActivity); FileViewerScreen đã tự padding status/nav bars
+        enableEdgeToEdge(
+            statusBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
+            navigationBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT)
+        )
         val startEdit = intent.getBooleanExtra(EXTRA_START_EDIT, false)
         val fromApp   = intent.getBooleanExtra(EXTRA_FROM_APP, false)
 
